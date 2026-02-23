@@ -1,0 +1,33 @@
+author: instructor
+date: 2026-02-23
+question: |
+  NVMe uses **submission queues (SQ)** and **completion queues (CQ)** for
+  host-to-device communication. A host creates 4 I/O submission queues,
+  each with 1024 entries, and pairs them with 2 completion queues (2 SQs
+  per CQ). If every submission entry is a 4KB read command, what is the
+  **maximum number of I/O requests that can be outstanding** across all
+  queues simultaneously?
+options:
+  - text: "4096 requests"
+    correct: true
+    explanation: |
+      Each of the 4 submission queues holds 1024 entries.
+      Total outstanding = $4 \times 1024 = 4096$ commands.
+      Completion queues don't limit outstanding I/O — they only need
+      enough entries to receive completions before the host drains them.
+  - text: "2048 requests"
+    explanation: |
+      This incorrectly assumes the limit is set by the 2 completion
+      queues ($2 \times 1024$). CQ depth limits how many completions
+      can accumulate before the host must process them, but the
+      outstanding I/O count is bounded by the SQ depth total.
+  - text: "1024 requests"
+    explanation: |
+      This is the depth of a single submission queue, not the total.
+      NVMe allows multiple queues to operate independently, so their
+      capacities are additive.
+  - text: "65,536 requests"
+    explanation: |
+      The NVMe spec allows up to 65,535 entries per queue, but that is
+      the *maximum* configurable depth. Here each queue is configured
+      with only 1024 entries, so the total is $4 \times 1024 = 4096$.

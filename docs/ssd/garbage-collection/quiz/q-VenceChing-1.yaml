@@ -1,0 +1,27 @@
+author: VenceChing
+date: 2026-03-06
+question: |
+  假設某 SSD 控制器面臨儲存空間不足，需要在以下兩個 Block 中挑選 Garbage Collection 的 victim block：
+  
+  * **Block X**：Valid pages 佔 25%，資料平均年齡為 60 單位。
+  * **Block Y**：Valid pages 佔 10%，資料平均年齡為 2 單位。
+  
+  若比較 **Greedy policy** 與 **Cost-benefit policy**（`benefit = (1 - utilization) * age / (2 * utilization)`）在處理此情境時的行為差異與系統影響，這兩種演算法會如何評估與選擇？
+options:
+  - text: "Greedy policy 會選擇 Block X 作為 victim，因為其 Valid pages 數量較多，回收後能得到最大的絕對空間。"
+    explanation: |
+      Greedy policy 的核心原則是「挑選 invalid page 數量最多的 block 作為 victim」。
+      因為 Invalid page 越多，代表控制器需搬移的 Valid page 就越少，回收成本越低。
+      在這題中，Block Y 的 Invalid pages 高達 90%，而 Block X 只有 75%。因此，Greedy policy 會選擇 Block Y。
+  - text: "Cost-benefit policy 會優先選擇回收 Block X。"
+    correct: true
+    explanation: |
+      完全正確。將數值代入公式：Block X 為 `((1 - 0.25) * 60) / (2 * 0.25) = 90`；Block Y 為 `((1 - 0.10) * 2) / (2 * 0.10) = 9`。
+      Cost-benefit 策略會優先選擇分數高的 Block X。
+  - text: "若依照 Greedy policy 進行回收，選擇 Block Y 會帶來比選擇 Block X 更高的 Write Amplification。"
+    explanation: |
+      回收 Block Y 只需要搬移 10% 的資料，而回收 Block X 需要搬移高達 25% 的資料。因此，單看這一次回收，選擇 Block Y 需要寫入的資料量較少，WA 較低。
+  - text: "Cost-benefit policy 的設計目的，是為了在空間極度緊張時，能提供比 Greedy policy 更低的即時搬移延遲。"
+    explanation: |
+      Cost-benefit policy 的設計初衷是為了在考量搬移成本與回收效益的平衡下，選擇最適合的 victim block。
+      它並非專門為了在空間緊張時降低即時搬移延遲而設計，而是為了優化長期效率。

@@ -1,0 +1,19 @@
+author: VenceChing
+date: 2026-03-06
+question: |
+  一位 SSD 韌體工程師正在針對**高度偏斜 (Highly Skewed)** 的存取負載（即少數熱資料頻繁覆寫，大量冷資料長期靜止）進行底層架構的最佳化。
+  下列何種機制雖然有其系統貢獻，但必然會產生額外的內部寫入，導致 WAF 增加？
+options:
+  - text: "在 FTL 實作嚴格的冷熱資料分離機制，確保頻繁更新的熱資料被集中寫入特定的 Block，而不與冷資料混雜。"
+    explanation: |
+      這個機制會**大幅降低** WAF。若冷熱資料混雜，GC 為了回收極少數失效的熱資料，會被迫搬移大量同 Block 內的冷資料。若實作冷熱分離，裝滿熱資料的 Block 很快就會整塊自然失效（Invalid page 比例高），GC 在回收這些 Block 時幾乎不需要搬移任何 Valid pages，能有效降低 WAF。
+  - text: "在存取範圍遠大於 SRAM 緩存容量的隨機寫入負載下，增加硬體成本配置較大的 SRAM，捨棄 Demand-based FTL (DFTL)，改採完整的純 Page-level mapping 架構。"
+    explanation: |
+      這個改變會**降低** WAF。DFTL 雖然節省了 SRAM，在存取範圍遠大於 SRAM 緩存容量的隨機寫入負載下，會導致 Cached Mapping Table (CMT) 頻繁發生 Miss。這迫使控制器必須不斷將 Dirty Mapping Entry 寫回 NAND Flash (Eviction)，產生大量的 metadata 內部寫入。改用完整的 Page-level mapping 能徹底消除這部分的額外 WA。
+  - text: "導入積極的 Static Wear Leveling 機制，主動將佔據年輕 Block 的冷資料搬移至老舊 Block。"
+    correct: true
+    explanation: |
+      Static Wear Leveling 會主動把存放在低 P/E cycle block 上的冷資料搬到高 P/E cycle 的 block 上。這些額外的搬移操作雖然能讓所有 block 的磨損更加均勻，進而延長整體壽命，但代價就是必然會產生額外的內部寫入，直接推升 WAF。
+  - text: "在執行常規 GC 時，搭配 Dynamic Wear Leveling，將搬移出的有效資料集中寫入 P/E cycle 較低的閒置 Block 作為目的地。"
+    explanation: |
+      這個機制**不會增加** WAF。Dynamic Wear Leveling 僅是在 GC 選擇 victim block 並搬移資料時，優先選擇 P/E cycle 較低的 block 作為目的地。這只是在「原本就必須執行 GC 寫入」的當下改變寫入位置，它不像 static Wear Leveling 會去搬移本來不需要動的資料 ，因此不會在物理層面上產生額外的內部寫入開銷。

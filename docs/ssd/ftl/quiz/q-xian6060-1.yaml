@@ -1,0 +1,22 @@
+author: xian6060
+date: 2026-03-06
+question: |
+  假設此時 Host 發出一個讀取請求，但目前 CMT 已滿，且發生 Cache Miss，而在 CMT 中準備被替換掉的 victim entry 是 dirty 狀態。
+  請問要完成這筆讀取，NAND Flash 要執行哪些物理操作？
+options:
+  - text: "1 次讀取操作"
+    explanation: |
+      只考慮到去 Flash 讀取 Data 的請求，無考慮到 CMT 的 victim entry 要被寫回 Flash，且無考慮到要將這筆讀取的 entry 放進 CMT。
+  - text: "2 次讀取操作"
+    explanation: |
+      有考慮到去 Flash 讀取 Data 請求和將這筆讀取的 entry 放進 CMT，但沒有將 victim entry 寫回 Flash。
+  - text: "1 次讀取操作和 1 次寫入操作"
+    explanation: |
+      有考慮到將 victim 寫回 Flash 和去 Flash 讀取 Data，但沒有將這筆讀取的 entry 放進 CMT。
+  - text: "1 次寫入操作和 2 次讀取操作"
+    correct: true
+    explanation: |
+      因為 Victim Entry 是 Dirty 的，必須先將它寫回 Flash 中的 GTD 進行更新。
+      由於 NAND Flash 只能 Out-of-place write，進行一次寫入操作。
+      從 Flash 的 translation page 將該 entry 讀取到 CMT 中，進行一次讀取操作。
+      獲得實體位址後，再去 Flash 讀取 Data 回傳給 Host。進行第二次讀取操作。

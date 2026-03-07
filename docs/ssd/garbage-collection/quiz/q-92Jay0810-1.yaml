@@ -1,0 +1,36 @@
+author: 92Jay0810
+date: 2026-03-07
+question: |
+  在 SSD 的 garbage collection (GC) 中，controller 需要選擇 block 進行回收。
+  回收時仍然有效 (valid) 的 pages 需要被複製到新的 block，然後整個 block 才能被 erase。
+  除了單純依據 valid pages 數量進行選擇外，許多 SSD controller 也會採用
+  **Hot/Cold separation (Window-based)** 的策略：
+  - **Hot data**：更新頻繁的資料
+  - **Cold data**：很少更新的資料
+
+  controller 會盡量將 hot data 與 cold data 分開寫入不同的 blocks。
+  以下哪一項最能解釋為何這種策略有助於降低 **write amplification**？
+
+options:
+  - text: "若 hot data 與 cold data 混在同一 block，hot data 很快變成 invalid，但 GC 時仍需要搬移仍然有效的 cold data。"
+    correct: true
+    explanation: |
+      若 hot 與 cold data 位於同一個 block，hot data 可能很快被覆寫而變成 invalid，
+      但 cold data 仍然保持 valid。當 GC 回收該 block 時，controller 必須複製這些仍然有效的 cold pages，增加資料搬移量，導致 write amplification 上升。
+      若將 hot 與 cold data 分開，hot blocks 可能很快全部變成 invalid，GC 時幾乎不需要搬移資料，因此可以降低 write amplification。
+
+  - text: "將 hot data 集中在同一 block，可以讓 GC 更頻繁地回收這些 block，因此整體 GC 成本會降低。"
+    explanation: |
+      Hot blocks 確實可能更快累積 invalid pages，但 GC 的成本主要來自回收時需要搬移的 valid pages 數量，而不是 GC 執行的頻率。
+      若 hot 與 cold data 混在同一 block，即使 hot pages 很快 invalid，仍然需要複製 cold pages，反而會增加資料搬移量。
+
+  - text: "將 cold data 集中在同一 block，可以讓 GC 更容易找到包含大量 cold data 的 blocks，從而提升回收效率。"
+    explanation: |
+      Cold data 的特性是很少被更新，因此在 GC 時通常仍然是 valid。
+      如果 GC 回收主要包含 cold data 的 block，controller 仍然需要複製大量 valid pages，回收成本會很高。
+      Hot/Cold separation 的目的不是優先回收 cold blocks，而是避免在 GC 時搬移不必要的 cold data。
+
+  - text: "將 hot data 與 cold data 分開寫入，可以讓每個 block 的有效頁面數量更平均，降低 GC 選擇 block 的難度。"
+    explanation: |
+      Hot/Cold separation 的主要目的不是讓 valid pages 分布更平均，而是讓具有相似更新頻率的資料位於同一 block。這樣 hot blocks
+      可以快速累積 invalid pages，使 GC 在回收時需要搬移的 valid pages減少，從而降低 write amplification。

@@ -1,0 +1,25 @@
+author: Vincent5201
+date: 2026-03-07
+question: |
+  Wear Leveling 想找最久沒被使用的 Block，也就是 LRU 演算法。但純 LRU 對硬體不友善。以下
+  介紹近似 LRU 且硬體友善的 Second Chance 演算法。他將所有 Block 組成一個環並各自配置一個
+  Bit，當 Block 被使用，其 Bit 設為 1。要選擇 Victim 時，指標檢查當前 Block，若遇到 Bit 
+  為 1，將其清零並移向下一個(循環掃描)；若遇到 Bit 為 0，則選該 Block 作為 Victim。假設有
+  4 個 Block，當前指標指向 Block_2(0-index)，各 Block 的 Bit 如下：[0, 0, 1, 1]。
+  接下來依序使用了 Block_0、Block_2、Block_1，然後開始找 Victim，那會是哪一個 Block ?
+options:
+  - text: "Block_0"
+    explanation: |
+      選出 Victim 後 Block_0 的 Bit 為 0，但不是選到他。
+  - text: "Block_1"
+    explanation: |
+      選出 Victim 後 Block_1 的 Bit 為 0，但不是選到他。
+  - text: "Block_2"
+    correct: true
+    explanation: |
+      經過使用後，所有 Block 都被設為 1，接著開始按照環狀循環尋找並把經過的 Block 依序設為 0，
+      最後會繞一圈回來 Block_2。
+  - text: "Block_3"
+    explanation: |
+      選出 Victim 後 Block_3 的 Bit 為 0，但不是選到他。
+

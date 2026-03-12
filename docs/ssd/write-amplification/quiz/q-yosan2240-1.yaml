@@ -1,0 +1,33 @@
+author: yosan2240
+date: 2026-03-12
+question: |
+  一顆 TLC SSD（標示容量 480 GB，實際 NAND 512 GB）在穩態隨機寫入測試中測得
+  WAF ≈ 3.5。工程師希望降低 **device-level WAF** 以延長 SSD 壽命。
+
+  下列哪一項措施對此目標**最沒有幫助**？
+options:
+  - text: "透過廠商工具將 over-provisioning 從 7% 提高至 28%，犧牲可用容量以增加 GC 緩衝空間。"
+    explanation: |
+      此措施**有效降低** device-level WAF。更大的 OP 區域代表 GC 可用的空閒 Block 更多，
+      Victim block 中平均 valid page 比例因此降低，每次 GC 需搬移的有效資料更少，
+      內部寫入量隨之下降，WAF 明顯改善。
+  - text: "確認作業系統的 TRIM 功能已啟用，使 SSD 能即時得知哪些 LBA 已被檔案系統釋放。"
+    explanation: |
+      此措施**有效降低** device-level WAF。未啟用 TRIM 時，SSD 無從分辨哪些 page
+      在檔案系統層已失效，GC 會將這些「邏輯上已死」的 page 當作 valid data 搬移，
+      白白增加內部寫入。TRIM 讓 SSD 能即時標記 invalid page，GC 直接跳過，WAF 下降。
+  - text: "將檔案系統從 ext4 data=journal 模式切換為 data=ordered 模式，僅對 metadata 做 journaling。"
+    correct: true
+    explanation: |
+      此措施**對 device-level WAF 幫助最小**。`data=journal` 會讓 host 將資料先寫入
+      journal、再寫入最終位置，造成 host-level 寫入放大（約 2×）。切換至 `data=ordered`
+      確實減少了 host 送給 SSD 的寫入量，但 device-level WAF 的定義是
+      **NAND 實際寫入量 ÷ host 寫入量**，其分母雖然縮小，GC 的內部搬移效率
+      （由 OP 空間、invalid page 分佈、victim 選擇策略等決定）並未改變。
+      這是 host-level 的優化，不直接影響 SSD 內部的 GC 行為與 device-level WAF。
+  - text: "將 GC 的 victim block selection 從 greedy 改為 cost-benefit 策略，選擇回收對象時同時考慮資料冷熱程度。"
+    explanation: |
+      此措施**有效降低** device-level WAF。Greedy 策略只選 invalid page 最多的 block，
+      但若該 block 內仍有大量頻繁更新的熱資料，搬移成本依然高昂。Cost-benefit 策略
+      同時評估「可回收空間（benefit）」與「需搬移的 valid page 數（cost）」，
+      傾向選擇冷資料多、即將自然失效的 block，減少不必要的內部搬移，直接降低 WAF。

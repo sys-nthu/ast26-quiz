@@ -1,0 +1,24 @@
+author: 林奕辰
+date: 2026-03-04
+question: |
+  假設我們使用DFTL（Demand-based FTL）當作我們FTL的設計，假設CMT有a0~a3，淘汰策略選擇LRU
+  並假設CMT一剛開始是空的，則如果我們從SSD選擇一部影片循環播放，該影片對應之GTD entries為 e0~e4，
+  並假設不需要處理其他事情，則steady-state的CMT hit rate為多少?
+options:
+  - text: "0%"
+    correct: true
+    explanation: |
+      因為影片是循環播放的，所以實際上讀取順序是e0,e1,e2,e3,e4,e0,e1.....以此類推，
+      而在CMT找e0時會找不到，所以會miss並載入e0，找e1時會找不到，所以會miss並載入e1....以此類推
+      直到CMT裡現在有e0~e3的資料，需要e4時，因為miss要載入e4，此時發現沒位置放了，因為淘汰策略選擇LRU，
+      所以會將e0換成e4，此時CMT裡面的內容是{e4,e1,e2,e3}，而接下來又需要e0，發現miss卻又沒位置放，依據LRU，
+      又會把等下要用的e1淘汰，以此類推 
+  - text: "20%"
+    explanation: |
+      
+  - text: "40%"
+    explanation: |
+      
+  - text: "80%"
+    explanation: |
+      

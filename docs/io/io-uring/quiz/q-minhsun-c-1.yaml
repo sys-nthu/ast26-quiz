@@ -1,0 +1,30 @@
+author: minhsun-c
+date: 2026-03-14
+question: |
+  在高效能伺服器的 I/O 子系統設計中，工程師常需在 `epoll` 與 `io_uring` 之間做出取捨。
+
+  考慮以下場景：一套類 PostgreSQL 的資料庫系統需同時應對大量並發網路連線與頻繁的隨機磁碟讀寫。系統面臨的瓶頸不只是吞吐量，還包括
+  Spectre/Meltdown 修補後 syscall 成本上升、以及 Direct I/O 與 Buffered I/O 難以統一管理的問題。
+
+  關於 `epoll` 與 `io_uring` 在此情境下的差異與適用性，下列哪一項描述最為準確？
+
+options:
+  - text: "`epoll` 採用 Event-Driven 架構，能同時監控大量網路連線，因此資料庫系統只需使用 `epoll`，便能統一處理網路請求與磁碟讀寫。"
+    explanation: |
+      `epoll` 在網路連線上確實是成功的 Event-Driven 解法，但它對檔案 I/O 幾乎完全無效。Linux 的檔案永遠被視為「就緒」狀
+      態，`epoll` 無法分辨資料是已快取在 Page Cache 還是仍在硬碟上。因此資料庫系統不得不同時維護兩套機制：`epoll` 處理網
+      路、`libaio` 處理硬碟，這正是 `io_uring` 出現並統一兩者的動機。
+  - text: "`epoll` 在處理檔案 I/O 時存在侷限，因為它無法有效區分資料是存在硬碟還是已快取在 Page Cache；而 `io_uring` 統一了網路與儲存介面，並透過 Shared Ring Buffer 減少了模式切換（Mode Switch）的開銷。"
+    correct: true
+    explanation: |
+      Linux 的一般檔案幾乎永遠對 `epoll` 回報「就緒」，導致 `epoll` 無法感知實際磁碟延遲，資料庫系統因此不得不另行依賴 
+      `libaio` 處理 Direct I/O。`io_uring` 透過 SQ/CQ 共享記憶體環形緩衝區，讓使用者空間與核心免於反覆切換，且同時覆蓋網
+      路、Buffered 與 Direct I/O。
+  - text: "`io_uring` 雖然效能強大，但其設計初衷是為了取代 `libaio` 處理 Direct I/O，在處理 Buffered I/O 或網路 Socket 時，其表現仍遜於傳統的 `epoll` 介面。"
+    explanation: |
+      `io_uring` 的核心優勢之一是透過 **單一介面同時支援 Buffered I/O、Direct I/O 與網路 Socket** ，打破了過去必須
+      混用 `epoll` + `libaio` 的局面。在網路場景中，`io_uring` 同樣可減少 syscall 次數，效能不遜於 `epoll`。
+  - text: "將 PostgreSQL 的同步 I/O 改為 `io_uring` 介面後，即使不調整系統架構，也能因消除中斷延遲而獲得數倍的效能提升。"
+    explanation: |
+      `io_uring` 的效益來自 Queue Depth 的提高。若系統邏輯仍為同步 (送出請求後即原地等待)，Queue Depth 始終為 1，因此
+      必須配合 Fiber 或 Coroutine 等非同步設計，才能真正釋放 `io_uring` 的潛能。

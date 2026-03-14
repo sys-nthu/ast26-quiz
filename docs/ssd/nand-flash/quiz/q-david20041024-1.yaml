@@ -1,0 +1,18 @@
+author: david20041024
+date: 2026-03-06
+question: |
+  在購買SSD時，會發現QLC NAND Flash 相較於SLC NAND Flash而言更加便宜，其中使QLC NAND Flash比較便宜的原因為?
+options:
+  - text: "容量成本被平攤掉了"
+    correct: true
+    explanation: |
+      QLC每個Cell可以儲存4個bit，而SLC每個Cell可以儲存1個bit，在同容量下，QLC的Cell數量是SLC的1/4，因此製造成本被平攤掉了。
+  - text: "QLC在製成上，浮閘物理上被切分成很多隔間，所以隔間內的製造難度降低了"
+    explanation: |
+      浮閘並沒有進行物理上的切分處理，而使用閾值來判斷儲存的資料，因此製造難度並沒有降低。
+  - text: "QLC可以使Cell串聯得更長，使同空間下能放更多Cell"
+    explanation: |
+      無關，QLC與SLC討論的是一個cell可以存多少bit，與cell串聯的長度無關。與空間使用率更有相關的是，2D到3D的技術進步。
+  - text: "QLC與NVMe契合度非常高，不用太花費心力去處理資料的轉換"
+    explanation: |
+      無關，NVMe是一個很契合SSD的通訊協議，讓SSD的效能可以被更好地發揮，但跟QLC與SLC價格上的差別沒什麼關係。

@@ -1,0 +1,22 @@
+author: david20041024
+date: 2026-03-14
+question: |
+  在相同製程技術與目標容量（如 1TB）的基準下，比較 QLC 與 SLC SSD 的硬體設計與可靠性機制，下列敘述何者最為精確？
+options:
+  - text: "QLC SSD 中的 SLC Cache 通常是由物理上獨立、造價昂貴的專用 SLC 顆粒組成"
+    explanation: |
+      錯誤。
+      現代 QLC SSD 多採用「模擬 SLC 模式（pSLC）」，即透過韌體讓 QLC Cell 僅存儲 1-bit 電壓狀態來充當 Cache，以兼顧效能與成本，而非使用物理獨立的 SLC 顆粒。
+  - text: "相較於 QLC，SLC SSD 必須配置更高比例的 OP (Over-Provisioning) 空間來應對垃圾回收 (GC)"
+    explanation: |
+      錯誤。
+      事實上，QLC 因為 P/E cycle 極低且寫入放大（WAF）對壽命影響劇烈，在設計上更依賴較大的 OP 空間來降低 WAF 並提升穩態效能；而 SLC 雖然也需要 OP，但其原生耐用度較高，對 OP 比例的依賴程度相對 QLC 較低。
+  - text: "為了應對較高的原始錯誤率 (RBER)，QLC 的每個物理 Page 通常配備比 SLC 更大的 Spare Area (OOB)"
+    correct: true
+    explanation: |
+      正確。
+      QLC 的電壓層級極為密集（16 層），對雜訊極其敏感導致 RBER 較高。為了維持資料可靠性，控制器必須使用更強大的糾錯碼（如 LDPC），因此每個 Page 需要預留更多的 Spare Area (OOB 空間) 來儲存更長的 ECC 校驗資訊。
+  - text: "QLC SSD 因為更頻繁地打電壓進Cell中，其資料保存時間 (Retention Time) 優於 SLC"
+    explanation: |
+      錯誤。
+      QLC 的電壓判定區間（Voltage Margin）極窄，微小的電荷洩漏就會導致判讀錯誤，因此其資料保存能力（Retention Time）明顯弱於電壓區間寬廣的 SLC。

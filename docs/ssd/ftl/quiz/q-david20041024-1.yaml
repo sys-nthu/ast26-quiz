@@ -1,0 +1,18 @@
+author: david20041024
+date: 2026-03-07
+question: |
+  FTL涉及成本與效率考量，請問下列有關FTL的描述，哪一項是正確的？
+options:
+  - text: "傳統單一的MOSFET比單一的Flash Cell的製造成本更高，所以SRAM比NAND Flash更貴"
+    explanation: |
+      Flash Cell的內部結構比MOSFET更複雜，包含了額外的浮動閘極等，但是SRAM每個位元需要6個MOSFET，而Flash每個位元只需要1個或以下的Flash Cell，因此SRAM更昂貴。
+  - text: "DFTL的演算法中，在滿的時候通常會利用segmented LRU來淘汰CMT裡的資料，是基於Spatial Locality"
+    explanation: |
+      LRU是基Temporal locality，認為最近被訪問的資料在未來也很可能會被訪問，而不是Spatial Locality。
+  - text: "Log block能徹底消除Block-level mapping在小資料更新中，所需要的Read-Modify-Write"
+    explanation: |
+      Log block只能起到緩衝的作用，最後還是需要將資料寫回原本的block，因此仍然會有Read-Modify-Write的問題。
+  - text: "通常外部斷電時，SSD裡面的SRAM的資料也不會立馬遺失"
+    correct: true
+    explanation: |
+      SSD通常會有電容或其他備用電源來維持SRAM的電力，確保在斷電時SRAM中的資料不會立即遺失，這樣可以在斷電後有足夠的時間將SRAM中的資料寫回到非揮發性存儲中。這個行為稱為Power Loss Protection。

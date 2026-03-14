@@ -1,0 +1,34 @@
+author: david20041024
+date: 2026-03-14
+question: |
+  你有一個SSD，規格如下：
+
+  - IOPS 上限：500K
+  - Bandwidth 上限：1.5 GB/s
+  - CPU 可以處理 interrupt 每秒約 400K 次，會出現 interrupt storm，所以會切換成Polling 模式。
+
+  今天我先random 4 KB read一陣子，再 sequential 256 KB write一陣子。
+  請問在這兩個操作中，分別是什麼瓶頸與CPU模式？
+
+options:
+  - text: "操作1: IOPS 瓶頸，Polling 模式；操作2: Bandwidth 瓶頸，Interrupt 模式"
+    explanation: |
+      錯誤。
+      本選項是因為誤將random read與IOPS 瓶頸直接連結在一起。
+      操作一，要實際運算1.5GB/s/4KB = 375K IOPS < 500K IOPS，才會發現IOPS其實被故意寫得很高。
+  - text: "操作1: Bandwidth 瓶頸，Interrupt 模式；操作2: Bandwidth 瓶頸，Interrupt 模式"
+    correct: true
+    explanation: |
+      正確。
+      因為1.5GB/s/4KB = 375K IOPS < 500K IOPS，1.5GB/s/256KB = 6.1K IOPS < 500K，所以兩個操作都是 Bandwidth 瓶頸。
+      又因為兩個操作的 IOPS 都小於 CPU 處理 interrupt 的能力 (400K)，所以都會使用 Interrupt 模式。
+  - text: "操作1: Bandwidth 瓶頸，Interrupt 模式；操作2: Bandwidth 瓶頸，Polling 模式"
+    explanation: |
+      錯誤。
+      操作二只有大約1.5GB/s/256KB = 6.1K IOPS，不需要讓CPU很忙的Polling 模式。
+  - text: "操作1: IOPS 瓶頸，Interrupt 模式；操作2: Bandwidth 瓶頸，Polling 模式"
+    explanation: |
+      錯誤。
+      本選項是因為誤將random read與IOPS 瓶頸直接連結在一起。
+      操作一，要實際運算1.5GB/s/4KB = 375K IOPS < 500K IOPS，所以是Bandwidth 瓶頸，Interrupt 模式。
+      操作二只有大約1.5GB/256KB = 6.1K IOPS，不需要讓CPU很忙的Polling 模式。

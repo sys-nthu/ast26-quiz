@@ -1,0 +1,52 @@
+author: david20041024
+date: 2026-03-09
+question: |
+  在 SSD 管理中，垃圾回收 (GC) 需要權衡有效空間回收 (Utilization)、資料更新與損耗平衡 (Wear Leveling)。
+  我們定義一個選擇回收區塊 (Victim) 的公式：
+  `Score = w1 * (1 - u) + w2 * age_n + w3 * (1 - wear_n)`
+  其中：
+  - u: 有效資料佔用率 (Utilization, 0~1)。
+  - age_n: 區塊年齡 / 當前系統中所有區塊的最大年齡。
+  - wear_n: 擦除次數 / 當前系統中所有區塊的最大擦除次數。
+  
+  運作規則：
+  1. Score 最高者被選為 Victim，選中後執行擦除：u=0, wear=wear+1, age=0。
+  2. 若區塊的 u=0，其 age 不會累加。
+  3. 權重隨時間動態調整：每經過 1 個單位時間，w1 下降 0.1，w2 與 w3 各上升 0.05。
+  
+  初始狀態 t0 (w1=0.8, w2=0.1, w3=0.1)：
+  - Block A: u=0.1, age=1, wear=1
+  - Block B: u=0.3, age=2, wear=2
+  - Block C: u=0.5, age=3, wear=3
+  
+  流程：
+  1. 在 t0 時選出一個 Victim。
+  2. 經過 2 個單位時間後，將上一個 Victim 的 u 設為 0.2（此時該區塊 age 開始重新累加）。
+  3. 再經過 3 個單位時間 (即總共 t0+5)，需要再選出下一個 Victim。
+  
+  請問在 t0 與 t0+5 時，分別會選擇哪個區塊作為 Victim？
+
+options:
+  - text: "A, B"
+    correct: true
+    explanation: |
+      1. t0 時：各區塊的 age/max_age 與 wear/max_wear 皆相同 (1/3, 2/3, 3/3)，故 age_n + (1-wear_n) 對所有區塊皆為定值。決定權在 w1*u，選 u 最低者，故 A 為 Victim (wear_A 變為 2, age_A 變為 0)。
+      2. t0+5 時：w1 = 0.8 - (0.1*5) = 0.3, w2 = 0.35, w3 = 0.35。
+      各區塊狀態：
+      - A: u=0.2, age=3 (t2到t5累加), wear=2
+      - B: u=0.3, age=2+5=7, wear=2
+      - C: u=0.5, age=3+5=8, wear=3
+      此時 max_age=8, max_wear=3。
+      Score_A = 0.3*0.8 + 0.35*(3/8) + 0.35*(1-2/3) ≈ 0.487
+      Score_B = 0.3*0.7 + 0.35*(7/8) + 0.35*(1-2/3) ≈ 0.633
+      Score_C = 0.3*0.5 + 0.35*(8/8) + 0.35*(1-3/3) = 0.5
+      故 t0+5 選 B。
+  - text: "A, A"
+    explanation: |
+      錯誤。此選項可能忽略了權重的移轉。在 t0+5 時，w1 已經從 0.8 降到 0.3，意味著演算法不再僅專注於低 Utilization 的回收，而是更在意區塊的年齡與磨損平衡。如果仍選 A，代表過度高估了 u=0.2 的影響力，而忽略了 B 具有極高的 age_n (7/8) 且 wear_n 較低 (2/3) 的綜合優勢。
+  - text: "A, C"
+    explanation: |
+      錯誤。此選項通常是因為過度強調「Age」的重要性（w2 上升），而忽略了公式中的「Wear Leveling」項 (1-wear_n)。Block C 雖然年齡最老 (age_n=1)，但它的磨損次數也是最高 (wear_n=1)，導致 (1-wear_n) 項為 0。在 w3 同樣上升到 0.35 的情況下，C 的競爭力會輸給磨損較少的 B。
+  - text: "B, C"
+    explanation: |
+      錯誤。此選項在 t0 判斷錯誤。在 t0 時，w1=0.8 佔絕對主導地位，採用的是 Greedy 策略。若選 B 則違反了 Greedy 優先回收低 Utilization 以降低 WA 的原則。此外，t0 時 B 與 A 在 age 與 wear 的歸一化加總分是相同的，A 因為 u 較低絕對會優先被選。

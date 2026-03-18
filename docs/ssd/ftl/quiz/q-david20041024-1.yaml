@@ -1,19 +1,20 @@
 author: david20041024
 date: 2026-03-18
 question: |
-  FTL 涉及成本與效率考量，請問下列有關 FTL 的描述，哪一項是正確的？
+  現今的 SSD 大多採用 DFTL 或混合式 mapping 來管理 Flash 的 mapping table，請問下列關於這些 FTL 的敘述何者正確？
 options:
-  - text: "由於單一 SRAM MOSFET 單元的製造成本遠低於 Flash Cell，因此全面採用 Page-level mapping 是目前 SSD 的主流配置"
+  - text: "因為 SRAM 需要六個 MOSFET 儲存一個 bit，導致成本很高，所以全面採用 Page-level mapping 並不實際"
+    correct: true
     explanation: |
       雖然單一 MOSFET 的結構比包含浮動閘極的 Flash Cell 簡單，但 SRAM 需要6個 MOSFET，所以 SRAM 昂貴很多。
       若要全面採用 Page-level mapping 會用到大量的 SRAM，成本會難以承受。
       所以目前多採用 DFTL 與混合式 mapping。
+  - text: "DFTL 的演算法中，在滿的時候通常會利用 LRU 來淘汰 CMT 裡的資料，是基於 Spatial Locality"
     explanation: |
       LRU 是基於 Temporal locality，認為最近被訪問的資料在未來也很可能會被訪問，而不是 Spatial Locality。
-  - text: "Log block 能徹底消除 Block-level mapping 在小資料更新中，所需要的 Read-Modify-Write"
+  - text: "除了 DFTL 的演算法外， Log block 的方法能徹底消除 Block-level mapping 在小資料更新中，所需要的 Read-Modify-Write"
     explanation: |
       Log block 只能起到緩衝的作用，最後還是需要將資料寫回原本的 block，因此仍然會有 Read-Modify-Write 的問題。
-  - text: "會定期將 SRAM 中的 Mapping table 寫回 Flash 中"
-    correct: true
+  - text: "CMT 不會定期將資料寫回 Flash 中，因為其中的資料不會揮發"
     explanation: |
-      SRAM 屬於揮發性記憶體，斷電後資料會遺失，因此需要定期將 Mapping table 寫回 Flash 中，以確保資料的持久性。
+      CMT 中的 SRAM 屬於揮發性記憶體，斷電後資料會遺失，因此需要定期將 Mapping table 寫回 Flash 中，以確保資料的持久性。

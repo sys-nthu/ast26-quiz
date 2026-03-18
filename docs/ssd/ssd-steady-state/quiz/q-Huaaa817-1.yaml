@@ -1,0 +1,47 @@
+
+author: Huaaa817
+date: 2026-03-18
+question: |
+  在 **steady state** 下，一顆 SSD 的 latency 分佈如下：
+
+  - $p50 = 0.1\ \text{ms}$
+  - $p95 = 0.15\ \text{ms}$
+  - $p99 = 25\ \text{ms}$
+  - $p99.9 = 60\ \text{ms}$
+
+  根據以上數據，最合理的解釋是什麼？ 
+  
+options:
+  - text: "SSD controller clock frequency 在高負載時降低"
+    explanation: |
+      這個選項看起來合理，因為 controller 降頻確實可能讓整體延遲變高；但它不符合題目的延遲分佈形狀。
+      若是 controller clock frequency 降低，影響通常會比較**全面且連續**：
+      不只是少數 request 變慢，而是大部分 request 都會一起變慢
+  - text: "NAND program time 隨著 P/E cycle 增加"
+    explanation: |
+       P/E cycle 增加對 latency 造成的影響通常比較**漸進**，它比較像是整體分佈慢慢右移：$p50$、$p95$ 可能都會一起增加。不會造成這種「前 95% 幾乎不受影響，但 p99 突然大到數百倍」的形狀
+
+  - text: "Garbage Collection 在 free block 接近耗盡時觸發大量 data migration"
+    correct: true
+    explanation: |
+      這組數字表示：大多數 request 的延遲非常低，但在高百分位時延遲突然大幅上升，
+      顯示系統存在明顯的 **tail latency spike**。
+      - $p50 = 0.1$ ms：代表大多數 request 非常快
+      - $p95 = 0.15$ ms：代表連大部分偏慢的 request 也仍然很快
+      - 但 $p99 = 25$ ms、$p99.9 = 60$ ms：代表只有極少數 request 突然變得非常慢
+
+      這正是steady state 下 GC（Garbage Collection）造成的典型現象。
+      原因是在 steady state 中，SSD 裡大部分 block 都已經被寫過
+      - 新寫入不再能永遠直接使用全新的 erased block
+      - controller 必須回收空間
+      這些 GC 工作會與 user I/O 競爭 NAND die/plane 的時間，導致少數 request 被卡住很久
+
+  - text: "Wear leveling 將資料搬移到較低 P/E cycle 的 block"
+    explanation: |
+      Wear leveling 確實會搬移資料，因此看起來也可能造成額外延遲。但它通常是
+      **較為平滑且背景式（background）的操作**，目的是讓所有 block 的 P/E cycle
+      分布更平均，而不是在空間即將耗盡時緊急回收空間。
+      因此 wear leveling 的影響通常是：
+      - 輕微增加整體 write latency
+      - 或稍微降低平均 throughput
+      它通常不會造成題目所描述的極端 tail latency 分佈

@@ -1,0 +1,20 @@
+author: Vincent5201
+date: 2026-03-13
+question: |
+  大抄中提到從 fresh state 過渡到 steady state 開始 GC 的過程，消費級 SSD（7% OP）大約寫
+  滿 1 次之後就會進入 steady state，企業級 SSD（28% OP），可能需要寫滿 1-2 次，原因是什麼 ?
+options:
+  - text: "企業級 SSD 使用較高級的 SLC，具有較高的 P/E Cycle 壽命較長"
+    explanation: |
+      此敘述與本題無關，從初始 fresh state 到 steady state 原則上還不受 P/E Cycle 影響。
+  - text: "較大的 OP 區域讓 SSD 有位置可以跑 Wear Leveling"
+    explanation: |
+      此敘述與本題無關，進入 steady state 是因為開始頻繁 GC 不是 Wear Leveling。
+  - text: "企業級 SSD 有較大的 DRAM/SRAM 作為 mapping cache，比較不會發生 Cache Miss"
+    explanation: |
+      此敘述與本題無關，不會發生 Cache Miss 可以讓查表很快，但與是否頻繁 GC 無關。
+  - text: "較大的 OP 使 SSD 可以容納更多 invalid pages，較晚開始頻繁 GC"
+    correct: true
+    explanation: |
+      較大的 OP 提供了更多的實體 free block，在隨機寫入下能容納更多產生的 invalid 
+      page，延後了 free block 被耗盡的時間點，因此需要更多的寫入才會觸發 GC。

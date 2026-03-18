@@ -1,0 +1,24 @@
+author: Vincent5201
+date: 2026-03-17
+question: |
+  本章節提到 IOPS 與 Bandwidth、Synchronous I/O 與 Asynchronous I/O、
+  Interrupt 與 Polling，以下融合這三者的觀念，請問哪項敘述最為正確?
+options:
+  - text: "當我要把一個 10GB 的影片複製到另一個資料夾，面臨 High Bandwidth 需求，
+          應將 I/O 機制由 Interrupt 切換為 Polling 以提升吞吐量"
+    explanation: |
+      複製大檔案屬於 High Bandwidth 但通常是 Low IOPS 的場景。此時使用 Polling 並
+      沒有幫助反而會消耗大量 CPU 資源。
+  - text: "在 High IOPS 的場景，使用 Interrupt 機制容易導致 CPU 頻繁 Context Switch"
+    correct: true
+    explanation: |
+      敘述正確，並且頻繁 Context Switch 會導致 CPU 必須不斷暫停當前工作並保存暫存器
+      狀態，導致 CPU 成為效能瓶頸。
+  - text: "在 IO 請求稀疏時，為了降低系統 Latency，應使用 Polling 模式"
+    explanation: |
+      使用 Polling 模式來降低 Latency 比較適用於極高 IOPS 的場景，在IO 請求稀疏時使用
+      會使 CPU 空轉極度浪費資源。
+  - text: "使用 Asynchronous I/O 時，是使用 Interrupt 機制而不是 Polling"
+    explanation: |
+      Asynchronous I/O 是應用程式與 OS 間的溝通方式，Interrupt/Polling 則是OS 與硬體
+      間的溝通方式，兩者不同。例如 io_uring 是 asynchronous，但有 polling 模式。

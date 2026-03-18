@@ -1,0 +1,26 @@
+author: swaggyt1201
+date: 2026-03-16
+question: |
+  你正在為一個資料庫系統進行效能調整。該伺服器搭載一顆規格為 **隨機 4KB 讀取 500K IOPS** 與 **順序讀取頻寬 4 GB/s** 的 NVMe SSD。
+  為了減少索引的深度，你決定將資料庫的讀取單位（Page Size）從原本的 4KB 提高到 128KB，且 workload 依然維持隨機讀取。
+  在完成 Page Size 的調整後，請預測該系統最可能觀察到的效能變化為何？
+options:
+  - text: "依然能維持 500K IOPS 的水準，因為隨機讀取指令的處理上限是由控制器 (SSD Controller) 決定，與資料塊大小無關。"
+    explanation: |
+      雖然 SSD 控制器可能每秒能處理 50 萬個「指令」，但它無法每秒搬運超過 4GB 的資料。
+      若要維持 500K IOPS 且每次讀 128KB，硬體頻寬必須達到 64GB/s，遠超硬體極限。
+  - text: "IOPS 將提升至 1M 以上，因為 128KB 的大區塊請求會被控制器自動判定為 Sequential I/O 並進行加速。"
+    explanation: |
+      隨機（Random）或順序（Sequential）是由 LBA（邏輯區塊位址）是否連續決定的，跟單一 Page 的大小無關。
+      即便 Page 很大，只要每次讀取的位置在磁碟上是跳躍的，它依然屬於 Random I/O。
+  - text: "Throughput 會下降，因為 SSD 處理 128KB 隨機資料塊的內耗（Internal Overhead）遠高於處理 4KB。"
+    explanation: |
+      事實上，Page Size 變大通常會讓 Throughput 上升或維持在頂峰。
+      處理一個 128KB 的請求，控制器只需要進行 1 次地址轉換；若拆成 32 個 4KB 請求，則需 32 次流程。
+      因此，加大 Page Size 反而能更有效率地利用頻寬。
+  - text: "IOPS 將大幅下降至約 31K 左右，因為系統會先觸發 Bandwidth 的硬體物理頻寬瓶頸。"
+    correct: true
+    explanation: |
+      當請求大小變為 128KB 時，達到 500K IOPS 需要 500K x 128KB = 64GB/s。
+      然而硬體上限僅 4GB/s，因此實際 IOPS 會被限制在 4000MB/128KB \approx 31250。
+      這說明瓶頸已從 IOPS 轉向了 Bandwidth。

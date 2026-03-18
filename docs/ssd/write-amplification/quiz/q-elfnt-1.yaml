@@ -1,0 +1,20 @@
+author: elfnt
+date: 2026-03-17
+question: |
+  假設 Host 在持續寫入一 SSD，且該 SSD 正在執行 Garbage Collection。
+  且在一個待回收的 Block 中，總共有 256 個 Pages，其中 Valid Pages 的數量為 $V$，其餘為 Invalid Pages。
+  若僅考慮 Host Writes 以及 Garbage Collection 所造成的 Write Amplification，分析回收該 Block 時其內部的 $V$ 與 $\text{WAF}$ 的關聯何者較為合理？
+options:
+  - text: "當 $V$ 趨近於 $0$ 時，代表該區塊幾乎全是無效資料，此時 GC 搬移量極小，使得 $\text{WAF}$ 會趨近於 $1.0$"
+    correct: true
+    explanation: |
+      根據公式，$\text{WAF} = \frac{1}{1 - \frac{V}{256}}$，所以當 $V$ 趨近於 $0$ 時，$\text{WAF}$ 會趨近於 $1.0$，這代表 GC 搬移量極小，因為幾乎沒有有效資料需要搬移。
+  - text: "執行 GC 時，SSD 產生的內部額外寫入負擔（Internal Write Cost）在數值上等於 $256 - V$，即該區塊中因 Invalid 資料而浪費的空間"
+    explanation: |
+      需要額外寫入的應該等於 $V$（搬移的量），而不是 $256 - V$。需要搬移的應該是 Valid 的資料，而不是 Invalid 的資料。
+  - text: "若該區塊的 $V = 128$，則該次操作所產生的 $\text{WAF}$ 數值應為 $1.5$"
+    explanation: |
+      根據公式，當 $V = 128$ 時，$\text{WAF} = \frac{1}{1 - \frac{128}{256}} = \frac{1}{1 - 0.5} = \frac{1}{0.5} = 2.0$，而非 $1.5$。
+  - text: "若此 GC 採用的是 Greedy 策略，則 Controller 會優先選擇 $V$ 較大的區塊進行回收，因為這代表該區塊內部的資料存活率高，回收後能顯著提升資料的完整性"
+    explanation: |
+      Greedy 策略是要找 Invalid 最多（$V$ 最小）」的區塊。回收 $V$ 大的區塊會導致搬移量上升，讓 $\text{WAF}$ 變得極差

@@ -1,0 +1,20 @@
+author: Jia-Sheng-Yang
+date: 2026-03-15
+question: |
+  一位企業級伺服器管理員正在測試一顆全新的 NVMe SSD。在連續進行隨機寫入的前 30 分鐘，該硬碟能維持 400,000 IOPS 的高標表現。
+  然而，在持續同樣的負載數小時後，效能下降並穩定在 120,000 IOPS，且之後一直保持在這個水準。
+  請問造成這 120,000 IOPS 的 Steady State 平台期的主要架構原因為何？
+options:
+  - text: "控制器已耗盡了所有乾淨（erased）的區塊，現在必須在處理主機端寫入請求的同時，同步執行 Garbage Collection 以產生新的可寫入空間。"
+    correct: true
+    explanation: |
+      在全新出廠狀態下，控制器可以直接寫入已抹除的空區塊。一旦所有區塊都被寫入過一次，之後的每一次新寫入都必須伴隨著「清理舊區塊」的動作。120,000 IOPS 代表了該控制器在「搬移有效資料 + 抹除區塊」與「接收新資料」之間達到的平衡。
+  - text: "SSD 內部的 DRAM 快取已完全飽和，迫使 FTL 必須將 Mapping Table 儲存在較慢的 NAND Flash 中，而非高速記憶體中。"
+    explanation: |
+      快取用盡會影響效能，通常會導致效能劇烈震盪（Jitter），而非長期穩定的 steady state。
+  - text: "NAND Flash 儲存單元達到了特定的溫度閾值，觸發了韌體對控制器的永久降頻保護機制，以防止硬碟超過其熱設計功耗。"
+    explanation: |
+      熱校頻（Thermal Throttling）確實會降低效能，但它通常是動態反應。如果環境降溫，效能會回升。
+  - text: "Wear-leveling 演算法偵測到 SSD 的 P/E cycle 分佈不均，因此暫停了主機端的 I/O 操作，以便將冷資料搬到高 P/E cycle 的 block 上。"
+    explanation: |
+      Wear-leveling 設計目標是零碎地在背景執行。它不會導致效能從 40 萬驟降至 12 萬並保持水平。

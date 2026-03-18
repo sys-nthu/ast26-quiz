@@ -1,0 +1,20 @@
+author: joanne-09
+date: 2026-03-18
+question: |
+  假設你正在為一個 NVMe SSD 的資料庫系統（規格為：Random 4KB Read 500K IOPS, Sequential Read 3.5 GB/s）優化隨機讀取效能。目前的 Workload 表現為每秒穩定產生 50 萬次隨機 4KB 讀取請求。
+  下列關於該系統設計與效能瓶頸的敘述，何者最為精確？
+options:
+  - text: "由於系統目前的總吞吐量僅為 2 GB/s，尚未達到硬體 3.5 GB/s 的頻寬極限，因此可以透過將 I/O 大小從 4KB 提升至 8KB 來線性增加 IOPS。"
+    explanation: |
+      雖然頻寬未達上限，但題目指出 IOPS 已經達到 500K 的硬體極限，在 Random Small I/O 的情況下，瓶頸卡在裝置每秒處理請求次數的能力。若將 I/O 大小提升至 8KB，雖然頻寬使用會上升，但 IOPS 通常會下降或持平，無法線性增加 IOPS。
+  - text: "在高頻率 I/O 下，若採用傳統的 Interrupt 模式，系統可能會面臨 **Interrupt Storm** ，此時切換至 Polling 模式雖然會消耗 CPU 循環，但因消除了 Context Switch 與中斷處理流程的 Overhead，整體延遲與 CPU 效率反而可能優於中斷模式。"
+    correct: true
+    explanation: |
+      當 I/O 速度極快且密度極高時，中斷帶來的 overhead 會超過 Polling空轉的浪費。Polling 省去了中斷信號傳遞與處理器的跳轉時間，能第一時間發現 I/O 完成。
+  - text: "NVMe SSD Synchronous I/O 搭配多執行緒是比 Asynchronous I/O 更具優勢的選擇，因為執行緒切換的成本在比例上遠低於 I/O 等待時間，足以忽略不計。"
+    explanation: |
+      雖然 1-5μs 看似比 100μs 小，但在 High Concurrency 情境下，若要達到 500K IOPS，同步模型需要極大量的 thread，這會導致極頻繁的 Context Switch。隨著硬體延遲縮短，軟體層的 Overhead 會成為效能的主要限制因素。
+  - text: "Block Device Abstraction 層的主要功能是讓應用程式能精確控制 SSD 內部的 NAND Flash Page 寫入位置，藉此減少 Device Driver 的處理負擔，這是達成 500K IOPS 的核心關鍵。"
+    explanation: |
+      Block Device Abstraction 的目的是隱藏底層硬體細節（如 NAND page/block），提供統一的固定大小 block 陣列觀念。應用程式與 OS 並不需要知道資料寫在第幾個 NAND chip，這是 Device Driver 和控制器的職責。
+      

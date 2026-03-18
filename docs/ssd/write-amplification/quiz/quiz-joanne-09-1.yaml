@@ -1,7 +1,7 @@
 author: joanne-09
 date: 2026-03-15
 question: |
-  若為了延長 SSD 壽命將系統從 **Update-in-place** (如 B+ Tree） 改為 **Append-only** (如 LSM-Tree） ，並採用 Tiered Compaction 策略來最小化資料合併的頻率。
+  若為了延長 SSD 壽命將系統從 **B+ Tree** 結構改為 **Append-only** (如 LSM-Tree） ，並採用 Tiered Compaction 策略來最小化資料合併的頻率。
   雖然優化後 WAF 大幅下降，但測試發現讀取效能明顯變差了。為什麼降低 WAF 的操作會導致讀取效能降低？
 options:
   - text: "因為追加寫入會導致 SSD 內部的物理區塊（Block）產生更多碎片，使搜尋資料時必須頻繁移動讀取頭。"
@@ -10,7 +10,7 @@ options:
   - text: "因為為了降低寫入時的合併次數（低 WAF），系統允許資料的不同版本存在於更多個不相干的檔案中，導致讀取時必須掃描更多位置。"
     correct: true
     explanation: |
-      用 Update-in-place 的結構，資料更新會需要先擦掉舊資料再寫入，造成高 WAF 但讀取時可以直接定位。
+      用 B+ Tree 的結構在隨機寫入時會造成物理 block 碎片化，造成高 WAF 但讀取時可以直接透過 virtual address 定位。
       但改為 Append-only 的結構，資料的不同版本可能分散在多個檔案中，讀取時需要掃描更多的檔案來找到最新版本，這會增加讀取延遲。
   - text: "因為低 WAF 策略減少資料遷移，導致 NAND Flash 儲存單元的電壓偏移增加，使得讀取時必須多次重試。"
     explanation: |

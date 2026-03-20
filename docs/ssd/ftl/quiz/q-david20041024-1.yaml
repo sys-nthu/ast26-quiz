@@ -1,14 +1,12 @@
 author: david20041024
-date: 2026-03-18
+date: 2026-03-20
 question: |
   現今的 SSD 大多採用 DFTL 或混合式 mapping 來管理 Flash 的 mapping table，請問下列關於這些 FTL 的敘述何者正確？
 options:
-  - text: "因為 SRAM 需要六個 MOSFET 儲存一個 bit，導致成本很高，所以全面採用 Page-level mapping 並不實際"
+  - text: "FTL 採用 out-of-place write，當發生 random write 時，舊的 physical page 會被標記為 invalid，而新資料則會配置到新的 free page，並以 sequential 方式寫入 SSD"
     correct: true
     explanation: |
-      雖然單一 MOSFET 的結構比包含浮動閘極的 Flash Cell 簡單，但 SRAM 需要6個 MOSFET，所以 SRAM 昂貴很多。
-      若要全面採用 Page-level mapping 會用到大量的 SRAM，成本會難以承受。
-      所以目前多採用 DFTL 與混合式 mapping。
+      SSD 不能進行覆寫，所以會將原本的 physical page 標記為 invalid，並將新資料連續地寫入空白的 Page，所以 SSD 的 random write 效能很高。
   - text: "DFTL 的演算法中，在滿的時候通常會利用 LRU 來淘汰 CMT 裡的資料，是基於 Spatial Locality"
     explanation: |
       LRU 是基於 Temporal locality，認為最近被訪問的資料在未來也很可能會被訪問，而不是 Spatial Locality。

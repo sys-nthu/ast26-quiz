@@ -104,7 +104,7 @@ concepts:
   - slug: nand-flash
     title: "NAND Flash Fundamentals"
     description: >
-      NAND flash 是現代 SSD 的底層儲存介質，理解它的物理特性是學習所有 SSD 相關主題的基礎。我們需要知道 SLC、MLC、TLC、QLC 等不同 cell type 如何在每個 cell 中儲存不同數量的 bit，以及它們在容量、速度與耐久性之間的取捨。NAND flash 的儲存結構是階層式的：page 是最小的讀寫單位，多個 page 組成一個 block，block 再往上組成 plane 與 die。最關鍵的物理限制是 erase-before-write constraint——我們無法直接覆寫已經寫過的 page，必須先將整個 block 抹除才能重新寫入。每個 block 能承受的 P/E cycle 數量有限，超過後 cell 就會開始不穩定，這也是 SSD 壽命的根本瓶頸。理解這些基礎限制，我們才能明白為什麼 SSD 的韌體需要如此複雜的管理機制。
+      NAND flash 是現代 SSD 的底層儲存介質，理解它的物理特性是學習所有 SSD 相關主題的基礎。我們需要知道 SLC、MLC、TLC、QLC 等不同 cell type 如何在每個 cell 中儲存不同數量的 bit，以及它們在容量、速度與耐久性之間的取捨。NAND flash 的儲存結構是階層式的：page 是最小的讀寫單位，多個 page 組成一個 block，block 再往上組成 plane 與 die。最關鍵的物理限制是 erase-before-write constraint：我們無法直接覆寫已經寫過的 page，必須先將整個 block 抹除才能重新寫入。每個 block 能承受的 P/E cycle 數量有限，超過後 cell 就會開始不穩定，這也是 SSD 壽命的根本瓶頸。理解這些基礎限制，我們才能明白為什麼 SSD 的韌體需要如此複雜的管理機制。
     tier: basic
     open: false
     pillar: ssd
@@ -114,7 +114,7 @@ concepts:
   - slug: ftl
     title: "Flash Translation Layer"
     description: >
-      由於 NAND flash 的 erase-before-write 限制，SSD 不能像傳統硬碟一樣直接在原地覆寫資料，因此需要一層韌體來管理邏輯位址與實體位址之間的對應——這就是 Flash Translation Layer（FTL）。FTL 將作業系統看到的 LBA（Logical Block Address）映射到實際 NAND flash 上的 PBA（Physical Block Address），並採用 out-of-place write 策略：每次寫入都寫到新的空白 page，再更新 mapping table 讓 LBA 指向新位置。Mapping table 的設計有不同粒度的取捨——page-level mapping 提供最大彈性但需要大量 SRAM 來儲存映射表，block-level mapping 節省記憶體但會增加不必要的資料搬移。理解 FTL 的運作方式，我們才能解釋為什麼 SSD 的行為與 HDD 有本質上的不同，以及為什麼上層軟體的存取模式會對 SSD 效能產生巨大影響。
+      由於 NAND flash 的 erase-before-write 限制，SSD 不能像傳統硬碟一樣直接在原地覆寫資料，因此需要一層韌體來管理邏輯位址與實體位址之間的對應：這就是 Flash Translation Layer（FTL）。FTL 將作業系統看到的 LBA（Logical Block Address）映射到實際 NAND flash 上的 PBA（Physical Block Address），並採用 out-of-place write 策略：每次寫入都寫到新的空白 page，再更新 mapping table 讓 LBA 指向新位置。Mapping table 的設計有不同粒度的取捨：page-level mapping 提供最大彈性但需要大量 SRAM 來儲存映射表，block-level mapping 節省記憶體但會增加不必要的資料搬移。理解 FTL 的運作方式，我們才能解釋為什麼 SSD 的行為與 HDD 有本質上的不同，以及為什麼上層軟體的存取模式會對 SSD 效能產生巨大影響。
     tier: basic
     open: false
     pillar: ssd
@@ -124,7 +124,7 @@ concepts:
   - slug: garbage-collection
     title: "SSD Garbage Collection"
     description: >
-      因為 FTL 採用 out-of-place write，隨著時間推移，NAND flash 上會累積大量 invalid page（舊版本的資料），這些 page 所在的 block 無法直接被重新利用。Garbage collection（GC）的工作就是挑選含有較多 invalid page 的 block，將其中仍然有效的 page 搬移到其他 block，然後將整個 block 抹除以回收空間。SSD 會預留一部分使用者看不到的空間作為 over-provisioning（OP），讓 GC 在搬移資料時有足夠的緩衝空間可以運作。選擇哪個 block 來回收是一個重要的策略問題——greedy 策略挑 invalid page 最多的 block 以最大化立即回收的空間，而 cost-benefit 策略則同時考慮資料的冷熱程度以減少長期的搬移開銷。此外，wear leveling 機制確保所有 block 的 P/E cycle 使用量盡量平均，避免某些 block 提早損壞。理解 GC 的運作是掌握 SSD 效能特性的關鍵，因為它直接影響寫入延遲與 SSD 壽命。
+      因為 FTL 採用 out-of-place write，隨著時間推移，NAND flash 上會累積大量 invalid page（舊版本的資料），這些 page 所在的 block 無法直接被重新利用。Garbage collection（GC）的工作就是挑選含有較多 invalid page 的 block，將其中仍然有效的 page 搬移到其他 block，然後將整個 block 抹除以回收空間。SSD 會預留一部分使用者看不到的空間作為 over-provisioning（OP），讓 GC 在搬移資料時有足夠的緩衝空間可以運作。選擇哪個 block 來回收是一個重要的策略問題：greedy 策略挑 invalid page 最多的 block 以最大化立即回收的空間，而 cost-benefit 策略則同時考慮資料的冷熱程度以減少長期的搬移開銷。此外，wear leveling 機制確保所有 block 的 P/E cycle 使用量盡量平均，避免某些 block 提早損壞。理解 GC 的運作是掌握 SSD 效能特性的關鍵，因為它直接影響寫入延遲與 SSD 壽命。
     tier: basic
     open: false
     pillar: ssd
@@ -150,7 +150,7 @@ concepts:
   - slug: ssd-steady-state
     title: "SSD Steady-State Behavior"
     description: >
-      在這個進階主題中，我們將深入探討 SSD 在長時間持續寫入後的真實效能表現。當 SSD 剛開箱或剛被 secure erase 過時，所有 block 都是乾淨的，此時寫入效能非常好——但這個 fresh state 並不能代表實際使用情境。當可用空間逐漸耗盡後，SSD 進入 steady state，每次寫入都可能觸發 GC，而 GC 與使用者的 I/O 請求競爭 NAND flash 的頻寬，導致 tail latency 出現劇烈的 spike。我們會探討 over-provisioning 比例如何影響 steady state 的效能表現，以及為什麼業界的 benchmark 如果只測 fresh state 就會嚴重高估 SSD 的實際效能。結合先前學到的 garbage collection 與 write amplification 概念，我們將建立一套正確的 benchmarking methodology，學會如何設計實驗來反映 SSD 在生產環境中的真實行為。
+      在這個進階主題中，我們將深入探討 SSD 在長時間持續寫入後的真實效能表現。當 SSD 剛開箱或剛被 secure erase 過時，所有 block 都是乾淨的，此時寫入效能非常好：但這個 fresh state 並不能代表實際使用情境。當可用空間逐漸耗盡後，SSD 進入 steady state，每次寫入都可能觸發 GC，而 GC 與使用者的 I/O 請求競爭 NAND flash 的頻寬，導致 tail latency 出現劇烈的 spike。我們會探討 over-provisioning 比例如何影響 steady state 的效能表現，以及為什麼業界的 benchmark 如果只測 fresh state 就會嚴重高估 SSD 的實際效能。結合先前學到的 garbage collection 與 write amplification 概念，我們將建立一套正確的 benchmarking methodology，學會如何設計實驗來反映 SSD 在生產環境中的真實行為。
     tier: advanced
     open: false
     pillar: ssd
@@ -162,7 +162,7 @@ concepts:
   - slug: block-io
     title: "Block I/O Fundamentals"
     description: >
-      在作業系統中，我們透過 block device abstraction 將底層儲存裝置抽象為固定大小的 block 來存取，這是所有儲存系統的基礎。我們需要理解兩個關鍵的效能指標：IOPS 衡量每秒能完成多少次 I/O 操作，而 bandwidth 衡量每秒能傳輸多少資料量——不同的工作負載會瓶頸在不同的指標上。在 I/O 模型方面，synchronous I/O 會讓呼叫的 thread 等待操作完成才返回，而 asynchronous I/O 允許我們發出請求後繼續做其他事情，等完成時再處理結果。此外，裝置完成 I/O 後通知 CPU 的方式也有兩種：interrupt 由裝置主動觸發通知，而 polling 則是由 CPU 不斷檢查完成狀態。理解這些基本概念，是我們後續學習 NVMe、io_uring 等現代高效能 I/O 技術的必要前提。
+      在作業系統中，我們透過 block device abstraction 將底層儲存裝置抽象為固定大小的 block 來存取，這是所有儲存系統的基礎。我們需要理解兩個關鍵的效能指標：IOPS 衡量每秒能完成多少次 I/O 操作，而 bandwidth 衡量每秒能傳輸多少資料量：不同的工作負載會瓶頸在不同的指標上。在 I/O 模型方面，synchronous I/O 會讓呼叫的 thread 等待操作完成才返回，而 asynchronous I/O 允許我們發出請求後繼續做其他事情，等完成時再處理結果。此外，裝置完成 I/O 後通知 CPU 的方式也有兩種：interrupt 由裝置主動觸發通知，而 polling 則是由 CPU 不斷檢查完成狀態。理解這些基本概念，是我們後續學習 NVMe、io_uring 等現代高效能 I/O 技術的必要前提。
     tier: basic
     open: false
     pillar: io
@@ -178,7 +178,7 @@ concepts:
   - slug: dma
     title: "Direct Memory Access"
     description: >
-      當 CPU 親自負責在記憶體與裝置之間搬運資料時，它就無法同時做其他運算，這在高速 I/O 場景下會成為嚴重瓶頸。DMA（Direct Memory Access）讓裝置可以直接存取主記憶體，不需要 CPU 介入每一筆資料的傳輸。為了支援 DMA，我們需要配置 physically contiguous 且 device-accessible 的 memory buffer，因為裝置通常使用 physical address 來定址。當資料分散在多個不連續的記憶體區段時，scatter-gather list 允許我們在一次 DMA 操作中描述多段記憶體位置，避免不必要的資料複製。這種機制也是 zero-copy I/O 的基礎——資料可以直接在裝置與應用程式的 buffer 之間傳輸，省去在 kernel buffer 中轉的開銷。理解 DMA 的運作方式，對於後續學習 NVMe 和 kernel-bypass I/O 如何達到極低延遲至關重要。
+      當 CPU 親自負責在記憶體與裝置之間搬運資料時，它就無法同時做其他運算，這在高速 I/O 場景下會成為嚴重瓶頸。DMA（Direct Memory Access）讓裝置可以直接存取主記憶體，不需要 CPU 介入每一筆資料的傳輸。為了支援 DMA，我們需要配置 physically contiguous 且 device-accessible 的 memory buffer，因為裝置通常使用 physical address 來定址。當資料分散在多個不連續的記憶體區段時，scatter-gather list 允許我們在一次 DMA 操作中描述多段記憶體位置，避免不必要的資料複製。這種機制也是 zero-copy I/O 的基礎：資料可以直接在裝置與應用程式的 buffer 之間傳輸，省去在 kernel buffer 中轉的開銷。理解 DMA 的運作方式，對於後續學習 NVMe 和 kernel-bypass I/O 如何達到極低延遲至關重要。
     tier: basic
     open: false
     pillar: io
@@ -213,7 +213,7 @@ concepts:
   - slug: kernel-bypass-io
     title: "Kernel-Bypass I/O"
     description: >
-      即使有了 io_uring，I/O 路徑仍然要經過 kernel 的 block layer 和 file system，這些軟體層在 NVMe SSD 延遲降到微秒等級後，已經成為不可忽視的瓶頸。Kernel-bypass I/O 的核心思路是把 NVMe 裝置的控制權完全交給 user space，由應用程式直接操作裝置的 submission/completion queue，省去所有 syscall 和 context switch 的開銷。我們將以 SPDK（Storage Performance Development Kit）為例，介紹它的 polling-mode NVMe driver 如何在 user space 完成完整的 I/O 流程，以及如何利用我們之前學過的 DMA 機制讓裝置直接存取應用程式的 memory buffer。課程中也會討論 thread-to-queue affinity 的設計——每個 thread 專屬一組 NVMe queue pair，不需要任何鎖就能並行發送 I/O。這種架構雖然犧牲了 kernel 提供的安全性和多租戶隔離，但在需要極致效能的場景（如高效能資料庫、分散式儲存系統）中被廣泛採用。
+      即使有了 io_uring，I/O 路徑仍然要經過 kernel 的 block layer 和 file system，這些軟體層在 NVMe SSD 延遲降到微秒等級後，已經成為不可忽視的瓶頸。Kernel-bypass I/O 的核心思路是把 NVMe 裝置的控制權完全交給 user space，由應用程式直接操作裝置的 submission/completion queue，省去所有 syscall 和 context switch 的開銷。我們將以 SPDK（Storage Performance Development Kit）為例，介紹它的 polling-mode NVMe driver 如何在 user space 完成完整的 I/O 流程，以及如何利用我們之前學過的 DMA 機制讓裝置直接存取應用程式的 memory buffer。課程中也會討論 thread-to-queue affinity 的設計：每個 thread 專屬一組 NVMe queue pair，不需要任何鎖就能並行發送 I/O。這種架構雖然犧牲了 kernel 提供的安全性和多租戶隔離，但在需要極致效能的場景（如高效能資料庫、分散式儲存系統）中被廣泛採用。
     tier: advanced
     open: false
     pillar: io
@@ -255,7 +255,7 @@ concepts:
   - slug: lsm-tree
     title: "LSM-Tree"
     description: >
-      在前面的單元中，我們學過了 key-value store API 的抽象介面以及 Bloom filter 如何快速過濾不存在的查詢，現在我們要把這些概念組合起來，理解現代 write-intensive 儲存引擎的核心：LSM-Tree。LSM-Tree 的設計哲學是將隨機寫入轉換為循序寫入——我們先將資料寫入 memory 中的 memtable，滿了之後 flush 成 immutable 的 sorted run（SSTable）到磁碟上。隨著 SSTable 數量增加，我們透過 compaction 將它們合併，而 compaction 策略（leveled vs. tiered）決定了 write amplification、read amplification 與 space amplification 之間的取捨。在讀取路徑上，我們會利用先前學過的 Bloom filter 來跳過不包含目標 key 的 SSTable，大幅降低讀取延遲。
+      在前面的單元中，我們學過了 key-value store API 的抽象介面以及 Bloom filter 如何快速過濾不存在的查詢，現在我們要把這些概念組合起來，理解現代 write-intensive 儲存引擎的核心：LSM-Tree。LSM-Tree 的設計哲學是將隨機寫入轉換為循序寫入：我們先將資料寫入 memory 中的 memtable，滿了之後 flush 成 immutable 的 sorted run（SSTable）到磁碟上。隨著 SSTable 數量增加，我們透過 compaction 將它們合併，而 compaction 策略（leveled vs. tiered）決定了 write amplification、read amplification 與 space amplification 之間的取捨。在讀取路徑上，我們會利用先前學過的 Bloom filter 來跳過不包含目標 key 的 SSTable，大幅降低讀取延遲。
     tier: advanced
     open: false
     pillar: indexing
@@ -275,7 +275,7 @@ concepts:
   - slug: product-quantization
     title: "Product Quantization"
     description: >
-      當向量資料集大到無法全部放進 memory 時，我們需要壓縮向量的表示方式來實現 large-scale ANN search，這就是 product quantization（PQ）的核心動機。PQ 的做法是將高維向量切分成多個 sub-vector，對每個子空間獨立訓練 codebook，然後用 codebook 中最近的 centroid 編號來取代原始 sub-vector，大幅降低儲存需求。在查詢時，我們使用 asymmetric distance computation（ADC）——query 向量保持原始精度，只對 database 端的壓縮表示計算近似距離——以在壓縮率與搜尋精度之間取得良好平衡。我們也會介紹 IVF-PQ 如何結合 inverted file index 與 PQ，先用粗粒度的 clustering 縮小搜尋範圍，再用 PQ 進行 disk-resident 的 ANN 搜尋，使得十億級別的向量檢索成為可能。
+      當向量資料集大到無法全部放進 memory 時，我們需要壓縮向量的表示方式來實現 large-scale ANN search，這就是 product quantization（PQ）的核心動機。PQ 的做法是將高維向量切分成多個 sub-vector，對每個子空間獨立訓練 codebook，然後用 codebook 中最近的 centroid 編號來取代原始 sub-vector，大幅降低儲存需求。在查詢時，我們使用 asymmetric distance computation（ADC）：query 向量保持原始精度，只對 database 端的壓縮表示計算近似距離：以在壓縮率與搜尋精度之間取得良好平衡。我們也會介紹 IVF-PQ 如何結合 inverted file index 與 PQ，先用粗粒度的 clustering 縮小搜尋範圍，再用 PQ 進行 disk-resident 的 ANN 搜尋，使得十億級別的向量檢索成為可能。
     tier: advanced
     open: false
     pillar: indexing
@@ -307,7 +307,7 @@ concepts:
   - slug: copy-on-write
     title: "Copy-on-Write"
     description: >
-      Journaling 透過額外的 log 區域來保證 crash consistency，但這代表每筆資料實際上被寫了兩次。Copy-on-write（COW）提供了另一種思路：當我們要修改一個 block 時，不直接覆寫原本的位置，而是把新版本寫到一個全新的位置，最後再原子地更新 pointer 使其指向新資料。因為舊資料在 pointer 切換前始終保持完整，所以任何時刻發生 crash 都不會破壞既有的一致性。這個特性也讓 snapshot 的實現變得非常自然——我們只需要保留舊版本的 pointer tree，就能以近乎零成本建立檔案系統的時間點快照。Btrfs 與 ZFS 這兩個現代檔案系統都以 COW 作為核心設計，藉此同時實現資料完整性、snapshot、以及高效的 checksum 驗證。
+      Journaling 透過額外的 log 區域來保證 crash consistency，但這代表每筆資料實際上被寫了兩次。Copy-on-write（COW）提供了另一種思路：當我們要修改一個 block 時，不直接覆寫原本的位置，而是把新版本寫到一個全新的位置，最後再原子地更新 pointer 使其指向新資料。因為舊資料在 pointer 切換前始終保持完整，所以任何時刻發生 crash 都不會破壞既有的一致性。這個特性也讓 snapshot 的實現變得非常自然：我們只需要保留舊版本的 pointer tree，就能以近乎零成本建立檔案系統的時間點快照。Btrfs 與 ZFS 這兩個現代檔案系統都以 COW 作為核心設計，藉此同時實現資料完整性、snapshot、以及高效的 checksum 驗證。
     tier: basic
     open: false
     pillar: filesystem
@@ -317,7 +317,7 @@ concepts:
   - slug: log-structured-fs
     title: "Log-Structured File System"
     description: >
-      在前面的課程中，我們學過 inode 與 metadata 的 on-disk layout，也了解了 SSD 內部 garbage collection 的機制。Log-structured file system 把整個檔案系統視為一個不斷 append 的 log：所有寫入（無論是 data 還是 metadata）都以循序的方式追加到 log 的尾端，這天然地契合了 SSD 偏好 sequential write 的特性。然而，隨著舊資料被覆寫或刪除，log 中會產生空洞，我們需要透過 segment cleaning 來回收這些無效空間——這與 SSD FTL 層的 garbage collection 面臨相同的挑戰。在這堂課中，我們將探討 F2FS 如何利用 multi-head logging 將 hot data 與 cold data 分離以降低 cleaning 的成本，以及 file system 層級的 garbage collection 如何與 SSD 內部的 garbage collection 協調運作，避免 write amplification 的疊加效應。
+      在前面的課程中，我們學過 inode 與 metadata 的 on-disk layout，也了解了 SSD 內部 garbage collection 的機制。Log-structured file system 把整個檔案系統視為一個不斷 append 的 log：所有寫入（無論是 data 還是 metadata）都以循序的方式追加到 log 的尾端，這天然地契合了 SSD 偏好 sequential write 的特性。然而，隨著舊資料被覆寫或刪除，log 中會產生空洞，我們需要透過 segment cleaning 來回收這些無效空間：這與 SSD FTL 層的 garbage collection 面臨相同的挑戰。在這堂課中，我們將探討 F2FS 如何利用 multi-head logging 將 hot data 與 cold data 分離以降低 cleaning 的成本，以及 file system 層級的 garbage collection 如何與 SSD 內部的 garbage collection 協調運作，避免 write amplification 的疊加效應。
     tier: advanced
     open: false
     pillar: filesystem
@@ -339,7 +339,7 @@ concepts:
   - slug: error-coding-basics
     title: "Error Coding Basics"
     description: >
-      在儲存系統中，資料從寫入到讀出的過程中可能因為硬體老化、電磁干擾等因素而產生錯誤，因此我們需要 error coding 來保護資料的完整性。這個單元會介紹 error detection 與 error correction 的差異：detection 只負責發現錯誤（例如 CRC、checksum），而 correction 則能自動修復錯誤（例如 Hamming code）。我們會從最基本的 parity bit 與 XOR 運算開始，理解如何用少量的冗餘資料偵測單一 bit 錯誤，再延伸到 CRC 如何透過多項式除法偵測 burst error。最後我們會建立 Hamming distance 的觀念——兩個 codeword 之間至少有幾個 bit 不同——以及一個 code 的 minimum distance 如何決定它能偵測和更正多少個錯誤。這些基礎觀念是後續學習 Galois field arithmetic、RAID、erasure coding 以及 LDPC 等進階主題的必要前置知識。
+      在儲存系統中，資料從寫入到讀出的過程中可能因為硬體老化、電磁干擾等因素而產生錯誤，因此我們需要 error coding 來保護資料的完整性。這個單元會介紹 error detection 與 error correction 的差異：detection 只負責發現錯誤（例如 CRC、checksum），而 correction 則能自動修復錯誤（例如 Hamming code）。我們會從最基本的 parity bit 與 XOR 運算開始，理解如何用少量的冗餘資料偵測單一 bit 錯誤，再延伸到 CRC 如何透過多項式除法偵測 burst error。最後我們會建立 Hamming distance 的觀念：兩個 codeword 之間至少有幾個 bit 不同：以及一個 code 的 minimum distance 如何決定它能偵測和更正多少個錯誤。這些基礎觀念是後續學習 Galois field arithmetic、RAID、erasure coding 以及 LDPC 等進階主題的必要前置知識。
     tier: basic
     open: false
     pillar: reliability
@@ -359,7 +359,7 @@ concepts:
   - slug: raid
     title: "RAID"
     description: >
-      單顆硬碟或 SSD 終究會故障，因此我們需要 RAID（Redundant Array of Independent Disks）將多顆磁碟組合起來，同時提升效能與可靠性。我們會依序介紹幾種常見的 RAID level：RAID 0 透過 striping 將資料分散到多顆磁碟以提高 throughput；RAID 1 透過 mirroring 保留完整副本以提供冗餘；RAID 5 將 parity 分散存放在所有磁碟上，能容忍任一顆磁碟故障；RAID 6 則使用雙重 parity，能容忍任意兩顆磁碟同時故障。除了正常運作模式，我們也會討論 degraded mode 下的讀取流程——當某顆磁碟故障時，系統如何透過 XOR 或 parity 計算即時重建遺失的資料。Rebuild process 是 RAID 運維中的關鍵議題：重建期間系統處於脆弱狀態，若此時又有磁碟故障便可能造成資料遺失，因此我們需要了解 rebuild 的效能瓶頸與風險。RAID 的概念是後續學習 erasure coding 的重要基礎，因為 erasure coding 可以被視為 RAID 的推廣與最佳化。
+      單顆硬碟或 SSD 終究會故障，因此我們需要 RAID（Redundant Array of Independent Disks）將多顆磁碟組合起來，同時提升效能與可靠性。我們會依序介紹幾種常見的 RAID level：RAID 0 透過 striping 將資料分散到多顆磁碟以提高 throughput；RAID 1 透過 mirroring 保留完整副本以提供冗餘；RAID 5 將 parity 分散存放在所有磁碟上，能容忍任一顆磁碟故障；RAID 6 則使用雙重 parity，能容忍任意兩顆磁碟同時故障。除了正常運作模式，我們也會討論 degraded mode 下的讀取流程：當某顆磁碟故障時，系統如何透過 XOR 或 parity 計算即時重建遺失的資料。Rebuild process 是 RAID 運維中的關鍵議題：重建期間系統處於脆弱狀態，若此時又有磁碟故障便可能造成資料遺失，因此我們需要了解 rebuild 的效能瓶頸與風險。RAID 的概念是後續學習 erasure coding 的重要基礎，因為 erasure coding 可以被視為 RAID 的推廣與最佳化。
     tier: basic
     open: false
     pillar: reliability
@@ -369,7 +369,7 @@ concepts:
   - slug: erasure-coding
     title: "Erasure Coding"
     description: >
-      在學過 Galois field arithmetic 提供的代數工具以及 RAID 的磁碟冗餘策略之後，我們可以進入更通用的 erasure coding 框架。Erasure coding 與 error correction 的關鍵差異在於：erasure 情境下我們已經知道哪些資料區塊遺失了（例如某顆磁碟故障），只需要從剩餘的區塊中重建資料，而不需要像 error correction 那樣先定位錯誤。我們會介紹 Reed-Solomon code 如何在 GF(2^w) 上建構編碼矩陣，以及 MDS（Maximum Distance Separable）property 與 Singleton bound 的意義——MDS code 能以理論上最少的冗餘達到最大的容錯能力，可以視為 RAID 5/6 的數學推廣。實務上，我們會討論如何使用 Cauchy matrix 來建構高效的編碼矩陣，使得 encoding 和 decoding 只需要 XOR 運算即可完成。此外，我們也會介紹 Local Reconstruction Codes（LRC）的設計動機：在大規模分散式儲存系統中，修復單一區塊故障時若需要讀取所有存活區塊，網路開銷會過於龐大，LRC 透過增加 local parity 來大幅降低單一區塊修復所需的 I/O 量。
+      在學過 Galois field arithmetic 提供的代數工具以及 RAID 的磁碟冗餘策略之後，我們可以進入更通用的 erasure coding 框架。Erasure coding 與 error correction 的關鍵差異在於：erasure 情境下我們已經知道哪些資料區塊遺失了（例如某顆磁碟故障），只需要從剩餘的區塊中重建資料，而不需要像 error correction 那樣先定位錯誤。我們會介紹 Reed-Solomon code 如何在 GF(2^w) 上建構編碼矩陣，以及 MDS（Maximum Distance Separable）property 與 Singleton bound 的意義：MDS code 能以理論上最少的冗餘達到最大的容錯能力，可以視為 RAID 5/6 的數學推廣。實務上，我們會討論如何使用 Cauchy matrix 來建構高效的編碼矩陣，使得 encoding 和 decoding 只需要 XOR 運算即可完成。此外，我們也會介紹 Local Reconstruction Codes（LRC）的設計動機：在大規模分散式儲存系統中，修復單一區塊故障時若需要讀取所有存活區塊，網路開銷會過於龐大，LRC 透過增加 local parity 來大幅降低單一區塊修復所需的 I/O 量。
     tier: advanced
     open: false
     pillar: reliability
@@ -416,7 +416,7 @@ concepts:
   - slug: data-compression
     title: "Data Compression"
     description: >
-      在 storage system 中，資料壓縮可以有效減少磁碟使用量與 I/O 傳輸量，但也會帶來 CPU 開銷與 read amplification。我們會學習 block compression 的基本單位概念、dictionary coding 如何利用重複值來節省空間，以及 entropy coding（Huffman、ANS）如何根據符號出現頻率進行最佳編碼。另一個重要的設計取捨是 fixed-input 與 fixed-output paradigm 的差異——前者壓縮率較好但隨機讀取困難，後者犧牲壓縮率換取 O(1) 定位能力。理解這些壓縮基礎，對後續學習 columnar storage 格式與 deduplication 技術至關重要。
+      在 storage system 中，資料壓縮可以有效減少磁碟使用量與 I/O 傳輸量，但也會帶來 CPU 開銷與 read amplification。我們會學習 block compression 的基本單位概念、dictionary coding 如何利用重複值來節省空間，以及 entropy coding（Huffman、ANS）如何根據符號出現頻率進行最佳編碼。另一個重要的設計取捨是 fixed-input 與 fixed-output paradigm 的差異：前者壓縮率較好但隨機讀取困難，後者犧牲壓縮率換取 O(1) 定位能力。理解這些壓縮基礎，對後續學習 columnar storage 格式與 deduplication 技術至關重要。
     tier: basic
     open: false
     pillar: system

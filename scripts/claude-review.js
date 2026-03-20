@@ -33,12 +33,36 @@ if (fs.existsSync(envPath)) {
 const apiKey = process.env.ANTHROPIC_API_KEY;
 if (!apiKey) {
   console.error('ANTHROPIC_API_KEY not set — skipping AI review');
-  const md = '## \uD83E\uDD16 AI 題目審查\n\n> AI 審查不可用 — 未設定 `ANTHROPIC_API_KEY`，請人工審查。\n\n---\n_審查由 Claude (claude-sonnet-4-5-20250929) 執行。此為建議性質，最終由助教或老師決定是否 merge。_\n';
+  const md = '## \uD83E\uDD16 AI 題目審查\n\n> AI 審查不可用 — 未設定 `ANTHROPIC_API_KEY`，請人工審查。\n\n---\n_審查由 Claude (claude-opus-4-20250514) 執行。此為建議性質，最終由助教或老師決定是否 merge。_\n';
   fs.writeFileSync(path.join(repoRoot, 'claude-review-results.md'), md);
   process.exit(0);
 }
 
 const client = new Anthropic({ apiKey });
+
+const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://lego.sys-nthu.tw';
+
+async function fetchPageText(url) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'Accept': 'text/html' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // Strip HTML tags to get rough text content
+    return html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 12000); // cap to avoid blowing up context
+  } catch (err) {
+    console.log(`  無法取得 ${url}: ${err.message}`);
+    return null;
+  }
+}
 
 async function reviewFile(filePath) {
   const absPath = path.resolve(filePath);
@@ -55,6 +79,16 @@ async function reviewFile(filePath) {
 
   // Read new file
   const newContent = fs.readFileSync(absPath, 'utf8');
+
+  // Fetch concept page and handout for scope checking
+  const conceptUrl = `${SITE_BASE_URL}/${pillar}/${concept}`;
+  const handoutUrl = `${SITE_BASE_URL}/handouts/${pillar}/${concept}`;
+  console.log(`  取得主題頁面: ${conceptUrl}`);
+  console.log(`  取得講義: ${handoutUrl}`);
+  const [conceptPageText, handoutText] = await Promise.all([
+    fetchPageText(conceptUrl),
+    fetchPageText(handoutUrl),
+  ]);
 
   // Read all existing q-*.yaml files in the same quiz/ directory (excluding the new file)
   let existingFiles = [];
@@ -86,12 +120,24 @@ async function reviewFile(filePath) {
     ? existingFiles.map(f => `### ${f.filename}\n\`\`\`yaml\n${f.content}\`\`\``).join('\n\n')
     : '（無）';
 
+  const conceptSection = conceptPageText
+    ? `## 主題頁面內容（${conceptUrl}）\n${conceptPageText}`
+    : `## 主題頁面內容\n（無法取得，請略過範圍檢查）`;
+
+  const handoutSection = handoutText
+    ? `## 講義內容（${handoutUrl}）\n${handoutText}`
+    : `## 講義內容\n（無法取得，請略過講義範圍檢查）`;
+
   const userPrompt = `## 新題目
 檔案: ${basename}
 主題: ${pillar} / ${concept}
 
 \`\`\`yaml
 ${newContent}\`\`\`
+
+${conceptSection}
+
+${handoutSection}
 
 ## 本主題的既有題目（共 ${existingFiles.length} 題）
 ${existingSection}
@@ -115,6 +161,22 @@ ${existingSection}
 - 必須測試不同的面向、情境或推理過程 — 不能只是換數字或重新措辭。
 - 如果與既有題目重複，請指出是哪一題並說明重疊之處。
 
+### 4. 範圍檢查
+- 參考上方提供的主題頁面內容與講義內容，判斷這題是否在該主題的範圍內。
+- 題目所考的知識點必須與主題頁面或講義中涵蓋的概念直接相關。
+- 如果題目考的是其他主題的內容（即使相關），應標記為超出範圍並建議正確的主題。
+- 如果主題頁面或講義無法取得，請略過此項檢查。
+
+### 5. 格式規範檢查
+**重要：你必須逐字元檢查原文，只標記確實違規的地方。如果原文已經有正確的空白，就不要標記。不確定時，判定為通過。**
+
+規則：
+- 中文與英文（或數字）之間必須有一個半形空白。違規範例：「每個page大小為4KB」（page 和 4KB 前後缺少空白）。正確範例：「每個 page 大小為 4KB」。
+- 如果題目為純英文，標點符號使用英文半形 \`,.:\`。如果題目為繁體中文，標點符號使用全形 \`，。：\`。
+- 禁止使用 em dash（—）。如需連接語句，請用逗號或分號。
+
+檢查方式：對每個疑似違規處，先引用原文中該處的前後 5 個字元，確認空白確實不存在後才標記。如果原文已正確，formatting_ok 設為 true，formatting_issues 設為 null。
+
 請以下列 JSON 格式回覆（feedback 和 explanation 請用繁體中文寫，技術名詞維持英文）：
 {
   "quality_verdict": "approve" | "request-changes",
@@ -124,20 +186,24 @@ ${existingSection}
   "is_duplicate": true | false,
   "duplicate_of": "filename.yaml" | null,
   "duplicate_explanation": "..." | null,
+  "in_scope": true | false,
+  "scope_issue": "如果超出範圍，說明為何不屬於此主題，並建議應歸屬哪個主題" | null,
+  "formatting_ok": true | false,
+  "formatting_issues": ["列出每個格式違規處及建議修正"] | null,
   "suggestions": ["2-3 個替代出題方向，供同學在題目重複或需改進時參考"]
 }`;
 
-  const systemPrompt = '你是一個研究所等級的 storage systems 課程的 quiz 審查員。你負責驗證題目正確性、評估品質、檢查是否重複。請用繁體中文回覆，技術名詞（如 FTL、NAND、write amplification、LSM-tree 等）維持英文。';
+  const systemPrompt = '你是一個研究所等級的 storage systems 課程的 quiz 審查員。你負責驗證題目正確性、評估品質、檢查是否重複、確認題目在主題範圍內。請用繁體中文回覆，技術名詞（如 FTL、NAND、write amplification、LSM-tree 等）維持英文。';
 
   try {
     const response = await Promise.race([
       client.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1024,
+        model: 'claude-opus-4-20250514',
+        max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 60000)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 120000)),
     ]);
 
     let text = response.content[0].text;
@@ -198,6 +264,29 @@ async function main() {
       mdParts.push('> 與本主題的既有題目無重疊。\n');
     }
 
+    // Scope
+    if (rv.in_scope === false) {
+      mdParts.push('**範圍檢查:** \u274C 超出主題範圍');
+      if (rv.scope_issue) {
+        mdParts.push(`> ${rv.scope_issue}\n`);
+      }
+    } else if (rv.in_scope === true) {
+      mdParts.push('**範圍檢查:** \u2705 在主題範圍內\n');
+    } else {
+      mdParts.push('**範圍檢查:** \u2796 無法判斷（主題頁面不可用）\n');
+    }
+
+    // Formatting
+    if (rv.formatting_ok === false && rv.formatting_issues && rv.formatting_issues.length > 0) {
+      mdParts.push('**格式規範:** \u274C 有格式問題');
+      for (const issue of rv.formatting_issues) {
+        mdParts.push(`> - ${issue}`);
+      }
+      mdParts.push('');
+    } else {
+      mdParts.push('**格式規範:** \u2705 符合規範\n');
+    }
+
     if (rv.suggestions && rv.suggestions.length > 0 && (rv.is_duplicate || rv.quality_verdict !== 'approve' || !rv.correctness_ok)) {
       mdParts.push('**替代出題方向建議:**');
       for (let i = 0; i < rv.suggestions.length; i++) {
@@ -209,7 +298,7 @@ async function main() {
     mdParts.push('---\n');
   }
 
-  mdParts.push('_審查由 Claude (claude-sonnet-4-5-20250929) 執行。此為建議性質，最終由助教或老師決定是否 merge。_\n');
+  mdParts.push('_審查由 Claude (claude-opus-4-20250514) 執行。此為建議性質，最終由助教或老師決定是否 merge。_\n');
 
   const markdown = mdParts.join('\n');
   console.log('\n' + markdown);

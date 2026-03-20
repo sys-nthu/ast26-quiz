@@ -1,0 +1,18 @@
+author: david20041024
+date: 2026-03-19
+question: |
+  在高效能儲存系統（如使用 io_uring 與 NVMe SSD）的架構設計中，關於 I/O 處理與優化機制，下列何者敘述最為精確？
+options:
+  - text: "Fibers 能在單一執行緒內實現 Parallelism（平行運算），藉此降低 Context Switch 開銷。"
+    explanation: |
+      Fibers 屬於 User-space 的協作式排程，在單一執行緒內僅能達成 Concurrency（並行）而非 Parallelism。平行運算（Parallelism）必須依賴多個實體 CPU 核心同時執行任務。
+  - text: "io_uring 透過 mmap 建立 User 與 Kernel 共享的 Ring Buffers，應用程式可實現 SQE 的 Batch submission，顯著減少 syscall 次數。"
+    correct: true
+    explanation: |
+      這是 io_uring 的核心設計。透過 memory-mapped 將 Submission Queue (SQ) 與 Completion Queue (CQ) 映射至用戶空間，應用程式可以直接寫入多個 SQE，再透過一次 io_uring_enter 系統呼叫批量提交，大幅降低 Overhead。
+  - text: "為了確保 I/O 完成後的數據完整性，CQE (Completion Queue Entry) 的資料結構設計必須比 SQE (Submission Queue Entry) 更大，以承載回傳的 Data Payload。"
+    explanation: |
+      SQE 通常為 64 bytes（含指令、位址、偏移量等），而 CQE 通常僅為 16 bytes。CQE 並不攜帶大量的數據 Payload，僅回傳結果狀態（res）與使用者定義的標記（user_data），實際數據是透過 DMA 直接傳輸至 User Buffer。
+  - text: "在 io_uring 使用 Direct I/O 模式時，數據會由 Kernel 強制執行一次 Double Buffering 拷貝，以確保 User-space 記憶體分頁的安全。"
+    explanation: |
+      Direct I/O 的核心在於繞過 Kernel Page Cache（文件快取），使數據直接在儲存裝置與 User Buffer 之間傳輸。這消除了從 Kernel Buffer 到 User Buffer 的軟體拷貝開銷，而非增加雙重緩衝。

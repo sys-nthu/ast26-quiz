@@ -2,4 +2,3 @@ node_modules/
 .env
 validation-results.md
 claude-review-results.md
-.DS_Store

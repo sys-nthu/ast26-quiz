@@ -10,7 +10,7 @@ options:
       Doorbell Register 很小，僅用於存放 Tail Pointer 的索引值，而非存放指令內容。Controller 收到 Doorbell 通知後，會自行透過 DMA 到 Host Memory 抓取 64-byte 的 SQE。
   - text: "由於 Doorbell 屬於硬體暫存器，硬體會自動保證寫入的先後順序。因此，驅動程式在更新 Doorbell 之前，完全不需要使用任何特殊的指令（如 Memory Barrier）來規定順序。"
     explanation: |
-      雖然 MMIO 寫入在某些架構下有順序性，但 CPU 對一般記憶體的寫入與對 MMIO 暫存器的寫入可能被處理器重新排序。如果 Doorbell 先被寫入，而 SQ 指令內容還在 CPU Cache 裡沒寫回 DRAM ， Controller 透過 DMA 抓到的將會是舊的或錯誤的指令。
+      雖然 MMIO 寫入在某些架構下有順序性，但 CPU 對一般記憶體的寫入與對 MMIO 暫存器的寫入可能被處理器重新排序。如果 Doorbell 先被寫入，而 SQ 指令內容還在 CPU Cache 裡沒寫回 DRAM， Controller 透過 DMA 抓到的將會是舊的或錯誤的指令。
   - text: "驅動程式必須在「寫入指令到記憶體」與「寫入 Doorbell」之間加入一個 Write Barrier，以確保當 Controller 收到通知準備抓取指令時，指令的內容已經在記憶體中準備就緒，能被 Controller讀取到。"
     correct: true
     explanation: |

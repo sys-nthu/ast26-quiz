@@ -26,4 +26,4 @@ options:
   - text: "在 Workload B 中，direct I/O 會限制 I/O queue depth，導致無法充分利用 NVMe 的內部平行性"
     explanation: |
       I/O queue depth 通常由應用程式與 driver 控制，而不是 direct I/O 的直接限制因素。
-      在題目假設 queue depth 足夠高的情況下，NVMe 平行性並不是瓶頸。
+      在題目假設 queue depth 足夠高的情況下，NVMe 平行性並不是瓶頸。 

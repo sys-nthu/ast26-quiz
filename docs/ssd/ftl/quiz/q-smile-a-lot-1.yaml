@@ -1,0 +1,25 @@
+author: smile-a-lot
+date: 2026-03-23
+question: |
+  假設我們使用混和式 FTL ，一個 block 有 $N$ 個 pages。考慮以下兩種**最壞情況**：
+  
+  * 場景甲：一個滿的 log block 中所有的有效 pages 都屬於「同一個」data block。
+  * 場景乙：一個滿的 log block 中 $N$ 個有效 pages 分別屬於 $N$ 個「不同的」data block。
+  
+  若兩個場景最終都必須清空該 log block 並將資料整理好，則關於這兩個場景的 NAND flash 讀寫與抹除（erase）次數消耗，下列敘述何者正確？
+options:
+  - text: "場景乙的 page 讀寫次數大約是場景甲的 $N$ 倍，且需要抹除大約 $N$ 個舊的 data blocks。"
+    correct: true
+    explanation: |
+      場景甲只需要針對單一 block 進行一次標準的 full merge，讀寫次數為 $N$ 次 page 讀寫。
+      而場景乙因為關聯到 $N$ 個不同的 data blocks，FTL 必須對每一個 data block 分別進行一次 full merge。
+      因此，總讀取與寫入次數會膨脹為 $N \times N$ 次，大約是場景甲的 $N$ 倍；抹除次數也從原先的 $2$ 次（log + data）大幅增加為 $N + 1$ 次。
+  - text: "場景甲與場景乙造成的系統延遲與寫入放大（write amplification）完全相同，因為兩者都是在回收「一個」滿的 log block。"
+    explanation: |
+      這個選項忽略了 log block 的關聯性（associativity）。當 log block 內的資料散落在不同 data blocks 時，FTL 無法在單次操作中完成重組，必須觸發多次獨立的合併流程，導致系統開銷成倍數暴增。
+  - text: "場景乙只需要執行 $1$ 次 page 寫入和 $1$ 次 block 抹除，因為 FTL 可以直接使用 switch merge 取代舊資料。"
+    explanation: |
+      Switch merge 只能發生在 log block 內的資料順序與原本的 data block 完全一致（且屬於同一個 block）的情況下。場景乙的資料屬於多個不同的 block 且極度散亂，絕對無法使用 switch merge。
+  - text: "場景甲的 page 讀寫開銷為 $N \times N$ 次，因為它必須把整個 NAND flash 晶片中所有無效的 pages 全部重新掃描一遍。"
+    explanation: |
+      在場景甲中，所有的變更都收斂在同一個 data block 內。FTL 只需要讀取該特定 block 的舊資料與該 log block 的新資料（共 $N$ 次 pages 讀寫）進行合併即可，不需要掃描整個晶片。

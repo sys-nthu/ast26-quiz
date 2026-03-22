@@ -1,5 +1,5 @@
 author: 92Jay0810
-date: 2026-03-22
+date: 2026-03-01
 question: |
   在 NVMe 中，**namespace** 提供邏輯位址空間的分割，使不同應用程式可以使用同一顆 SSD 的不同區域。
   同時，NVMe 也提供多組 **Submission Queue (SQ)** 與 **Completion Queue (CQ)**，以支援高併發 I/O。
@@ -9,12 +9,12 @@ question: |
   - App B：大量順序寫入（throughput-oriented）
 
   兩個應用各自使用獨立的 queue（SQ/CQ），
-  **且假設兩個 namespace 共享相同的底層硬體資源（例如 NAND channels 與 controller）。**
+  且假設兩個 namespace 共享相同的底層硬體資源（例如 NAND channels 與 controller）。
 
   在此情境下，以下哪一項最能描述此設計的 **performance isolation**？
 
 options:
-  - text: "兩個應用已使用不同 namespace 且各自有獨立 queue，因此 I/O 效能完全隔離，不會互相影響。"
+  - text: "兩個應用已使用不同 namespace，且各自有獨立的 queue，因此 I/O 效能完全隔離，不會互相影響。"
     explanation: |
       雖然 namespace 提供邏輯位址空間的分離，且多 queue 提供 I/O 提交的平行性，
       但底層硬體資源（如 NAND channels、controller）仍然是共享的。

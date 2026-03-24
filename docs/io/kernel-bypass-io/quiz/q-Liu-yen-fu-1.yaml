@@ -4,15 +4,15 @@ question: |
   某團隊在資料中心導入 QLC SSD 作為主要容量層，並在主機上部署 CSAL（Cloud Storage Acceleration Layer）。  
   其 workload 特性如下：
   
-  - 80% 為 4KB random write
+  - 80% 為  4 KB random write
       
-  - latency 要求嚴格（P99 要穩定）
+  - latency 要求嚴格 （ P99 要穩定）
   
   部署 CSAL 後，團隊觀察到：
   
   - QLC SSD 的 write amplification 顯著下降
       
-  - tail latency（P99）改善
+  - tail latency  （ P99）改善
 
   以下哪一個解釋最合理地同時說明上述兩個現象？
 options:

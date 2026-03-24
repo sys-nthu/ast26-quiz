@@ -1,0 +1,21 @@
+author: joanne-09
+date: 2026-03-24
+question: |
+  在 NVMe Multi-Queue 架構中，關於 I/O 請求的 **完成階段**，CPU (Host) 與 NVMe Controller (Device) 之間的底層互動機制為何？
+options:
+  - text: "Controller 透過 DMA 將執行結果寫入位於 Host 記憶體中的 CQ，並發出 Interrupt。作業系統讀取 CQ 後，寫入 Controller 的 CQ Doorbell Register 來釋放該 CQ slot。"
+    correct: true
+    explanation: |
+      NVMe 讀寫狀態的傳遞是由 **Controller 發起 DMA** 寫回 Host 端 DRAM 裡的 Completion Queue (CQ)。
+      接著發送 Interrupt 通知 CPU。Host 處理完後，必須透過 MMIO 寫入實作在 Controller 端的 **CQ Doorbell Register**，讓硬體知道這塊記憶體已經被軟體處理掉了，可以回收給下一個 I/O 結果使用。
+  - text: "Controller 完成 I/O 後，將狀態寫入 Host 記憶體的 CQ，接著主動寫入 Host 端的 CQ Doorbell Register 以觸發 Interrupt 通知 CPU。"
+    explanation: |
+      Doorbell Registers 是位在 **NVMe Controller 裝置端** 的硬體暫存器（透過 PCIe MMIO 映射進記憶體空間）。
+      它們是由 **Host 軟體來主動寫入** 以通知硬體，Controller 不會去寫入 Host 端的 Doorbell。
+  - text: "Controller 直接將完成狀態覆寫回原先 Host 記憶體中 SQ 的指令位置，並發出 Interrupt，以節省記憶體開銷與頻寬。"
+    explanation: |
+      若硬體直接覆寫 SQ 會導致 CPU 與 Controller 同時讀寫同一段記憶體，產生嚴重的 Cache Line Bouncing，違背了 NVMe 降低硬體競爭的初衷。
+  - text: "Controller 僅發出 Interrupt 通知 CPU，作業系統收到後主動發起 DMA 讀取操作至 Controller 端的暫存器，將完成的狀態拉回 Host 記憶體後再更新 Doorbell。"
+    explanation: |
+      在主機與 PCIe 裝置的互動中，是由 NVMe Controller 發起 DMA 將資料推回主記憶體中。
+      若是讓 Host CPU 透過 MMIO 去硬體端拉取資料，會因為 PCIe 匯流排的 RTT 而產生效能瓶頸。

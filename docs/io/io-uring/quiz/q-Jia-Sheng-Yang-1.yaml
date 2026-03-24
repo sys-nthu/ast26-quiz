@@ -1,0 +1,19 @@
+author: Jia-Sheng-Yang
+date: 2026-03-24
+question: |
+ 一位開發者正在構建高效能儲存引擎，利用 io_uring 介面來最小化與 NVMe SSD 互動時的 system call 開銷。他觀察到雖然 io_uring 透過批次處理請求減少了 context switches，但 CPU 仍花費不少時間執行 io_uring_enter 系統呼叫，以通知 kernel 在 Submission Queue 中有新 command。
+ 下列哪一項配置選項可讓 io_uring 以無系統呼叫（system call-less）模式進行 I/O 提交？在此模式下，核心能自動發現並處理寫入共享提交隊列記憶體的新請求，而應用程式端完全無需使用系統呼叫。
+options:
+  - text: "設定 IORING_SETUP_SQPOLL 旗標，建立一個核心執行緒（kernel thread）持續監控提交隊列中的新條目。"
+    correct: true
+    explanation: |
+      SQPOLL（Submission Queue Polling）功能會產生一個核心執行緒來輪詢提交隊列。這使得應用程式只需將資料寫入 SQ 並更新 userspace 中的 tail pointer，核心執行緒就會自動接手工作，應用程式完全不需要呼叫 io_uring_enter。
+  - text: "設定 IORING_SETUP_IOPOLL 旗標，啟用儲存裝置完成暫存器（completion registers）的核心端輪詢。"
+    explanation: |
+      IOPOLL 是用於完成階段（透過 busy waiting 來檢查硬體是否完成），雖然能降低延遲，但並不能消除「提交階段」的系統呼叫。
+  - text: "使用 IORING_SETUP_SINGLE_ISSUER 旗標，允許核心在單一執行緒管理環（ring）時跳過內部鎖定機制。"
+    explanation: |
+      這是針對核心內部鎖定安全性的效能優化，但並不會改變應用程式仍需透過系統呼叫通知核心有新 command 的基本需求。
+  - text: "利用用戶空間與核心空間共享 ring buffer 特性，僅透過更新記憶體中的指標即可自動觸發核心處理，無需任何通知機制。"
+    explanation: |
+      雖然 io_uring 使用共享記憶體，但如果沒有 SQPOLL 執行緒，核心仍然需要一個 doorbell 通知（即系統呼叫）才知道何時該去讀取這些共享記憶體。

@@ -2,18 +2,18 @@ author: Jia-Sheng-Yang
 date: 2026-03-24
 question: |
  一位系統架構師正在排查高效能資料庫伺服器的效能問題。他觀察到儘管伺服器配備了 64 個 CPU ，但在處理高並行的工作負載時，若使用基於 AHCI 的 SSD，儲存吞吐量（throughput）會停滯不前。
- 分析結果顯示，作業系統花費了大量時間在處理一個 global software lock ，用以同步對硬體 request queue 的存取。下列哪一項 NVMe 協定的架構轉變，解決了上述的同步瓶頸，使 I/O 效能得以便隨 CPU 核心數量的增加而線性擴展？
+ 分析結果顯示，所有 I/O completion 都經由同一條中斷線送到同一個 CPU core，造成單核中斷處理瓶頸。下列哪一項 NVMe 協定的架構轉變，解決了上述的同步瓶頸，使 I/O 效能得以便隨 CPU 核心數量的增加而線性擴展？
 options:
-  - text: "實作多組且彼此獨立的 Submission Queues 與 Completion Queues 配對。"
+  - text: "MSI-X（Message Signaled Interrupts-eXtended）支援 per-queue interrupt vector、將中斷分散到不同核心。"
     correct: true
     explanation: |
-      NVMe 支援多達 65,535 個隊列。在多核心系統中，每個核心可以分配到專屬的 Queue pair，這使得 I/O 的提交與完成不再需要跨核心的 lock contention。
+      MSI-X（Message Signaled Interrupts-eXtended）是PCIe 3.0規範中定義的一種進階中斷機制，為MSI的升級版本，它允許設備支援多達2048個獨立的中斷向量。
+  - text: "實作多組且彼此獨立的 Submission Queues 與 Completion Queues 配對。"
+    explanation: |
+      NVMe 支援多達 65,535 個隊列。在多核心系統中，每個核心可以分配到專屬的 Queue pair，這使得 I/O 的提交與完成不再需要跨核心的 lock contention，但與題目說的效能瓶頸為不同問題。
+  - text: "從傳統的 SATA 指令集轉向較精簡的 command set。"
+    explanation: |
+      雖然這能減少每個 I/O 消耗的 CPU 週期，但與多核心擴展性（Lock contention）無直接關聯。
   - text: "將 command queue depth 從 32 擴展至 65536 個。"
     explanation: |
       單一 Queue 仍然需要鎖來同步，無法解決多核心競爭的問題。
-  - text: "從傳統的 SATA 指令集轉向更精簡的 13 個必要指令集。"
-    explanation: |
-      雖然這能減少每個 I/O 消耗的 CPU 週期，但與多核心擴展性（Lock contention）無直接關聯。
-  - text: "採用記憶體映射 I/O（MMIO）門鈴暫存器（doorbell registers）來通知控制器有新指令。"
-    explanation: |
-      這是 NVMe 用於減少暫存器讀取開銷的機制，屬於通知機制，而非解決並行存取瓶頸的架構方案。

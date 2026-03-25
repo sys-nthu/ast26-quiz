@@ -1,0 +1,20 @@
+author: Gengan811
+date: '2026-03-21'
+question: |
+  某資料庫工程師為了解決系統 CPU 負載過高的問題，決定將儲存引擎的讀取路徑全面改寫為 **零拷貝 I/O（Zero-copy I/O，例如使用 Linux 的 `O_DIRECT`）**。該資料庫的工作負載（Workload）主要集中在「頻繁反覆讀取同一批熱點索引區塊（Hot index blocks）」。
+  
+  改寫上線後，工程師原本預期能省下大量的 CPU `memcpy` 開銷並提升效能，但實際測試卻發現資料庫的讀取延遲大幅增加，整體吞吐量嚴重衰退。根據 DMA 與 I/O 軟體堆疊的原理，造成此反直覺現象的最主要原因是什麼？
+options:
+  - text: "零拷貝 I/O 雖然省下了將資料從 Kernel buffer 複製到 User buffer 的 CPU 開銷，但也同時**完全繞過了作業系統的 Page cache（分頁快取）**。對於頻繁反覆讀取熱資料的負載，原本可以直接從記憶體快取中極速命中的請求，現在全部被迫轉換成對底層 NVMe SSD 的實體 I/O 讀取，導致延遲大幅增加。"
+    correct: true
+    explanation: |
+      這是正確的。根據講義，Zero-copy 的核心代價就是放棄了 Kernel 的 Page cache。在資料庫頻繁讀取「熱點資料」的場景中，Page cache 的命中率通常極高，直接從 DRAM 讀取的延遲遠低於向 SSD 發送 DMA 請求。強行套用 Zero-copy 反而會讓每個讀取指令都必須走完完整的 PCIe 與 NVMe 實體傳輸路徑，導致效能嚴重衰退。Zero-copy 真正適合的是「只讀一次」或「循序大檔案」等 Cache 命中率低的場景。
+  - text: "`O_DIRECT` 會強制 DMA 控制器退化成 **Programmed I/O（PIO）**模式。在 PIO 模式下，CPU 必須親自參與每一個位元組的搬運，這不僅沒有省下 CPU 資源，反而導致 CPU 被 I/O 傳輸完全卡死。"
+    explanation: |
+      這是錯誤的觀念。使用 `O_DIRECT` 達成 Zero-copy 時，底層依然是完全依賴硬體 DMA 控制器來將資料從 SSD 直接搬運到應用程式的 User buffer 中，並不會退化成古老且低效的 PIO（由 CPU 親自跑迴圈搬資料）模式。
+  - text: "應用程式透過標準 `malloc()` 分配的 User buffer 預設在實體記憶體中是不連續的（Physically fragmented）。由於 Zero-copy 必須使用實體連續的記憶體，DMA 控制器為了處理這些碎片，耗費了大量時間在硬體層級進行重組。"
+    explanation: |
+      這混淆了 DMA 的限制與現代解法。雖然簡單的 DMA 確實需要實體連續記憶體，但現代系統與 NVMe 協定廣泛支援 **Scatter-Gather List（SGL）** 或是 PRP 機制。這允許 DMA 控制器直接且高效地處理分散在多個實體分頁上的記憶體，並不會因此產生巨大的重組延遲。
+  - text: "零拷貝 I/O 會導致目標記憶體區塊被永久 **Pinned（釘住）**在實體記憶體中無法被作業系統 Swap out。當熱點索引區塊不斷增加時，會迅速耗盡所有的實體記憶體，引發系統嚴重崩潰。"
+    explanation: |
+      這個推論只對了一半。DMA 傳輸期間，記憶體確實必須被 Pinned 以防止 OS 將其 Swap 出去造成資料損壞。然而，Pinning 是動態的，通常只在 I/O 操作進行的期間鎖定，完成後就會釋放（或者由資料庫自行管理特定的固定緩衝池），並不會因為使用了 Zero-copy 就無條件「永久」鎖住所有記憶體導致系統立刻崩潰。效能立刻衰退的主因是失去了 Cache。

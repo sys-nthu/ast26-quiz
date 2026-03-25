@@ -38,7 +38,22 @@ if (!apiKey) {
   process.exit(0);
 }
 
-const client = new Anthropic({ apiKey });
+// Strip X-Stainless-* headers and Anthropic/JS User-Agent that trigger
+// Cloudflare bot detection when using cliproxy through a Cloudflare tunnel.
+const client = new Anthropic({
+  apiKey,
+  fetch: (url, init) => {
+    if (init && init.headers) {
+      const clean = {};
+      for (const [k, v] of Object.entries(init.headers)) {
+        if (k.startsWith('x-stainless')) continue;
+        clean[k] = (k === 'user-agent') ? 'node-fetch/1.0' : v;
+      }
+      init.headers = clean;
+    }
+    return globalThis.fetch(url, init);
+  },
+});
 
 const SITE_BASE_URL = process.env.SITE_BASE_URL || 'https://lego.sys-nthu.tw';
 

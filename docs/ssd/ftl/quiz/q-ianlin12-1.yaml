@@ -1,7 +1,7 @@
 author: ianlin12
 date: 2026-03-04
 question: |
-  假設我們使用 DFTL（ Demand-based FTL ）當作我們 FTL 的設計，假設 CMT 容量僅能容納 4 個 mapping entries，淘汰策略選擇 LRU
+  假設我們使用 DFTL（Demand-based FTL）當作我們 FTL 的設計，假設 CMT 容量僅能容納 4 個 mapping entries，淘汰策略選擇 LRU
   並假設 CMT 一剛開始是空的，則如果我們從 SSD 選擇一部影片循環播放，該影片對應之 mapping entries 為 e0~e4，
   並假設不需要處理其他事情，則 steady-state 的 CMT hit rate 為多少?
 options:

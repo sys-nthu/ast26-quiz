@@ -1,7 +1,7 @@
 author: peterxcli
 date: 2026-03-24
 question: |
-  In the DFTL architecture, a Cached Mapping Table (CMT) is maintained in SRAM. When an unexpected power loss occurs, how should the SSD controller handle the "dirty" mapping entries in SRAM (entries that have been updated but not yet written back to NAND Flash) to ensure the SSD does not lose the locations of newly written data upon the next boot?
+  In the DFTL architecture **of an enterprise-grade SSD equipped with Power-Loss Protection (PLP)**, a Cached Mapping Table (CMT) is maintained in SRAM. When an unexpected power loss occurs, how does the SSD controller handle the "dirty" mapping entries in SRAM (entries that have been updated but not yet written back to NAND Flash) to ensure the SSD does not lose the locations of newly written data upon the next boot?
 options:
   - text: "The SSD forces a synchronous out-of-place write to the Flash every time a mapping entry is updated in SRAM, so no extra handling is needed during power loss."
     explanation: |

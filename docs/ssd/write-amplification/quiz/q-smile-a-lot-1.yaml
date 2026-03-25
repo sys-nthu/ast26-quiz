@@ -5,7 +5,7 @@ question: |
 
   * NAND flash P/E cycle 上限：$3000$ 次。
   * 沒有 over provisioning （OP）。
-  * 平均 valid ratio： $80$％。
+  * 被 GC 回收的 victim block 平均 valid ratio： $80$％。
 
   根據大抄裡面的簡化公式 $WAF_gc=\frac{1}{1-valid\_ratio}$，假設 SSD 內部的寫入放大僅由 GC 機制產生，在不考慮 TRIM 與其他硬體損耗的極端情況下，該系統應用層（Application）實際能寫入的邏輯資料量上限最接近下列何者？
 options:
@@ -27,6 +27,6 @@ options:
   - text: "$165$TB"
     explanation: |
       此選項常見於將各層級 WAF 錯誤地相加。如果將三層相加（$12 + 1.1 + 5 = 18.1$），則會得到約 $165 \text{ TB}$。此選項代表未釐清「放大效應是跨層級連鎖相乘」的物理特性。
-  - text: "$250$TB"
+  - text: "$181$TB"
     explanation: |
       此選項常見於誤解了 GC WAF 的物理意義，將公式中的有效與無效比例顛倒，代入 $\frac{1}{0.8} = 1.25$。若 $WAF_{gc}$ 計算為 $1.25$，則系統總 WAF 會縮減為 $12 \times 1.1 \times 1.25 = 16.5$。拿物理上限 $3000 \text{ TB}$ 除以 $16.5$，便會得出約 $181 \text{ TB}$ 的高估數字。

@@ -4,10 +4,11 @@ question: |
  一位系統架構師正在排查高效能資料庫伺服器的效能問題。他觀察到儘管伺服器配備了 64 個 CPU ，但在處理高並行的工作負載時，若使用基於 AHCI 的 SSD，儲存吞吐量（throughput）會停滯不前。
  分析結果顯示，所有 I/O completion 都經由同一條中斷線送到同一個 CPU core，造成單核中斷處理瓶頸。下列哪一項 NVMe 協定的架構轉變，解決了上述的同步瓶頸，使 I/O 效能得以便隨 CPU 核心數量的增加而線性擴展？
 options:
-  - text: "MSI-X（Message Signaled Interrupts-eXtended）支援 per-queue interrupt vector、將中斷分散到不同核心。"
+  - text: "將每個 Completion Queue 映射到唯一的中斷向量，每個中斷向量直接映射到不同的 CPU 核心，使 I/O 完成訊號得以分佈在特定的 CPU 核心上處理。"
     correct: true
     explanation: |
-      MSI-X（Message Signaled Interrupts-eXtended）是PCIe 3.0規範中定義的一種進階中斷機制，為MSI的升級版本，它允許設備支援多達2048個獨立的中斷向量。
+      在 AHCI 等傳統架構中，通常僅使用單一中斷線，這會導致在高 IOPS 環境下，所有 I/O 完成訊號都湧向同一個 CPU 核心，造成該核心負載過重。
+      NVMe 利用 MSI-X 技術，允許每組 Completion Queue 擁有獨立的中斷向量。透過將這些向量與不同的 CPU 核心連結，作業系統能確保 I/O 完成後的處理程序在多核心之間平衡分佈。
   - text: "實作多組且彼此獨立的 Submission Queues 與 Completion Queues 配對。"
     explanation: |
       NVMe 支援多達 65,535 個隊列。在多核心系統中，每個核心可以分配到專屬的 Queue pair，這使得 I/O 的提交與完成不再需要跨核心的 lock contention，但與題目說的效能瓶頸為不同問題。

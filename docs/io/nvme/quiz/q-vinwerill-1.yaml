@@ -5,8 +5,8 @@ question: |
   系統在高負載下頻繁出現 TCP 連線中斷（disconnect）與重新連線（reconnect）的情況。
   在此情境中，觀察到 SPDK 的整體效能（throughput 與 latency）未顯著優於傳統基於 libaio 的實作。
   
-  請問下列關於「為何 SPDK 在此情況下無法有效發揮效能優勢」的描述，哪一項最為正確？
-  (本題參考github討論https://github.com/spdk/spdk/issues/517)
+  請問下列關於「為何 SPDK 在此情況下無法有效發揮效能優勢」的描述中，哪一項最為正確？
+  （本題參考 GitHub 討論 https://github.com/spdk/spdk/issues/517）
 options:
   - text: "SPDK 透過 user-space polling 完全繞過 kernel，因此在任何情況下都能提升 NVMe 裝置的效能；若效能沒有提升，主要是因為 NVMe SSD 本身的硬體瓶頸。"
     explanation: |
@@ -22,14 +22,12 @@ options:
       在頻繁錯誤的情況下，系統多數時間處於 failure path，導致 throughput 降低，
       因此無法展現其在 steady-state 下的高效能優勢。
 
-  - text: "SPDK 為了確保資料一致性，在每次 I/O 操作時都會強制使用 global lock，
-      導致多核心並行能力下降，因此效能不如 libaio。"
+  - text: "SPDK 為了確保資料一致性，在每次 I/O 操作時都會強制使用 global lock，導致多核心並行能力下降，因此效能不如 libaio。"
     explanation: |
       SPDK 的設計強調 lockless 與 per-core queue，避免使用 global lock。
       效能問題並非來自鎖競爭，而是來自錯誤處理與連線恢復機制。
 
-  - text: "libaio 在設計上使用 busy polling，而 SPDK 採用 interrupt-driven 模式，
-      因此在連線不穩定時 libaio 能更有效利用 CPU 資源。"
+  - text: "libaio 在設計上使用 busy polling，而 SPDK 採用 interrupt-driven 模式，因此在連線不穩定時 libaio 能更有效利用 CPU 資源。"
     explanation: |
-      事實上情況相反：SPDK 使用 busy polling，而 libaio 是 interrupt-driven。
+      事實上情況相反，SPDK 使用 busy polling，而 libaio 是 interrupt-driven。
       在 failure 情境中，libaio 因為不會持續 busy spin，反而更節省 CPU 資源。

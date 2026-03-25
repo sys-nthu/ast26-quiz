@@ -8,7 +8,7 @@ options:
     correct: true
     explanation: |
       SQPOLL（Submission Queue Polling）功能會產生一個核心執行緒來輪詢提交隊列。這使得應用程式只需將資料寫入 SQ 並更新 userspace 中的 tail pointer，核心執行緒就會自動接手工作，未睡眠時可避免 system call。
-  - text: "設定 IORING_SETUP_IOPOLL 旗標，啟用儲存裝置完成暫存器（completion registers）的核心端輪詢。"
+  - text: "設定 IORING_SETUP_IOPOLL 旗標，啟用儲存裝置 poll driver completion queue 的核心端輪詢。"
     explanation: |
       IOPOLL 是用於完成階段（透過 busy waiting 來檢查硬體是否完成），雖然能降低延遲，但並不能消除「提交階段」的系統呼叫。
   - text: "使用 IORING_SETUP_SINGLE_ISSUER 旗標，允許核心在單一執行緒管理環（ring）時跳過內部鎖定機制。"

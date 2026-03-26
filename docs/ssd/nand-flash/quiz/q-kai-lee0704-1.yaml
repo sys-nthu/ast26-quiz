@@ -1,0 +1,20 @@
+author: kai-lee0704
+date: 2026-03-26
+question: | 
+  某工程師嘗試更新一個 NAND flash page 的資料，在該 flash 的物理特性中，低電荷狀態 (Erased state) 被定義為邏輯「1」，而注入電荷後的狀態 (Programmed state) 被定義為邏輯「0」
+  今天他在實驗中想要「直接將部分的 bit 從 0 改回 1 」，而不進行 erase 的操作。
+  實驗結果發現更新失敗，其最可能的主要原因是什麼
+options:
+  - text: "NAND flash 不支援 partial write"
+    explanation: |
+       partial programming 有所限制但不是核心原因，題目重點為不進行 erase 將 1 改成 0
+  - text: "programming 只能「注入」電荷，不能降低電荷"
+    correct: true
+    explanation: |
+      programming 是把電荷注入 floating gate，只能加電子，不能減，因此需要 Erase-before-write
+  - text: "block 太大導致更新失敗"
+    explanation: |
+      電荷操作與 block 大小無關
+  - text: "programming 操作需要依序寫入 page，不能跳著寫"
+    explanation: |
+      與順序限制無關，重點在無法減少 cell 的電荷量

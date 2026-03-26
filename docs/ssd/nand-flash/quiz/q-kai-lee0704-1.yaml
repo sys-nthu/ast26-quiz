@@ -1,7 +1,7 @@
 author: kai-lee0704
 date: 2026-03-26
 question: | 
-  某工程師嘗試更新一個 NAND flash page 的資料，在該 flash 的物理特性中，低電荷狀態(Erased state)被定義為邏輯「1」，而注入電荷後的狀態(Programmed state)被定義為邏輯「0」
+  某工程師嘗試更新一個 NAND flash page 的資料，在該 flash 的物理特性中，低電荷狀態 (Erased state) 被定義為邏輯「1」，而注入電荷後的狀態 (Programmed state) 被定義為邏輯「0」
   今天他在實驗中想要「直接將部分的 bit 從 0 改回 1 」，而不進行 erase 的操作。
   實驗結果發現更新失敗，其最可能的主要原因是什麼
 options:

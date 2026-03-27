@@ -1,5 +1,5 @@
 author: lin131chen
-date: 2026-03-25
+date: 2026-03-27
 question: |
   你在優化一個高 IOPS 的 NVMe 系統，採用 per-core queue pair。為了降低 MMIO 成本，你讓每個 core 累積 64 個 command 才寫一次 doorbell。
   觀察到：
@@ -19,8 +19,8 @@ options:
       
   - text: "PCIe bandwidth 成為瓶頸。"
     explanation: |
-      Bandwidth 問題時，CPU 使用率通常不會下降，且多半會觀察到 SSD 滿載，而不是處於 idle。
+     若 PCIe 頻寬成為瓶頸，代表傳輸匯流排已接近飽和。在此情況下，SSD 應持續處於高利用率以輸出最大頻寬，而非如題幹所述出現 utilization 下降與 idle 的現象。
       
-  - text: "CQ 滿導致 SSD 停止 execution。"
+  - text: "CQ 滿導致 SSD 停止所有正在進行與後續的 I/O 操作。"
     explanation: |
       當 CQ 滿時，SSD 無法再寫入新的 completion，因此會停止從 SQ 取得新的 command；但已經在執行中的 I/O 仍會完成，而不會被中途停止。

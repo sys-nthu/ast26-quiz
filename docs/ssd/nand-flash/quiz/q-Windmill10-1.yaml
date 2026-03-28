@@ -1,0 +1,40 @@
+author: Windmill10
+date: 2026-03-28
+question: |
+  A cloud provider needs to choose an SSD for a write-intensive logging
+  workload that writes 20 TB of host data per day. Two candidates:
+
+  | | SSD A | SSD B |
+  |---|---|---|
+  | Capacity | 1 TB | 2 TB |
+  | Cell type | TLC | QLC |
+  | P/E cycle limit | 3,000 | 1,000 |
+  | Write amplification factor | 2 | 4 |
+
+  Approximately how long will each SSD last before reaching its
+  endurance limit?
+options:
+  - text: "SSD A: ~75 days, SSD B: ~25 days"
+    correct: true
+    explanation: |
+      TBW_A = 1 TB x 3,000 / 2 = 1,500 TB. At 20 TB/day, that is
+      1,500 / 20 = 75 days. TBW_B = 2 TB x 1,000 / 4 = 500 TB.
+      At 20 TB/day, that is 500 / 20 = 25 days. Despite having half
+      the capacity, SSD A lasts 3x longer because TLC's higher P/E
+      endurance and lower WAF more than compensate.
+  - text: "SSD A: ~150 days, SSD B: ~100 days"
+    explanation: |
+      This incorrectly multiplies by WAF instead of dividing.
+      WAF means each TB of host data causes WAF TBs of physical
+      writes, so it reduces usable lifetime, not extends it.
+  - text: "SSD A: ~75 days, SSD B: ~100 days"
+    explanation: |
+      SSD A is correct, but SSD B ignores the write amplification
+      factor (2 TB x 1,000 / 20 = 100). QLC's WAF of 4 significantly
+      reduces usable writes, bringing SSD B down to only 25 days.
+  - text: "SSD B lasts longer because it has 2x the capacity"
+    explanation: |
+      Capacity alone does not determine endurance. QLC has 3x fewer
+      P/E cycles than TLC (1,000 vs 3,000) and 2x the WAF (4 vs 2).
+      These factors more than negate the 2x capacity advantage,
+      resulting in SSD B lasting only 1/3 as long as SSD A.

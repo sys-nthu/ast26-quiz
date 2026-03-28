@@ -1,0 +1,20 @@
+author: minhsun-c
+date: 2026-03-28
+question: |
+  一個 key-value store 的查詢工作負載中，90% 的 read 查詢對應的 key 都確實存在於資料庫中，只有 10% 的 read 查詢是查不存在的 key。工程師想在每個 SSTable 前加上 Bloom filter (FPR = 1%) 來加速讀取效率。請問在這個工作負載下，Bloom filter 對 **read 效能**的提升幅度，相比於「90% key 不存在、10% key 存在」的工作負載會有什麼差異？
+
+options:
+  - text: "提升幅度較小，因為 Bloom filter 只能省掉「查不到的 key」的 disk I/O，而這類查詢在此工作負載中只佔 10% 。"
+    correct: true
+    explanation: |
+      Bloom filter 的核心價值在於「能準確判定 key 絕對不存在」，從而規避不必要的 disk I/O。然而，若 key 確實存在於 SSTable 中，Bloom filter 僅能回傳「可能存在」，系統仍須執行實體磁碟讀取以獲取 value。
+      在此工作負載中，不存在的 key 僅佔 10%。即便 Bloom filter 誤判率 (FPR) 低至 1%，其所能節省的 disk I/O 頂多僅佔整體的 9.9% ($10\%  \times 99\%$)。相比之下，若不存在查詢佔 90%，最多可省掉約 89.1% 的 disk read，效益差距懸殊。
+  - text: "提升幅度相同，因為 Bloom filter 的 FPR 固定為 1%，與工作負載中 key 的存在率無關。"
+    explanation: |
+      FPR 為 1% 代表在所有「不存在的 key」的查詢中，有 1% 會被誤判為「可能存在」，白跑一次 disk read。雖然 FPR 的比例固定，但是 Bloom filter 對整體效能的提升，取決於工作負載中有多少查詢是「不存在的 key」。如果幾乎所有查詢都是存在的 key，即使 FPR 再低，可節省的 disk I/O 總量也很有限。
+  - text: "提升幅度較大，因為存在的 key 佔多數，Bloom filter 可以快速確認它們確實存在，省掉不必要的搜尋。"
+    explanation: |
+      Bloom filter 回答「可能存在」之後，系統仍然必須去 disk 上確認，因為「可能存在」不等於「確實存在且 value 就在這個 SSTable」，也無法從 Bloom filter 取出 value。Bloom filter 只能省掉「回答不存在」這條路上的 disk I/O。因此，key 存在率越高，Bloom filter 能省掉的 I/O 反而越少。
+  - text: "提升幅度較大，因為較高的 key 存在率代表資料分布更集中，雜湊函數的碰撞率下降，FPR 也跟著降低。"
+    explanation: |
+      Bloom filter 的 FPR 由「位元陣列大小」、「雜湊函數數量」、「已插入元素數量」共同決定，於 Bloom filter 建立時就已固定，與查詢時的 key 存在率無關。

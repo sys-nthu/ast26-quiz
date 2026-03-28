@@ -1,0 +1,71 @@
+author: b0yi
+date: 2026-03-28
+question: |
+  你正在為一間量化交易公司採購企業級 SSD，需要同時服務兩個系統：
+
+  - **系統 X（HFT 交易 Log）**：每秒產生數萬筆 4KB 隨機寫入，24 小時不間斷，
+    對 **p99 tail latency** 極度敏感，任何超過 5ms 的延遲都可能導致交易損失。
+  - **系統 Y（ML 訓練資料集）**：每週批次循序寫入一次，其餘時間幾乎全為隨機讀取，
+    對延遲無嚴格要求，但希望最大化每 GB 的成本效益。
+
+  你手邊有兩款使用**相同 NAND Flash 總量（1024 GB 實體顆粒）**的企業級 SSD，
+  預算有限，每個系統只能選一款：
+
+  | 規格 | 型號 A（Read-Intensive）| 型號 B（Write-Intensive）|
+  |---|---|---|
+  | 可用容量 | 960 GB | 800 GB |
+  | Over-Provisioning | ~7% | ~28% |
+  | 標示隨機寫入 IOPS | 500K | 300K |
+
+  兩個系統皆已部署三個月，進入 **Steady State**。
+  請問下列哪一種分配方式，最符合 Steady State 下的效能設計邏輯？
+
+options:
+  - text: "系統 X 選型號 A，系統 Y 選型號 B。型號 A 標示 500K IOPS 優於型號 B，適合高 IOPS 需求的 HFT；型號 B 高 OP 可保護系統 Y 資料的耐久性。"
+    explanation: |
+      這個選項犯了兩個獨立的錯誤。
+      第一，廠商標示的 IOPS 為 **Fresh State** 數據，此時所有 Block 皆為 erased 狀態，WAF ≈ 1。
+      進入 Steady State 後，系統 X 的高強度隨機寫入讓 Free Block Pool 快速耗盡，
+      型號 A 僅 7% OP，GC 被迫頻繁執行，WAF 可攀升至 3~5，
+      大量 NAND 頻寬被 internal write 佔用，p99 tail latency 將遠超 5ms 門檻。
+      第二，系統 Y 的寫入 Duty Cycle 極低，GC 壓力幾乎為零，
+      型號 B 多出的 OP 對耐久性的幫助微乎其微，卻白白損失 160 GB 可用容量。
+
+  - text: "系統 X 選型號 B，系統 Y 選型號 A。型號 B 的 OP 較高，GC 必須搬移更多 Valid Pages，controller 對資料的掌控更精細，更適合需要穩定延遲的 HFT 場景。"
+    explanation: |
+      分配方向正確（系統 X → 型號 B，系統 Y → 型號 A），但理由完全錯誤。
+      在良好的 GC 演算法（Greedy Policy）下，controller **優先選擇 Valid Ratio 最低**的 Block，
+      目的是最小化需要搬移的 Valid Pages 數量，而非搬移更多。
+      型號 B 的 OP 較高，Free Block Pool 更充裕，每次 GC 能挑到 Valid Ratio 更低的 Block，
+      WAF 反而更小，tail latency spike 因此被抑制，而非因「搬移更精細」而改善。
+
+  - text: "兩個系統都應選型號 B。更高的 OP 在任何 Steady State 場景下都能降低 WAF，改善 tail latency 與資料耐久性，沒有理由選 OP 較低的型號 A。"
+    explanation: |
+      OP 的效益並非在所有場景下都值得，其成本是**可用容量的減少**，收益是降低 GC 壓力。
+      系統 Y 的寫入模式為每週一次循序批次，Duty Cycle 極低，
+      循序寫入對 GC 壓力也更友善（Block 被整齊填滿，Invalid Pages 多，搬移成本低）。
+      在這種場景下，WAF 本就接近 1，型號 B 多出的 OP 空間形同閒置，
+      卻讓系統 Y 損失 160 GB 可用容量，成本效益極差。
+      正確做法是**依照寫入強度與 Duty Cycle 決定 OP 需求**，而非一律選最高 OP。
+
+  - text: "系統 X 選型號 B，系統 Y 選型號 A。系統 X 的持續高強度隨機寫入需要大 OP 來壓制 GC 壓力；系統 Y 寫入頻率極低，GC 壓力幾乎為零，型號 A 的高容量更符合成本效益。"
+    correct: true
+    explanation: |
+      這是正確答案。OP 的選擇應以**寫入強度與 Duty Cycle** 為核心依據。
+
+      **系統 X → 型號 B（Write-Intensive，28% OP）：**
+      持續隨機寫入使 Free Block 快速消耗，若 OP 不足，GC 被迫頻繁執行，
+      且只能選 Valid Ratio 偏高的 Block，WAF 可達 3~5。
+      GC internal write 與 host write 競爭 NAND die，導致 p99 latency 飆升至數十毫秒。
+      型號 B 充裕的 OP 讓 Free Block Pool 保持餘裕，每次 GC 能選 Valid Ratio 更低的 Block，
+      WAF 維持在較低水準（通常 < 2），p99 latency spike 被有效抑制。
+
+      **系統 Y → 型號 A（Read-Intensive，7% OP）：**
+      寫入 Duty Cycle 極低，循序批次寫入對 GC 壓力極小，
+      大量 idle time 讓 controller 可以從容進行背景 GC，WAF 本就接近 1。
+      型號 B 多出的 160 GB OP 空間在此場景下形同閒置，
+      選型號 A 可獲得更多可用容量，以相同成本儲存更多 ML 訓練資料集。
+
+      **核心判斷邏輯：**
+      寫入強度高且持續 → 選 Write-Intensive（高 OP）；
+      寫入稀少或以循序為主 → 選 Read-Intensive（低 OP、高容量）。

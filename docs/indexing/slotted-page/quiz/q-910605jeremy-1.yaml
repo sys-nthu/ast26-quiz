@@ -13,6 +13,6 @@ options:
   - text: "Free-space pointer 始終指向 Slot Array 結束位置與 Heap Area 開始位置之間的「絕對中點（Absolute Midpoint）」，以平衡兩端增長的壓力。"
     explanation: |
       這是一個錯誤的假設。Free-space pointer 通常指向 Heap Area 的頂端（最新寫入紀錄的邊界）。Slot Array 與 Heap Area 並非對稱增長：Slot Array 每次增加一個固定大小的指標，而 Heap Area 每次增加一塊變長的資料。指針的作用是標註「下一次寫入資料的起始點」，而非維持中點。
-  - text: "當一條 record 的大小超過單個頁面的剩餘可用空間時，Slotted Page 會修改 Slot Array 讓其直接指向一個外部溢位頁面（Overflow Page）的物理位址，原頁面不保留任何資料。"
+  - text: "當頁面內的一條 record 被刪除後，為了防止 External Fragmentation，Free-space pointer 會立即更新並觸發該 record 後方所有數據的位移，以確保剩餘空間始終是物理連續的。"
     explanation: |
-      即便資料溢位，原頁面的 Slot 仍會指向一個在本頁內的「存根（Stub/Anchor）」，這個存根再紀錄指向溢位頁面的指標。直接讓 Slot 指向外部會破壞頁面管理的封裝性，使得 Buffer Pool 難以追蹤紀錄與分頁的隸屬關係。
+      即時重組（Immediate Compaction）會導致極高的 CPU 與 I/O 成本，因為每刪除一筆資料都要移動大量記憶體。實際操作中，系統僅將該 Slot 標記為空，並更新 Page Header 中的 Space Counting。

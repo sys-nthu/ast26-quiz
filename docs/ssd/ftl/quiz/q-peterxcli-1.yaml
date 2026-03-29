@@ -1,0 +1,18 @@
+author: peterxcli
+date: 2026-03-24
+question: |
+  In the DFTL architecture **of an enterprise-grade SSD equipped with Power-Loss Protection (PLP)**, a Cached Mapping Table (CMT) is maintained in SRAM. When an unexpected power loss occurs, how does the SSD controller handle the "dirty" mapping entries in SRAM (entries that have been updated but not yet written back to NAND Flash) to ensure the SSD does not lose the locations of newly written data upon the next boot?
+options:
+  - text: "The SSD forces a synchronous out-of-place write to the Flash every time a mapping entry is updated in SRAM, so no extra handling is needed during power loss."
+    explanation: |
+      If every modification required a synchronous write to Flash, it would cause extreme write latency and write amplification, completely defeating the performance purpose of caching the Mapping Table in SRAM.
+  - text: "It primarily relies on the OS file system's journaling mechanism. After a reboot, the journal is replayed to restore the underlying FTL's mapping state."
+    explanation: |
+      OS journaling ensures file system consistency, but the OS is unaware of the underlying FTL's LBA-to-PBA mapping. The FTL's persistence must be handled independently by the SSD controller.
+  - text: "It relies on a large power-loss protection (PLP) capacitor on the SSD circuit board to provide temporary power, giving the controller enough time to flush the dirty mapping entries from SRAM to NAND Flash."
+    correct: true
+    explanation: |
+      This is a standard practice for enterprise or high-end SSDs. The large capacitor provides crucial milliseconds to seconds of power, ensuring that critical volatile data (including user data and the mapping table) safely lands in the non-volatile Flash.
+  - text: "Because a dirty entry represents obsolete data ready to be garbage-collected, losing it during a power loss will not corrupt the data, thus requiring no special protection."
+    explanation: |
+      This is conceptually backward. A dirty entry represents the newest LBA-to-PBA mapping. If this information is lost, the SSD will not be able to locate the user's most recently written data, leading to severe data loss.

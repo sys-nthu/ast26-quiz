@@ -1,0 +1,20 @@
+author: Jia-Sheng-Yang
+date: 2026-03-29
+question: |
+ 一個儲存引擎在每個 Slotted Page 的 header 中實作了 Bloom Filter，以避免在解析 slot directory 時消耗不必要的 CPU 週期。
+ 當一個 record 從頁面中被刪除時，引擎會更新 slot directory 並移除指標，但不會修改 Bloom Filter 中的 bits（因為標準的 Bloom Filter 並不支援位元清除功能）。
+ 如果隨後針對該已刪除的 key 進行搜尋，Bloom Filter 中的這些「過時」資訊會如何影響儲存引擎的運作？
+options:
+  - text: "它會導致 False Positive，即 filter 顯示該 key「可能」存在，進而迫使引擎去檢查 slot directory，最後才發現該 record 其實並不存"
+    correct: true
+    explanation: |
+      因為多個 key 可能共享同一個 bit，所以無法輕易刪除 bit。系統仍能保持正確性，因為最終檢查 slot directory（真實數據來源）時會確認該資料已不存在。
+  - text: "它會產生 False Negative，導致引擎在未檢查其他 page 的情況下，錯誤地回報該 key 不存在於資料庫中的任何地方。"
+    explanation: |
+      Bloom Filter 絕不會產生 False Negative。過時的位元只會導致額外的工作（False Positive），而不會導致錯誤的答案（False Negative）。
+  - text: "它會在頁面 header 中觸發 Hash Collision Conflict，在該頁面重新寫入（rewrite）之前，阻止任何新的 record 被 hash 進入該特定的 Bloom Filter。"
+    explanation: |
+      Bloom Filter 本身就是設計來處理位元 collision 的，這並不會封鎖該結構的運作。
+  - text: "它會強迫引擎將該 Bloom Filter 視為失效 invalidated，從而繞過 filter，並對後續該 page 的所有請求都預設執行 data area 的 full scan 。"
+    explanation: |
+      引擎並不會追蹤哪些 bits 是過時的 (除非是counting bloom filter 才會把每個 bit 換成一個計數器)，它只會單純根據機率性的結果來執行。

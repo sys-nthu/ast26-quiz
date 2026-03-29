@@ -1,7 +1,8 @@
 author: Vincent5201
 date: 2026-03-28
 question: |
-  儘管 Kernel-Bypass I/O 很強大，但並非所有情況下都適用，以下何者並非不適用的主要原因之一?
+  儘管 Kernel-Bypass I/O 很強大，但並非所有情況下都適用，以下關於 Kernel-Bypass I/O 限制
+  或缺點的描述，何者錯誤?
 options:
   - text: "Kernel-Bypass I/O 無法使用 Kernel 提供的各種功能。"
     explanation: |

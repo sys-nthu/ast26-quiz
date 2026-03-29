@@ -1,0 +1,33 @@
+author: shirou1217
+date: 2026-03-28
+question: |
+  某個高 IOPS 的資料庫系統每秒需要執行 640,000 次 4KB random read，
+  工程師使用 `io_uring` 並採用 batched submission，每次將 64 個 SQE 一起提交。
+
+  假設系統未啟用 SQPOLL，且每次 batch 都需要呼叫一次 `io_uring_enter()`，
+  下列哪一項最能**合理解釋此優化對 syscall overhead 的影響本質**？
+
+options:
+  - text: "將 640,000 次 I/O 合併為 10,000 次 syscall，主要節省的是 kernel 與 user space 之間的 mode switch 與 request copy 成本。"
+    correct: true
+    explanation: |
+      每 64 個 I/O 合併為一次提交，因此 syscall 次數從 640,000 次降為 10,000 次。
+      關鍵節省來自兩點：
+      第一， batched submission 減少 user mode 與 kernel mode 的切換（mode switch）次數；
+      第二， `io_uring` 將 SQE 直接放在 shared memory 中，kernel 不需要逐筆 copy request。
+
+  - text: "雖然 syscall 次數下降，但每次 `io_uring_enter()` 需要處理更多 SQE，因此總 syscall overhead 不變，只是延遲被集中。"
+    explanation: |
+      雖然單次 syscall 處理的 SQE 變多，但 syscall 的固定成本（mode switch、register save/restore 等）只發生一次，
+      而不是隨 SQE 數量線性增加。因此總體 syscall overhead 會顯著下降，而不是只是把原本分散的延遲集中到少數幾次 syscall 中。
+
+  - text: "batched submission 的主要效益來自降低 NVMe 裝置的 interrupt 次數，而非 syscall 次數。"
+    explanation: |
+      interrupt 次數主要與 completion path（例如 IOPOLL）相關，而非 submission batching。
+      batched submission 的核心目標是減少 syscall 次數與資料傳遞成本，並不直接影響裝置 interrupt 行為。
+
+  - text: "由於 `io_uring` 使用 shared ring buffer，因此即使不使用 batching，每個 I/O 也不需要 syscall。"
+    explanation: |
+      shared ring buffer 確實減少資料傳遞成本，但在未啟用 SQPOLL 的情況下，
+      application 仍需要透過 `io_uring_enter()` 通知 kernel 有新的 SQE 進來請處理。
+      因此若不做 batching，每個 I/O 仍可能對應一次 syscall，無法消除 syscall overhead。

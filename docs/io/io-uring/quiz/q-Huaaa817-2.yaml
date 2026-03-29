@@ -1,0 +1,26 @@
+author: Huaaa817
+date: 2026-03-28
+question: |
+  某系統工程師將系統從 io_uring（經 block layer）改為 io_uring_cmd（NVMe passthrough），
+  發現 latency 降低約 10%，但系統變得更難維護。
+  下列哪個原因最能解釋這個 trade-off？
+
+options:
+  - text: "因為 DMA 不再使用 physical address，因此需要額外轉換成本"
+    explanation: |
+      實際 DMA 仍使用 physical address，passthrough 不改變此機制，此說法不成立。
+
+  - text: "因為 application 必須自己處理 NVMe command 與 memory 管理，失去 kernel abstraction"
+    correct: true
+    explanation: |
+      正確。繞過 block layer 後需自行處理 NVMe command 與 DMA buffer，
+      失去 kernel abstraction，複雜度提升換取較低 latency。
+
+  - text: "因為 filesystem 被完全移除，資料直接寫入 DRAM"
+    explanation: |
+      混淆 filesystem 與資料來源。filesystem 只負責 mapping，
+      資料仍需從 SSD 經 DMA 搬到記憶體，並非直接產生於 DRAM。
+
+  - text: "因為 NVMe SSD 在 passthrough 模式下關閉了 queue 機制"
+    explanation: |
+      NVMe queue 仍存在，passthrough 僅繞過 block layer，不影響裝置機制。

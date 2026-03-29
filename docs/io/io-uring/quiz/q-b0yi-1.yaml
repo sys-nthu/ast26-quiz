@@ -1,0 +1,43 @@
+author: b0yi
+date: 2026-03-25
+question: |
+  某間公司的 HTTP 檔案伺服器運行於配備 NVMe SSD 的機器上，
+  尖峰時段需同時處理約 10,000 筆並行隨機讀取請求（每筆 4KB）。
+  工程師評估導入 io_uring 來降低 I/O 開銷，但伺服器的 CPU 核心數有限，
+  且 HTTP 流量具備明顯的突發特性（Bursty）。
+  在這個情境下，哪一種 io_uring 配置組合最能在吞吐量與 CPU 效率之間取得平衡？
+options:
+  - text: "啟用 SQPOLL + IOPOLL 雙輪詢模式，並對每筆請求獨立提交一個 SQE（不使用 Batching）。"
+    explanation: |
+      此配置有兩個致命缺陷：
+      SQPOLL 與 IOPOLL 各自佔用一個 CPU 核心進行忙碌輪詢（Busy-poll），
+      在 HTTP 流量具有突發性的情境下，低峰期會大量浪費 CPU；
+      加上缺乏 Batching，每筆請求各自觸發一次 `io_uring_enter()`，
+      Syscall 開銷完全無法攤提，整體 CPU 使用率反而更高。
+  - text: "使用 Registered Buffers 搭配 Registered Files，並以 Batching 方式批次提交 SQE；不啟用 SQPOLL 或 IOPOLL。"
+    correct: true
+    explanation: |
+      這是最符合此情境的組合：
+      Registered Buffers 讓核心在 `io_uring_register()` 時一次性完成 DMA Mapping 與記憶體頁面固定（Pin），
+      省去每筆 I/O 重複的 Setup 開銷；
+      Registered Files 同理，省去每次操作的 File Descriptor 查找成本；
+      Batching 則將多筆 SQE 於一次 `io_uring_enter()` 中一起提交，
+      大幅攤提 Syscall 開銷。
+      不啟用 SQPOLL/IOPOLL 的原因是：HTTP 流量具有突發性，
+      輪詢模式在低峰期會持續消耗 CPU，與 CPU 核心數有限的前提相衝突。
+  - text: "啟用 SQPOLL 搭配 Registered Buffers，讓核心執行緒主動輪詢 SQ，以徹底消除 Syscall 與中斷的所有開銷。"
+    explanation: |
+      此配置有兩個問題：
+      第一，SQPOLL 消除的是「提交端」的 Syscall 開銷，而非中斷開銷（那是 IOPOLL 的功能），
+      描述混淆了兩者的職責；
+      第二，SQPOLL 的核心執行緒會持續佔用（Burn）一顆 CPU 核心進行輪詢，
+      在 HTTP 這類具有突發性的場景中，流量低峰時這顆核心依然空轉，
+      對 CPU 核心數有限的伺服器是嚴重的資源浪費。
+  - text: "使用 IOPOLL 模式並對每次請求各自動態分配一個 4KB Buffer，以精確消除 Interrupt Storm 並最小化記憶體佔用。"
+    explanation: |
+      此配置有兩個矛盾：
+      IOPOLL 確實能消除硬體中斷，但代價是 CPU 必須持續忙碌輪詢（Busy-wait）NVMe 控制器，
+      在高並行場景下反而會顯著拉高 CPU 使用率，與「CPU 效率」目標背道而馳；
+      同時，每次請求動態分配獨立 Buffer 意味著放棄了 Registered Buffers 的核心優勢——
+      每筆 I/O 仍需重新進行 DMA Mapping 與頁面固定，
+      讓 io_uring 對記憶體管理的最佳化形同虛設。

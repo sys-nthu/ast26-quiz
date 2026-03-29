@@ -1,0 +1,32 @@
+author: smile-a-lot
+date: 2026-03-24
+question: |
+  某分散式資料庫使用 LSM-Tree 儲存引擎，其應用層產生的 Compaction WAF 為 $12$。該資料庫運行在預設 data=ordered 模式的 ext4 檔案系統（假設 Journaling WAF 為 $1.1$）之上。底層使用的 1 TB TLC SSD 規格如下：
+
+  * NAND flash P/E cycle 上限：$3000$ 次。
+  * 沒有 over provisioning （OP）。
+  * 被 GC 回收的 victim block 平均 valid ratio： $80$％。
+
+  根據大抄裡面的簡化公式 $WAF_gc=\frac{1}{1-valid\_ratio}$，假設 SSD 內部的寫入放大僅由 GC 機制產生，在不考慮 TRIM 與其他硬體損耗的極端情況下，該系統應用層（Application）實際能寫入的邏輯資料量上限最接近下列何者？
+options:
+  - text: "$45$TB"
+    correct: true
+    explanation: |
+      正確的計算流程如下：
+      1. 計算 SSD 內部的 GC 放大倍率：
+      公式為 $WAF_{gc} = \frac{1}{1 - \text{valid\_ratio}}$。代入 $\text{valid\_ratio} = 0.8$，得到 $WAF_{gc} = \frac{1}{1 - 0.8} = 5$。
+      2. 計算系統整體的總 WAF（相乘而非相加）：
+      $\text{Total WAF} = 12 \text{ (LSM-Tree)} \times 1.1 \text{ (File System)} \times 5 \text{ (SSD GC)} = 66$。
+      3. 計算快閃記憶體晶片的物理總寫入量上限：
+      $1 \text{ TB} \times 3000 \text{ P/E cycles} = 3000 \text{ TB}$。
+      4. 計算應用層邏輯資料寫入上限：
+      $\frac{3000 \text{ TB}}{\text{Total WAF}} = \frac{3000}{66} \approx 45.45 \text{ TB}$。
+  - text: "$600$TB"
+    explanation: |
+      此選項誤以為 SSD 規格表上的壽命限制只與內部 GC 有關。如果只拿晶片物理極限 $3000 \text{ TB}$ 除以 SSD 內部的 $WAF_{gc} = 5$，會得到 $600 \text{ TB}$。此選項忽略了上層軟體巨大的寫入放大效應。
+  - text: "$165$TB"
+    explanation: |
+      此選項常見於將各層級 WAF 錯誤地相加。如果將三層相加（$12 + 1.1 + 5 = 18.1$），則會得到約 $165 \text{ TB}$。此選項代表未釐清「放大效應是跨層級連鎖相乘」的物理特性。
+  - text: "$181$TB"
+    explanation: |
+      此選項常見於誤解了 GC WAF 的物理意義，將公式中的有效與無效比例顛倒，代入 $\frac{1}{0.8} = 1.25$。若 $WAF_{gc}$ 計算為 $1.25$，則系統總 WAF 會縮減為 $12 \times 1.1 \times 1.25 = 16.5$。拿物理上限 $3000 \text{ TB}$ 除以 $16.5$，便會得出約 $181 \text{ TB}$ 的高估數字。

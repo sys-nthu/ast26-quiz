@@ -2,7 +2,8 @@ author: Windmill10
 date: 2026-03-28
 question: |
   A cloud provider needs to choose an SSD for a write-intensive logging
-  workload that writes 20 TB of host data per day. Two candidates:
+  workload that writes 20 TB of host data per day. Assume the
+  following steady-state WAF for this workload. Two candidates:
 
   | | SSD A | SSD B |
   |---|---|---|
@@ -24,9 +25,11 @@ options:
       endurance and lower WAF more than compensate.
   - text: "SSD A: ~150 days, SSD B: ~100 days"
     explanation: |
-      This incorrectly multiplies by WAF instead of dividing.
-      WAF means each TB of host data causes WAF TBs of physical
-      writes, so it reduces usable lifetime, not extends it.
+      This ignores WAF entirely, treating every TB of host write
+      as exactly one TB of physical write (SSD A: 1 x 3,000 / 20
+      = 150, SSD B: 2 x 1,000 / 20 = 100). In reality, WAF means
+      each TB of host data causes multiple TBs of physical writes,
+      significantly reducing usable lifetime.
   - text: "SSD A: ~75 days, SSD B: ~100 days"
     explanation: |
       SSD A is correct, but SSD B ignores the write amplification

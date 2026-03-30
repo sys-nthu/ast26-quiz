@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在 ZNS SSD 上實作 B+-Tree 結構的 Key-Value Store 時，傳統的 in-place update 模式會受到 ZNS 嚴格的 append-only 限制（Sequential Write Constraints）。**ZKV** 針對此問題設計了 Adaptive Delta Buffer (ADB) 以及 ZFlusher。當系統需要寫入大量分散的小型 kv-pairs（例如 16B）時，ZKV 是如何避免產生嚴重的 Write Amplification 並符合 ZNS 的硬體規範？
+options:
+  - text: "ZKV 使用 Leaf-node level 的 ADB 來暫存並聚合分散的更新，當累積足夠數量後，再由 ZFlusher 將多個 4KB 的 leaf data pages 批次合併（Batch）為較大的 Block Append 循序寫入 ZNS SSD。"
+    correct: true
+    explanation: |
+      正確。為了將 B+-Tree 適應於 ZNS，ZKV 透過三層緩衝架構（Tree-level Merged Filter、Leaf-level ADB、Zone-level ZFlusher）運作。ADB 在記憶體中動態收集屬於同一個 leaf node 的碎小更新，當達到閾值時進行 merge，隨後 ZFlusher 透過 Ring Buffer 確保寫入順序，並將多個 4KB pages 合併為大粒度的 sequential append，完美符合 ZNS 規範並降低寫入放大。
+  - text: "ZKV 將所有的內部節點（Internal Nodes）與葉節點（Leaf Nodes）一併轉換為 append-only 格式，並依賴 ZNS SSD 內部的硬體 FTL 來動態執行 Garbage Collection 以回收分散的空間。"
+    explanation: |
+      這個選項包含了對 ZNS 的錯誤認知。ZNS SSD 將 Zone 的管理責任交給 Host 端，其移除了傳統 SSD 內部的 FTL Garbage Collection 機制。Host 必須自行管理 Zone 的 Reset 與資料的回收，不能依賴硬體 FTL。
+  - text: "ZKV 捨棄了直接管理 Zone 的方式，改為建構在 Log-structured File System (如 F2FS-ZNS) 之上，透過檔案系統的 metadata mapping 將小型隨機寫入透明地轉換為循序寫入。"
+    explanation: |
+      這是錯誤的描述。ZKV 論文特別指出，若 B+-Tree 依賴底層的 Zone-adopted File Systems (如 F2FS 或 BtrFS) 會產生額外的 metadata write amplification，且無法充分利用頻寬。ZKV 的核心貢獻正是繞過檔案系統，讓 Index 直接管理 Zone 介面（Directly manage flash media）。
+  - text: "ZKV 在記憶體中維護一個全域的 Quotient Filter，攔截所有寫入請求並強制透過類似 LSM-Tree 的 Compaction 機制將資料排序後再寫入 flash。"
+    explanation: |
+      這是 SplinterDB 或是 Bε-Tree 的做法。ZKV 並非採用 Quotient Filter 與 Cascading Compaction，而是維持 B+-Tree 卓越的讀取優勢，透過 Merged Filter 過濾冷熱資料，並利用 ADB 對冷資料進行就地聚合（In-place aggregation 的延遲寫入）。

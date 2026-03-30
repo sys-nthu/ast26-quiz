@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  假設你正在開發一個影像處理應用，需要將一個 50GB 的連續影片檔寫入到容量充足，但內部硬體 SLC cache 僅有 10GB 的現代消費級 NVMe SSD 中。為了避免寫入這 50GB 的影片檔時，將系統中僅有的 16GB DRAM 內的有用資料全數擠出（Cache Pollution），你決定在開啟檔案時加上 `O_DIRECT` flag。同時，你在 user-space 中實作了 write coalescing，確保送出的寫入請求皆為 4KB aligned，並維持高 Queue Depth (QD) 來最大化吞吐量（Throughput）。請分析這 50GB 寫入過程中，記憶體狀態與底層 SSD 寫入頻寬的最可能變化趨勢：
+options:
+  - text: "由於使用 `O_DIRECT`，該筆龐大的寫入資料不會進入 kernel 的 page cache，成功避免了嚴重的 cache pollution。然而，當寫入資料量超過 10GB 之後，SSD 的硬體 SLC cache 會被耗盡，迫使 SSD 必須將資料寫入較慢的 TLC 或 QLC 區域，導致後續的寫入頻寬發生明顯的斷崖式下跌，無法全程維持最初的高 throughput。"
+    correct: true
+    explanation: |
+      正確。`O_DIRECT` 是一種 Direct I/O 機制，它能繞過作業系統的 Buffer Cache，直接從 user-space 寫入磁碟，因此完美保護了 16GB DRAM 中的其他有效快取（避免 pollution）。但是，雖然你在應用層維持了良好的 I/O 模式（4KB aligned 且高 QD），這並不能改變底層 SSD 硬體特性的物理限制。當 50GB 的連續寫入迅速填滿 SSD 內僅有的 10GB SLC cache 後，SSD 主控必須將資料折疊或直接寫入慢速的 TLC/QLC 區塊，引發頻寬的斷崖式下跌（Performance Drop）。
+  - text: "`O_DIRECT` 會強制要求資料繞過 file system，這意味著所有的寫入都會被拆解成等同於 CPU cacheline size (64 bytes) 的細碎隨機寫入。即使你在 user-space 實作了 4KB aligned，底層 SSD 仍會因為極端的 Write Amplification 而提早耗盡 SLC cache，導致整體延遲飆升。"
+    explanation: |
+      這混淆了 CPU 的 cacheline 與磁碟的 block 觀念。`O_DIRECT` 繞過的是作業系統的 page cache，但只要在 user-space 準備好的 buffer 具備 4KB alignment，並且每次以 4KB 的倍數發送系統呼叫，NVMe 裝置接收到的依然是標準的大區塊循序寫入，並不會碎裂成 64 bytes 的 cacheline 寫入。
+  - text: "`O_DIRECT` 是一種寫入透通（Write-Through）機制，它會強迫作業系統將該檔案的資料優先寫入作業系統保留的 10GB 記憶體緩衝區（對應到題目說的 SLC cache）。當這 10GB 寫滿後，因為記憶體不足，作業系統會觸發 OOM (Out Of Memory) Killer 終止你的應用程式。"
+    explanation: |
+      這是對系統架構的嚴重誤解。SLC (Single-Level Cell) cache 是存在於 SSD 內部的 NAND Flash 實體儲存空間，作為硬體層級的加速區，與主機端（Host）作業系統的 DRAM 完全無關。它不會消耗任何系統的 16GB RAM，也絕不會觸發主機的 OOM Killer。
+  - text: "因為你使用了 `O_DIRECT` 並搭配高 QD 的 write coalescing，這些連續的 4KB 寫入會直接進入 SSD 內建的 DRAM write buffer 中，不會消耗到 NAND flash 上的 10GB SLC cache。因此，這 50GB 的寫入過程不僅保護了作業系統的 page cache，還能從頭到尾維持一致且極高的寫入頻寬。"
+    explanation: |
+      這忽視了硬體容量的現實比例。SSD 內建的 DRAM 容量通常極小（常見比例為每 1TB 配置 1GB DRAM），根本不可能一次性容納或吸收 50GB 的連續寫入資料。這 50GB 最終還是必須即時寫入非揮發性的 SLC cache 以及 TLC/QLC NAND，因此一定會遭遇 SLC cache 耗盡導致的降速現象。

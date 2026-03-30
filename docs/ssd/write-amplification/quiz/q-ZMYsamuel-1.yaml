@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  **WiscKey** 透過將 keys 與 values 分離來大幅降低 LSM-Tree 的 Write Amplification。然而，論文實驗指出，當進行 Range Query 時，WiscKey 針對極小 value（例如 64B）的掃描效能反而不如傳統的 LevelDB。請分析導致這個效能反轉的核心原因為何？
+options:
+  - text: "WiscKey 的 Range Query 依賴平行隨機讀取（Parallel Random Reads）從 vLog 中獲取 values，當 value 極小時，平行讀取的 throughput 會受限於 SSD 處理大量小型 I/O 的硬體瓶頸，無法抵銷 LevelDB 的循序讀取（Sequential Read）優勢。"
+    correct: true
+    explanation: |
+      正確。LevelDB 將 keys 與 values 一起排序並存放在 SSTable 中，Range Query 時是以較大的 block size 進行高效率的循序讀取。WiscKey 雖然利用了多執行緒 prefetch 來平行隨機讀取 vLog，但當 value 極小時（如 64B），大量的隨機小檔案讀取無法充分利用 SSD 的內部頻寬，導致其 overhead 大於平行讀取帶來的效益。
+  - text: "WiscKey 必須先在記憶體中將 vLog 讀出的所有 values 重新排序後才能回傳給使用者，當 value 數量龐大時會造成嚴重的 CPU bottleneck。"
+    explanation: |
+      這是錯誤的觀念。WiscKey 在 LSM-Tree 中已經維護了排序好的 keys 與對應的 vLog offset，因此擷取 values 時本來就是依照正確的順序去發出讀取請求，並不需要在記憶體中對 values 重新執行排序。
+  - text: "WiscKey 的背景 Garbage Collection 會因為過多小型的 value 而頻繁鎖住 vLog 的讀取權限，導致前台的 Range Query 必須等待 GC 完成。"
+    explanation: |
+      這不是主要原因。WiscKey 的 GC 是一個輕量級的線上機制，它從 vLog 的 tail 讀取並將 valid values 寫入到 head，利用現代檔案系統的 hole-punching 釋放空間。這項操作並不涉及全域的讀取鎖（Read Lock），不會直接阻塞前台的平行隨機讀取。
+  - text: "極小的 value 會導致 WiscKey 中 LSM-Tree 的相對比例變大，使得每次 Range Query 都要遍歷更多層級的 SSTable，大幅增加了 Read Amplification。"
+    explanation: |
+      雖然對於較小的 value，LSM-Tree 佔整體資料庫的空間比例會提升，但在絕對資料量相同的情況下，WiscKey 儲存的 keys 總量與 LevelDB 是一樣的。WiscKey 的 LSM-Tree 絕對大小依然遠小於 LevelDB（因為不含 values），因此在 LSM-Tree 上的搜尋層級並不會比 LevelDB 深，Read Amplification 不會因此增加.

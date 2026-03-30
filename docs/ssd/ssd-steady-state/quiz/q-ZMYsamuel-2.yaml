@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  根據 `Write-Aware Timestamp Tracking (WATT)` 演算法，系統透過維護每個 page 的存取時間戳記（timestamps）來計算 subfrequencies（SF），進而決定 page value（PV）。假設某個 page 在以下三個時間點被存取： $t_3 = 10$ ， $t_2 = 20$ ， $t_1 = 30$ （ $t_1$ 為最新存取）。目前系統的 global time $t_{now} = 130$ 。在不考慮對最新存取（first-order subfrequency）套用 dampening factor，且 read 與 write 權重相同的前提下，請問該 page 的 $SF_1$ 、 $SF_2$ 與 $SF_3$ 分別為多少？且 WATT 最終會如何決定該 page 的 PV？這項設計解決了傳統演算法的什麼問題？
+options:
+  - text: "$SF_1 = 0.01$ ， $SF_2 \approx 0.018$ ， $SF_3 = 0.025$ 。最終 PV 會取最大值，即 $SF_3 = 0.025$ 。這反映了 WATT 能夠在一個存取高峰（burst）過後，隨著 $t_{now}$ 增長，讓較高階層的長期頻率（long-run frequency）接管並維持該 page 的價值，避免具有穩定長期存取價值的 page 被過早替換。"
+    correct: true
+    explanation: |
+      正確。計算公式為 $SF_i = i / (t_{now} - t_i)$ 。因此 $SF_1 = 1 / (130 - 30) = 0.01$ ； $SF_2 = 2 / (130 - 20) = 2/110 \approx 0.018$ ； $SF_3 = 3 / (130 - 10) = 3/120 = 0.025$ 。WATT 利用 aggregation function（預設為 Maximum）來取所有 subfrequencies 的最大值（即 0.025）作為 PV。這結合了 LRU（看重近期 burst）與 LFU（看重長期穩定頻率）的優點。
+  - text: "$SF_1 = 100$ ， $SF_2 = 55$ ， $SF_3 = 40$ 。最終 PV 會取最大值，即 $SF_1 = 100$ 。這是因為 WATT 採用了反向時間差來加權，確保最新存取的 page 永遠具有最高的 PV，從而完美模擬出傳統 LRU 應對 working set 變化的能力。"
+    explanation: |
+      這是對 subfrequency 計算公式的常見誤解。選項將公式顛倒計算成了 $(t_{now} - t_i) / i$ 。此外，WATT 的目的並不是要完美模擬 LRU，如果是這樣，它就無法解決 LRU 面對 sequential scan 發生 cache thrashing 的重大缺陷。
+  - text: "$SF_1 = 0.01$ ， $SF_2 \approx 0.018$ ， $SF_3 = 0.025$ 。最終 PV 會取平均值，即約 $0.017$ 。透過平均所有階層的頻率，WATT 能夠中和（smooth out）極端 outlier 造成的偏差，這是 ARC 或 LRU-K 等傳統演算法無法做到的。"
+    explanation: |
+      雖然 subfrequency 的數值計算正確，但觀念錯誤。WATT 論文中明確比較了不同 aggregation function 的效果，實驗證明使用平均值（Average）的表現不如取最大值（Maximum）。取平均值會稀釋掉突發性 burst 的短期重要性，導致近期熱門的資料太快被 evict。
+  - text: "$SF_1 = 0.033$ ， $SF_2 = 0.05$ ， $SF_3 = 0.1$ 。最終 PV 會取最小值，即 $SF_1 = 0.033$ 。WATT 利用最小值來嚴格懲罰那些只有短暫 burst 的 cold pages，確保這些 pages 一旦不再被頻繁存取就會立刻被 evict。"
+    explanation: |
+      數值計算完全錯誤（例如 $SF_1$ 被算成了 $1/30 \approx 0.033$ ，忽略了 $t_{now}$ 的存在）。並且，WATT 若取最小值將會導致系統效能大幅衰退，因為這會使得剛被讀進 cache 的資料極端脆弱（只有一個最新存取紀錄，導致其他階層為 0 或失效而被剔除），完全無法累積快取效益。

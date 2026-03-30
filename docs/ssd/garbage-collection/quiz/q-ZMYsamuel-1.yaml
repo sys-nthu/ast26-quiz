@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  假設一個 SSD 內部有兩個待回收的 Block 進入了 Garbage Collection (GC) 的候選名單。Block A 包含 50% 的 Valid pages，但這些資料是 30 天前寫入的 Cold data；Block B 包含 40% 的 Valid pages，但這些資料是 2 分鐘前剛寫入的 Hot data。若分別使用 `Greedy` 策略與 `Cost-Benefit` 策略，兩者會如何選擇 Victim Block？其背後的設計邏輯為何？
+options:
+  - text: "`Greedy` 策略會選擇 Block B，因為其 Invalid pages 比例較高，當下回收的搬移成本較低；而 `Cost-Benefit` 策略會選擇 Block A，因為它考量了資料的 Age，Cold data 較不可能自動失效，主動回收能避免空間長期被佔用。"
+    correct: true
+    explanation: |
+      這是正確的設計邏輯。`Greedy` 演算法只看眼前的利益，即挑選 Invalid pages 最多的 Block B（60% 無效）以最小化當下的有效資料搬移次數。然而，Hot data 很快就會被更新並自動變成無效，若提早回收 Block B 反而是浪費。`Cost-Benefit` 公式結合了空間利用率與資料年齡 $benefit = (1 - utilization) \times age / (2 \times utilization)$，傾向挑選很久沒被更新的 Block A，因為 Cold data 不主動清理就會一直佔據可用空間。
+  - text: "`Greedy` 策略會選擇 Block A，因為 Cold data 的搬移速度較快，不會干擾前端快取；而 `Cost-Benefit` 策略會選擇 Block B，因為 Hot data 具有較高的重用價值。"
+    explanation: |
+      這個選項完全誤解了兩種演算法的運作邏輯。`Greedy` 演算法唯一的判斷基準是 Invalid pages 的數量，它並不會區分冷熱資料，因此必定會選包含 60% Invalid pages 的 Block B。
+  - text: "`Cost-Benefit` 策略會選擇 Block B，因為它透過計算得出搬移 Hot data 的成本遠低於其帶來的可用空間效益。"
+    explanation: |
+      這個推論是錯誤的。根據 `Cost-Benefit` 的公式計算，Age 是一個關鍵乘數。Block B 的資料剛寫入不久，Age 極小，因此計算出的 Benefit 也會極低，演算法不會優先選擇它。
+  - text: "兩種演算法皆會選擇 Block B，因為無論考量何種變數，最小化 Valid pages 的搬移量是唯一能降低 SSD Write Amplification 的數學最佳解。"
+    explanation: |
+      這個選項過度簡化了 GC 的複雜度。雖然 `Greedy` 演算法在 Uniform random writes 下是最佳解，但在冷熱資料混合的 workload 中，不考慮資料年齡會導致 Hot data 被過早搬移，反而增加整體的 Write Amplification。

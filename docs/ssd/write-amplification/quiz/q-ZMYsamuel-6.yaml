@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  GC 造成的 WAF 與 block 內部的 valid page 比例息息相關，簡化的估算公式為 $WAF_{gc} = \frac{1}{1 - valid\_ratio}$。
+
+  假設某 SSD 在 Workload A（具備高度 Data Locality）的情況下，每次 GC 回收 block 時平均含有 50% 的 valid pages；若系統改變為 Workload B（極度分散的 Random Write），導致每次回收 block 時平均含有 75% 的 valid pages。請計算並比較這兩種工作負載的 GC WAF 變化，並分析 valid pages 比例對寫入放大的數學影響特性。
+options:
+  - text: "Workload A 的 GC WAF 為 2，Workload B 的 GC WAF 為 4。這表示當 valid pages 比例從 50% 增加到 75%（上升 25%）時，GC 產生的寫入放大效應是呈現非線性倍增的。"
+    correct: true
+    explanation: |
+      正確。代入公式計算，Workload A 的 $WAF_{gc} = 1 / (1 - 0.5) = 2$。Workload B 的 $WAF_{gc} = 1 / (1 - 0.75) = 4$。這證明了 WAF 與 valid ratio 之間具有非線性的關係：隨著 valid ratio 升高，每次 GC 能回收的 free space 銳減，導致必須搬移更多資料才能湊齊一個可用的 block，大幅加劇了寫入放大。
+  - text: "Workload A 的 GC WAF 為 2，Workload B 的 GC WAF 為 2.5。因為 valid pages 的比例變成了原來的 1.5 倍，所以寫入放大係數也會依照相同比例呈現線性成長。"
+    explanation: |
+      計算錯誤且觀念不正確。$WAF_{gc}$ 的公式分母是 $(1 - valid\_ratio)$，這是一個倒數關係，並非線性正比關係。如果誤以為是線性成長，會嚴重低估 Random Write 對 SSD 效能與壽命的破壞力。
+  - text: "Workload A 的 GC WAF 為 0.5，Workload B 的 GC WAF 為 0.25。因為 valid pages 增加代表需要被抹除（Erase）的 invalid pages 變少，所以 GC 的效率會提升，寫入放大會降低。"
+    explanation: |
+      這完全反轉了 GC 的運作邏輯。GC 必須把 block 中的 valid pages 讀出並重新寫入到新的 block 中，才能安全地抹除舊 block。因此 valid pages 越多，代表要執行的額外寫入動作越多，效率越差。
+  - text: "Workload A 的 GC WAF 為 2，Workload B 的 GC WAF 為 3。因為增加了 25% 的 valid pages，相當於每回收一個 block 要多做一次整體的搬移操作，導致 WAF 以等差級數增加。"
+    explanation: |
+      計算錯誤。$1 / (1 - 0.75)$ 的結果是 4 而非 3。這個選項混淆了公式的倒數運算結果，誤將非線性的 WAF 成長解釋為等差級數增加。

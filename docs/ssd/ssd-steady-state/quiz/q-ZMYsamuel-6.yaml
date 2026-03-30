@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  你在開發一款 I/O 效能測試工具（類似 fio），目標是榨出 NVMe SSD 標示的極限吞吐量（例如 500,000 IOPS）。
+  初步測試時，你每次發送一個 4KB 的讀取請求並等待其完成（Synchronous I/O），測得的 Latency 約為 100 µs，但總吞吐量只有 10,000 IOPS，遠不達標。
+  根據 Latency vs. Throughput 的特性，你應該如何調整 I/O 提交策略？調整後，針對單一 I/O 請求的延遲（Latency）會有什麼影響？
+options:
+  - text: "增加 Queue Depth (QD)，同時發送大量非同步的 I/O 請求。整體的吞吐量會巨幅上升以接近 500,000 IOPS，但由於大量的請求必須在 SSD 控制器內部排隊等待，單一請求的延遲（Latency）反而會增加（大於 100 µs）。"
+    correct: true
+    explanation: |
+      正確。低延遲（Low Latency）不等於高吞吐量（High Throughput）。要達到 SSD 的極限吞吐量，必須提高 Queue Depth 讓多個請求併發執行。然而，當 Queue Depth 增加時，個別 I/O 請求在 SSD 內部需要排隊（Queuing），因此測量到的單筆 Latency 必然會上升，兩者存在 trade-off。
+  - text: "保持 Queue Depth 為 1，但在 `open()` 檔案時加入 `O_DIRECT` 旗標。繞過 buffer cache 能夠消除所有軟體層的額外延遲，使單一請求的延遲降至接近 0 µs，進而讓吞吐量自動達到 500,000 IOPS。"
+    explanation: |
+      錯誤。雖然 `O_DIRECT` 可以消除 buffer cache 的複製開銷，但在 Queue Depth 為 1 的情況下，吞吐量的理論上限受制於硬體的單次存取延遲（例如 $1 / 100\mu s = 10,000$ IOPS）。不增加 QD，絕對無法達到 500,000 IOPS 的高並行效能。
+  - text: "增加 Queue Depth (QD) 來提升並行度。因為硬體同時處理更多的請求，分攤了成本，單一請求的延遲會隨之線性下降（例如降至 2 µs），這正是吞吐量能提升的數學原因。"
+    explanation: |
+      錯誤。這是一個常見的效能誤區。增加並行度（QD）提升的是單位時間內完成的總工作量（Throughput），而不是減少單一工作所需的時間。實際上，因為排隊效應，單一請求的延遲會上升，絕對不會因為 QD 增加而下降。
+  - text: "在每次發出讀取請求前，執行指令清除作業系統快取（echo 3 > /proc/sys/vm/drop_caches）。這會強迫系統處於 Cold Cache 狀態，喚醒 SSD 內部的硬體加速器來達到最大 IOPS。"
+    explanation: |
+      錯誤。清除 Page Cache 會迫使所有讀取都必須向底層慢速磁碟請求（Cache Miss），這是用來測量最壞情況（Worst-case）或 Cold Cache 效能的手段。這會大幅降低實際應用能感受到的效能，且與提升 SSD 硬體併發能力無關。

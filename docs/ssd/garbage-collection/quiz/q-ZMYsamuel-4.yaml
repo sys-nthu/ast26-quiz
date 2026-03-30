@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在由多顆 SSD 組成的分佈式儲存陣列中，單一裝置的 GC 往往會干擾前端 I/O，造成嚴重的 Tail Latency。若系統採用 Spatial Separation (SS) 機制來協調陣列中的 GC，此機制是如何確保前端效能穩定？又會為系統帶來什麼不可避免的妥協？
+options:
+  - text: "SS 機制將陣列中的 SSD 硬性分為 Front-end 與 Back-end 兩組。它強制 Front-end SSD 禁止執行 GC 以提供無干擾的 I/O 服務，並僅允許 Back-end SSD 在背景執行 GC。其妥協是只有 Front-end SSD 能接收寫入，導致整體的儲存空間利用率與平行寫入頻寬大幅下降。"
+    correct: true
+    explanation: |
+      這是 Spatial Separation (SS) 機制的標準運作方式。為了提供絕對穩定的延遲，SS 將陣列分為 Front-end 與 Back-end，前端裝置被迫成為 GC-free 狀態，直到空間耗盡才與後端進行角色對調。但這種設計的巨大代價就是：在任何時間點，陣列中只有一部分 SSD 可以用於服務使用者的寫入請求，嚴重犧牲了整體空間利用率與 Aggregated Bandwidth。
+  - text: "SS 機制透過在單顆 SSD 內部進行空間劃分，將 Hot data 與 Cold data 分離至不同的 Flash Plane，讓 GC 僅在 Cold data 所在的 Plane 進行。其妥協是 SSD 內部需要配置兩倍數量的 SRAM 來記錄跨 Plane 的映射表。"
+    explanation: |
+      這是錯誤的描述。選項內容比較接近單機內部的 Plane-level isolation 或 Multi-stream SSD 概念，而非 Cross-device 陣列級別的 Spatial Separation 機制。
+  - text: "SS 機制強制所有 SSD 必須在完全相同的時間點啟動並完成 GC，以確保所有空間資料佈局保持一致。其妥協是整個陣列會在同步 GC 的這段時間窗口內陷入完全停頓。"
+    explanation: |
+      這個選項描述的是 Global Garbage Collection (GGC) 的運作原理與缺點，並非 Spatial Separation 機制的設計。
+  - text: "SS 機制限制陣列中同時執行 GC 的 SSD 數量不得超過系統的容錯數量（例如 RAID-5 中不超過 1 顆），並透過 Degraded Read 來繞過正在 GC 的裝置。其妥協是會產生額外的 parity 運算與網路頻寬消耗。"
+    explanation: |
+      這個選項精確描述了 Request Redirection (RR) 機制的原理與代價，這是另一種與 SS 完全不同的 GC 協調策略。

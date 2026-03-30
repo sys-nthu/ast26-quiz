@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  根據《SSD-iq》論文的實驗，當以 Two-Zone 或 Zipfian 分佈向商用資料中心 SSD 寫入資料並逐漸增加存取傾斜度（例如從均勻分佈增加到 90/10 偏斜）時，大多數 SSD 的 WAF 不僅沒有降低，反而會逐漸上升。造成此反直覺現象的最主要原因為何？
+options:
+  - text: "大多數商用 SSD 的 Garbage Collection 實作接近基礎的 `Naive Greedy` 演算法，在回收與搬移時會將 Hot data 與 Cold data 混合寫入同一個新 Block 中。隨著傾斜度增加，這種混合導致 Hot data 快速失效時連帶影響 Cold data 所在的區塊，進而增加無效的搬移與 WAF。"
+    correct: true
+    explanation: |
+      這是《SSD-iq》論文的核心發現之一。常理認為資料傾斜應該讓熱點資料集中，有利於降低 WAF。但實驗指出，若 SSD 沒有實作如 `2R-Greedy` 等能有效分離冷熱資料的進階演算法，而是採用單純的 `Naive Greedy`，GC 過程就會不斷將存活的 Cold data 與 Hot data 打包進同一個 Block 中。當 Hot data 失效時，GC 又得被迫搬移那些被牽連的 Cold data，導致傾斜度越高 WAF 反而越差。
+  - text: "傾斜的 workload 會導致 FTL 的 SRAM 快取頻繁發生 Cache Miss，迫使 SSD Controller 需要消耗大量額外的通道頻寬來進行 Page-level Mapping Table 的換入換出，導致 WAF 上升。"
+    explanation: |
+      這是對記憶體階層邏輯的誤解。資料存取越傾斜（即高度集中在少數 LBA），SRAM 內的 Mapping Table Hit Rate 反而會大幅提升，而不會發生頻繁的 Cache Miss。
+  - text: "傾斜度增加會觸發 SSD 內部的 Static Wear Leveling 機制，該機制為了平衡抹寫次數，會強制頻繁地將熱點資料搬移到冷區塊，這種與 GC 無關的背景搬移 exponentially 增加了 WAF。"
+    explanation: |
+      Wear Leveling 雖然會搬移資料，但它是為了保護 SSD 壽命而進行的長週期緩慢操作，不會在短期的寫入實驗中導致 WAF 隨偏斜度立即呈現線性或指數型上升。現象的主因仍在於 GC 演算法本身的缺陷。
+  - text: "高傾斜度寫入會使得 Over-Provisioning 空間被 Hot data 的舊版本完全佔據，由於 NAND Flash 必須等待整個 SSD 寫滿才能觸發 Erase，這種延遲清理導致了 WAF 的飆升。"
+    explanation: |
+      這違背了 SSD 的基本運作機制。GC 會持續在背景或前景監控可用空間並主動回收 Invalid pages 來釋放 Over-Provisioning 空間，絕對不會等待整個 SSD 寫滿才觸發 Erase。

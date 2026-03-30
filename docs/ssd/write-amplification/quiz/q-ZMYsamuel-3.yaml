@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  根據 `SSD-iq` 的實驗結果，傳統 Block-interface SSD 在面對極度傾斜的寫入分佈（Highly Skewed Workload，例如 Zipf factor = 0.99）時，其 Write Amplification Factor (WAF) 往往比 Uniform Random Write 還要高。在此情況下，如果 SSD 內部沒有配備足夠大的 Write Buffer，導致 WAF 升高的主要原因是什麼？
+options:
+  - text: "SSD 的 FTL 採用了單純的 Greedy Garbage Collection 演算法，無法區分熱資料（Hot Data）與冷資料（Cold Data），導致 GC 過程中頻繁地搬移與熱資料混在同一 Block 中的有效冷資料。"
+    correct: true
+    explanation: |
+      正確。Greedy 演算法只會挑選 Invalid Pages 最多的 Block 進行回收。在高度傾斜的工作負載中，如果 FTL 沒有實作冷熱資料分離（Hot/Cold Separation），頻繁更新的熱資料會與極少更新的冷資料被寫入同一個 Block 中。當該 Block 被選為 GC 目標時，系統必須不斷地將這些冷資料讀出並重新寫入，導致極高的 Write Amplification。
+  - text: "傾斜負載會導致大量寫入集中在少數的 Logical Block Address (LBA) 上，進而觸發 NAND Flash 嚴重的 Program Disturb，SSD 必須執行額外的寫入來修復這些錯誤。"
+    explanation: |
+      雖然 Program Disturb 確實存在於 Flash 中，但在此實驗背景下，WAF 上升的主因是 FTL 的資料放置與回收策略（GC 演算法）無法妥善處理存取分佈，而非硬體錯誤修正機制（ECC/Wear-leveling）的介入。
+  - text: "極度集中的寫入使得大部分的 Block 充滿了 Invalid Pages，GC 在回收這些 Block 時需要耗費額外的 Erase Cycle，這些 Erase 動作被直接計入了 WAF 的分子之中。"
+    explanation: |
+      這是一個常見的誤解。首先，如果一個 Block 充滿了 Invalid Pages，代表回收它時需要搬移的 Valid Pages 非常少，理論上會降低（而不是升高）WAF。其次，WAF 的定義是物理寫入資料量 / 邏輯寫入資料量，Erase 操作本身不會被計入寫入的資料量分子中。
+  - text: "傾斜負載會破壞 FTL 的 Wear-leveling 機制，迫使 SSD 控制器強制將熱資料從 SLC Cache 搬移到 QLC 區域，造成資料在不同媒介間的過度遷移（Over-migration）。"
+    explanation: |
+      這是對企業級 TLC SSD 的錯誤推論。在 `SSD-iq` 的模擬與真實驅動器測試中，WAF 升高的本質在於底層演算法（如 Greedy）對冷熱混合區塊的無效率回收，即使在沒有 SLC Cache 機制的純 TLC SSD 上，此現象依然會發生。

@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在跨機器編碼儲存系統（Cross-machine Coded Storage）中，採用 Erasure Coding (EC) 能夠以較低的空間成本提供容錯能力。然而，當系統接收到 Partial Update 請求時，會引發嚴重的 I/O Amplification。若系統引入 **Speculative Partial Write**（推測性局部寫入）機制來優化 Parity 更新，這項機制在何種存取特徵下，反而會造成比標準 Read-Modify-Write (RMW) 更高的 Network Load？
+options:
+  - text: "當系統的資料存取極少出現熱點（Hotspot is rare），且大部分的寫入都是對不同資料區塊的首次更新（First partial update）時。"
+    correct: true
+    explanation: |
+      正確。Speculative Partial Write 的核心思想是假設 Parity Node 已經擁有舊版本的 Data Chunk（因為之前曾經被更新並傳送過），所以 Data Node 只需將新版本傳給 Parity Node。但如果是首次更新，Parity Node 就不會有舊版本的 Data Chunk，導致必須向 Data Node 額外發起讀取請求來拉取舊資料，這反而增加了一次網路傳輸成本。
+  - text: "當系統的寫入模式主要由 Sequential Full-stripe Writes 所組成，且鮮少出現隨機的局部覆寫（Random partial overwrites）時。"
+    explanation: |
+      這是錯誤的推理。對於 Full-stripe Writes，系統不需要進行任何讀取（不論是讀舊資料或舊 Parity），可以直接計算出新的 Parity Chunk 並寫入。在此情境下，根本不會觸發 Partial Update 機制，自然不會有高於 RMW 網路負載的問題。
+  - text: "當儲存節點的 SSD 已經使用了 Parity Logging 機制，且 Parity Chunk 後方保留了大量連續的 Free Space（Reserved space）時。"
+    explanation: |
+      Parity Logging 是另一種優化硬體寫入放大的技術，目的是將 In-place 更新轉換為 Log Append 以節省讀取舊 Parity 的 Disk I/O。保留空間（Reserved space）有利於提高 Data Locality，這項技術與 Speculative Partial Write 可以互補，且完全不會導致網路傳輸量（Network Load）上升。
+  - text: "當舊版本的 Data Chunk 已經存在於 Parity Server 的記憶體或磁碟中，使得 Parity Server 無法利用 XOR 運算直接計算出新的 Delta 值時。"
+    explanation: |
+      這是矛盾的描述。如果舊版本的 Data Chunk 已經存在於 Parity Server 上，這正是 Speculative Partial Write 最能發揮作用的情境。Parity Server 可以直接拿本地的舊資料與收到的新資料進行 XOR 計算出 Delta，從而節省了一次 Data Node 傳送舊資料的網路負載。

@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  系統層級的設計可以大幅減輕 SSD 的寫入負擔。在實務上，作業系統常使用 **TRIM/UNMAP** 指令，而 SSD 韌體設計會保留 **Over-provisioning (OP)** 空間。請從底層機制的角度分析，這兩項技術是如何降低 SSD 的 Garbage Collection Write Amplification？
+options:
+  - text: "TRIM 允許檔案系統主動告知 SSD 哪些 LBA 已經失效，使得 GC 時不需搬移這些已刪除的資料；而 OP 提供了額外的隱藏實體區塊，讓 SSD 在進行 GC 時有更高機率找到 valid ratio 較低的 block 來回收。"
+    correct: true
+    explanation: |
+      正確。當使用者在檔案系統刪除檔案時，傳統 SSD 並不知道這些空間已經作廢，仍會在 GC 時搬移這些無用的資料。TRIM 指令打破了這個資訊落差，讓 SSD 提前標記 invalid pages。而 OP 比例越大，代表系統整體的 free blocks 越多，資料的 valid ratio 會被稀釋，使 GC 不需要去回收那些充滿 valid page 的 block，進而降低 WAF。
+  - text: "TRIM 是一種背景壓縮技術，透過將多個小型的隨機寫入聚合為連續寫入來降低 WAF；而 OP 則是保留部分記憶體作為 Write Buffer，用來吸收瞬間的 burst writes 避免頻繁寫入 Flash。"
+    explanation: |
+      這描述的是 Log-structured FS 或是硬體快取機制（如 DRAM Cache），並非 TRIM 或 OP 的運作原理。TRIM 僅負責傳遞無效資料的通知，並不會改變寫入的 sequential/random 屬性。OP 是 NAND Flash 上的實體空間，不是記憶體 Buffer。
+  - text: "TRIM 強制 SSD 在系統閒置時啟動全域的 Garbage Collection，預先清空所有區塊以確保前台寫入 WAF 為 1；而 OP 是專門用來存放 SSD 內部 FTL mapping table 的獨立儲存區域。"
+    explanation: |
+      TRIM 只是告知無效 LBA，何時啟動 GC 依然由 SSD 的韌體演算法決定，且 GC 本身就會產生寫入放大，不可能永遠確保 WAF 為 1。此外，OP 空間是參與全局資料擺放與 GC 循環的實體 block，並非單純用來存放 mapping table。
+  - text: "TRIM 負責繞過檔案系統的 Journaling 區域直接寫入實體硬碟，消除 File System 層級的 WAF；而 OP 則透過預留空間將熱資料與冷資料物理隔離，解決 LSM-Tree 的 Compaction 負載。"
+    explanation: |
+      TRIM 無法繞過 Journaling，檔案系統的 `data=journal` 或 `data=ordered` 行為是由作業系統核心控制的。OP 無法主動區分熱資料與冷資料，冷熱分離（Hot/Cold Separation）依賴的是 FTL 內部的進階演算法或 host 端的主動分類。

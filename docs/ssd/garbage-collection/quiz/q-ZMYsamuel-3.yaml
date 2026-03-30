@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  SSD 廠商經常會基於相同的底層硬體規格，同時推出 Mixed-use 與 Read-intensive 兩種企業級 SSD 型號（例如 Micron 的 800GB 與 960GB 版本）。根據 SSD 效能測量研究，在硬體架構完全相同的情況下，為何 Mixed-use 型號能夠提供更好的穩態寫入效能與較低的 WAF？
+options:
+  - text: "Mixed-use 型號透過減少使用者可見的邏輯容量，實質上配置了更大比例的 Over-Provisioning (OP) 空間（例如 26.5% 對比 15.7%）。這提供了 Garbage Collection 更充裕的週轉空間，使其能等到 Block 累積更多 Invalid pages 時再執行回收，直接降低 Live-page copying 的數量與 WAF。"
+    correct: true
+    explanation: |
+      這是業界常態與 SSD 的物理現實。根據《SSD-iq》的實驗驗證，硬體相同的兩款 SSD（例如 Micron 7450 MAX 與 PRO），其韌體中的 GC 演算法與架構通常毫無差異。Mixed-use 型號純粹是透過切分出更大的隱藏 Over-Provisioning (OP) 空間來換取寫入效能。更大的 OP 讓 GC 不必在可用空間極度吃緊時被迫回收還有大量有效資料的 Block，從而依照公式 $WAF \approx 1 / (2 \times OP)$ 有效降低寫入放大。
+  - text: "Mixed-use 型號將額外隱藏的容量全數規劃為 SLC Cache，能完全吸收所有隨機寫入並在記憶體內完成 In-place update，因此徹底免除了 TLC 區域的 GC 需求。"
+    explanation: |
+      這混淆了 SLC Cache 與 OP 的功能。雖然 SLC Cache 可以緩衝寫入，但資料最終仍必須 Fold 到 TLC 區域，絕對無法徹底免除 TLC 區域的 GC 需求。此外，NAND Flash 物理上無法進行 In-place update。
+  - text: "Mixed-use 型號的 FTL 內部採用了專為隨機寫入設計的 `2R-Greedy` GC 演算法，而 Read-intensive 型號則為了省電被限制只能使用效能較差的 `Naive Greedy` 演算法。"
+    explanation: |
+      實驗結果明確指出，這兩款 SSD 除了 OP 容量不同之外，其他表現（包括面對偏斜負載的 WAF 曲線）完全相同，證實它們的底層 GC 演算法並無二致，並不存在演算法上的等級閹割。
+  - text: "Mixed-use 型號利用額外保留的儲存空間實作了 Cross-device 的 parity chunks 備份機制，使得系統在處理 Partial Updates 時，能直接使用 Reconstruct-Write 來取代昂貴的 GC 搬移。"
+    explanation: |
+      這個選項錯誤地將磁碟陣列（RAID）的 parity 更新機制（如 Reconstruct-Write）與單顆 SSD 內部的 GC 空間回收機制混為一談。SSD 內部的 OP 空間是供 Block 回收調度使用，與 parity chunks 無關。

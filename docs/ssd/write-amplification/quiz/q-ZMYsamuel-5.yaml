@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  某大型資料庫系統採用 **LSM-Tree** 架構（其 Compaction WAF 約為 15），並運行在開啟 `data=journal` 模式的 `ext4` 檔案系統上（File System WAF 約為 2）。底層儲存設備使用一顆 2TB 的 TLC SSD，規格書標示其 P/E cycle 上限為 3,000 次（即總 NAND Budget 為 6,000 TB）。
+
+  假設在該高度隨機的工作負載下，SSD 內部的 GC WAF 經測量為 2。請計算該系統「整體的 Write Amplification Factor」為何？並且評估在耗盡這顆 SSD 壽命前，使用者實際上最多只能寫入多少的邏輯資料量（Application Logical Writes）？
+options:
+  - text: "整體 WAF 為 60；實際可寫入邏輯資料量約為 100 TB。"
+    correct: true
+    explanation: |
+      正確。整個系統各層的 write amplification 放大效果是相乘的，不是相加的。因此整體 WAF = 15（LSM-Tree）x 2（ext4）x 2（SSD GC）= 60。使用者實際可寫入的資料量 = NAND Budget / 整體 WAF = 6,000 TB / 60 = 100 TB。這顯示出未經優化的系統堆疊會極劇烈地消耗 SSD 壽命。
+  - text: "整體 WAF 為 19；實際可寫入邏輯資料量約為 315.7 TB。"
+    explanation: |
+      這個選項錯誤地將各層的 WAF 進行相加（15 + 2 + 2 = 19）。在儲存堆疊中，上層產生的每一次額外寫入，到了下層都會被再次放大，因此 WAF 必須使用相乘計算。
+  - text: "整體 WAF 為 30；實際可寫入邏輯資料量約為 200 TB。"
+    explanation: |
+      此選項忽略了 SSD 內部 Garbage Collection 所造成的 2 倍寫入放大。如果只計算軟體層（15 x 2 = 30），會高估了 SSD 的實際可用壽命。WAF 的計算必須包含從應用層到硬體 NAND flash 的所有堆疊。
+  - text: "整體 WAF 為 60；實際可寫入邏輯資料量為 360,000 TB。"
+    explanation: |
+      整體 WAF 計算正確，但誤用了壽命計算公式。NAND flash 實際承受的寫入量是邏輯資料量乘以 WAF。因此可寫入的邏輯資料量必須將 NAND Budget 除以 WAF，而非乘以 WAF。

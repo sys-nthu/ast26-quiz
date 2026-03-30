@@ -1,5 +1,5 @@
 author: elfnt
-date: 2026-03-17
+date: 2026-03-30
 question: |
   某個 workload 的特性如下：table 的每個欄位都是 `CHAR` 固定長度，所有 record 大小完全相同（128 bytes），且幾乎沒有 `DELETE` 或 `UPDATE`，以 sequential scan 為主。\ 
   工程師 A 主張繼續用 slotted page，工程師 B 主張換成 fixed-length page（直接用 slot number * record size 計算 offset，不需要 slot array）。\ 

@@ -3,30 +3,31 @@ date: 2026-03-30
 question: |
   你正在優化一個高效能 NVMe I/O path，並評估是否導入 Scatter-Gather List（SGL）來降低 memcpy 成本並提升 throughput。
 
-  已知 NVMe 單一 read command 要求對應的磁碟位址（LBA）必須是連續的，而 SGL 的作用在於描述多段分散的記憶體區塊，讓 DMA 可以直接將資料寫入多個 buffer。
+  已知 NVMe 單一 read command 要求對應的磁碟位址 LBA 必須是連續的，而 SGL 的作用在於描述多段分散的記憶體區塊，讓 DMA 可以直接將資料寫入多個 buffer。
 
   在以下四種實際情境中，請判斷在哪一種情況下，使用 SGL 能最有效避免額外 memcpy，並帶來最明顯的效能提升。
 options:
-  - text: "**儲存系統** 讀取一段連續的 16KB 磁碟資料，並將資料直接寫入 4 個分開配置的 4KB page（例如來自 page cache 的 buffer）。"
+  - text: "**儲存系統** 讀取一段連續的 16KB 磁碟資料，並將資料直接寫入 4 個分開配置的 4KB page。"
     correct: true
     explanation: |
       此情境中磁碟位址是連續的，因此可以用單一 NVMe command 完成讀取；
       但目標 buffer 分散在多個 page。
       使用 SGL 可讓 DMA 直接將資料寫入這些分散的 buffer，避免先集中再拆分，
-      能有效降低 memcpy 成本並提升效能。
+      因此能有效降低 memcpy 成本並提升效能。
 
-  - text: "**影片串流服務** 順序讀取一段 8MB 的影片資料，並寫入一塊由系統一次配置的大型連續 buffer。"
+  - text: "**影片串流服務** 順序讀取一段 8MB 的影片資料，並寫入一塊由 driver 提供的單一 linear DMA buffer。"
     explanation: |
-      此情境中資料會被寫入單一大型 buffer，DMA 可直接線性寫入。
-      不需要描述多段記憶體區塊，因此使用 SGL 不會帶來效益，反而增加管理成本。
+      此情境中裝置可透過單一 base address 與長度完成 DMA，
+      不需要描述多段記憶體區塊。
+      使用 SGL 只會增加 descriptor 管理成本，無法帶來效能提升。
 
-  - text: "**備份系統** 順序讀取大型檔案，並將資料寫入一個連續配置的工作區域，供後續壓縮流程使用。"
+  - text: "**備份系統** 順序讀取大型檔案，並將資料寫入一塊由 DMA API 保證為單一連續區段的 buffer。"
     explanation: |
-      此為典型 sequential I/O，且目標 buffer 為單一連續區域。
-      在此情況下沒有額外的資料重組需求，因此 SGL 無法減少 memcpy 或提升效能。
+      此類 buffer 已由系統保證為單一可供 DMA 使用的區段，
+      不需要額外的分段描述。
+      因此不會有額外 memcpy 問題，SGL 無法提供效益。
 
-  - text: "**影像處理程式** 讀取一張 16MB 的圖片檔案，並將其完整載入一個預先配置好的單一影像 buffer 進行運算。"
+  - text: "**影像處理程式** 讀取一張 16MB 的圖片檔案，並將其寫入一個由裝置直接使用的線性輸入 buffer。"
     explanation: |
-      此情境中資料來源與目的地皆為單一連續區域，
-      DMA 可直接完成資料傳輸，不涉及多段 buffer。
-      因此使用 SGL 不會帶來實質效益。
+      此情境中 DMA 目標為單一線性 buffer，裝置不需要處理多段記憶體。
+      因此不涉及資料重組或額外 memcpy，使用 SGL 不會帶來效能提升。

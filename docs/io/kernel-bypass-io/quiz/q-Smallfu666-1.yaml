@@ -1,0 +1,45 @@
+author: Smallfu666
+date: 2026-03-28
+question: |
+  某團隊在資料庫系統中處理大量 **B+ tree lookup**。
+
+  其 workload 特性如下：
+
+  - 每次查詢都需要沿著 tree 做多層 pointer chasing
+  - 每讀完一層 node，才能知道下一層 block address
+  - 底層儲存裝置是高速 NVMe SSD
+  - profiling 顯示 media latency 並不是主要瓶頸，反而是大量 **user-kernel round trip** 與 system call overhead
+
+  團隊後來導入一種方案：
+
+  **保留 kernel storage stack，不採用完全 SPDK 式 kernel bypass，但把「解析 node 並決定下一個 block address」的小段邏輯放進 kernel I/O path 中執行。**
+
+  部署後，團隊觀察到：
+
+  - system call 次數顯著下降
+  - tail latency（P99）改善
+
+  以下哪一個解釋最合理地同時說明上述兩個現象？
+options:
+  - text: "此方案利用 eBPF/XRP 類型機制，將 pointer-chasing 中「下一步去哪」的關鍵決策下沉到 kernel path，減少每層 traversal 都要回 user space 的往返，因此 system call 數下降，tail latency 也改善"
+    correct: true
+    explanation: |
+      這是正解。題目強調「保留 kernel」但把小決策下沉到 kernel path，
+      正是 eBPF/XRP 這類方法的核心思路。少了每層 traversal 的來回往返，
+      system call 數和 P99 都可能改善。
+  - text: "此方案的主要效果來自 io_uring 的 submission/completion batching，因此多層 B+ tree traversal 可以在 user space 一次提交完成，不必每層等前一層結果"
+    explanation: |
+      這個說法忽略了 pointer chasing 的相依性。題幹已明示每讀完一層 node，
+      才能知道下一層 block address，因此不能單靠 batching 就把整條 traversal
+      預先一次提交完成。真正改善來自把「決定下一步去哪」的邏輯下沉到 kernel path，
+      減少每層都往返 user-kernel。
+  - text: "此方案主要依賴 page cache 吸收 B+ tree lookup，因此 NVMe 幾乎不需要處理 I/O，故 system call 與 tail latency 同時下降"
+    explanation: |
+      題目的重點是 pointer chasing 過程中的 decision path overhead，
+      不是 cache hit。即使 page cache 有時能降低裝置 I/O，這也不能直接解釋
+      為何把小段邏輯放進 kernel path 後，system call 次數會明顯下降。
+  - text: "此方案透過 FDP 對每筆 lookup 提供 placement hint，讓 SSD 在內部重新分類資料，因此減少 system call 並改善 pointer-chasing 的 tail latency"
+    explanation: |
+      FDP 解的是寫入放置與垃圾回收干擾，不是 lookup 過程中「下一步去哪」的
+      decision path overhead。它和 pointer chasing 的 user-kernel 往返成本
+      沒有直接對應關係。

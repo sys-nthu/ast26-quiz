@@ -1,0 +1,18 @@
+author: david20041024
+date: 2026-03-20
+question: |
+  現今的 SSD 大多採用 DFTL 或混合式 mapping 來管理 Flash 的 mapping table，請問下列關於這些 FTL 的敘述何者正確？
+options:
+  - text: "FTL 採用 out-of-place write，當發生 random write 時，舊的 physical page 會被標記為 invalid，而新資料則會配置到新的 free page，並以 sequential 方式寫入 SSD"
+    correct: true
+    explanation: |
+      SSD 不能進行覆寫，所以會將原本的 physical page 標記為 invalid，並將新資料連續地寫入空白的 Page，所以 SSD 的 random write 效能很高。
+  - text: "DFTL 的演算法中，在滿的時候通常會利用 LRU 來淘汰 CMT 裡的資料，是基於 Spatial Locality"
+    explanation: |
+      LRU 是基於 Temporal locality，認為最近被訪問的資料在未來也很可能會被訪問，而不是 Spatial Locality。
+  - text: "除了 DFTL 的演算法外，Log block 的方法能徹底消除 Block-level mapping 在小資料更新中，所需要的 Read-Modify-Write"
+    explanation: |
+      Log block 只能起到緩衝的作用，最後還是需要將資料寫回原本的 block，因此仍然會有 Read-Modify-Write 的問題。
+  - text: "CMT 不會定期將資料寫回 Flash 中，因為其中的資料不會揮發"
+    explanation: |
+      CMT 中的 SRAM 屬於揮發性記憶體，斷電後資料會遺失，因此需要定期將 Mapping table 寫回 Flash 中，以確保資料的持久性。

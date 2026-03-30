@@ -1,0 +1,30 @@
+author: Windmill10
+date: 2026-03-30
+question: |
+  在 HDD 時代，Linux kernel 的 block layer 提供三項關鍵優化：I/O
+  scheduling（重新排序 request 以最小化 seek）、I/O merging（合併
+  相鄰 request）以及 interrupt-driven completion。當儲存裝置換成延遲
+  只有微秒等級的高速 NVMe SSD 後，以下哪個選項最能說明這三項機制
+  為何反而成為效能瓶頸？
+options:
+  - text: "I/O scheduling 仍然有用，因為 NVMe SSD 也能從 sequential access 中獲益；I/O merging 仍然有效；只有 interrupt 的開銷才是問題"
+    explanation: |
+      雖然 sequential access 對 SSD 有些微好處（內部 parallelism 與
+      prefetch），但 scheduling 本身的 CPU 開銷遠大於這個收益。Merging
+      同理，在裝置已經很快的情況下，延遲送出換來的合併效果微乎其微。
+  - text: "這些機制只有在使用 SPDK 時才是瓶頸；使用 io_uring 時 kernel 會自動停用它們"
+    explanation: |
+      io_uring 減少的是 syscall 開銷，但 I/O 路徑仍然經過 kernel 的
+      block layer，包含 scheduling 和 merging。這些軟體層並不會因為
+      使用 io_uring 就自動被繞過。
+  - text: "I/O scheduling 在 NVMe 上是多餘的 CPU 開銷，因為 SSD 沒有 seek penalty；I/O merging 為了湊批而延遲送出 request；interrupt 的 context switch 開銷在裝置延遲只有微秒時占比顯著"
+    correct: true
+    explanation: |
+      三項優化都假設儲存裝置是慢速機械式硬碟。SSD 沒有 seek，所以
+      scheduling 是白做工。Merging 增加延遲但收益極小。而 interrupt
+      的 context switch 開銷（約 5-10 us）在 NVMe 總延遲只有 10-20 us
+      的情況下已不可忽視，因此 polling 成為更好的選擇。
+  - text: "這些機制成為瓶頸主要是因為它們的內部資料結構消耗太多 DRAM，壓縮了 page cache 的可用空間"
+    explanation: |
+      瓶頸在於 CPU 與延遲的開銷，而非記憶體消耗。這些資料結構很小，
+      真正的問題是花在這些軟體層的時間。

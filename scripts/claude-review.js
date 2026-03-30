@@ -159,21 +159,29 @@ ${existingSection}
 
 ## 審查任務
 
-### 1. 正確性驗證
-- 被標記為 correct 的選項是否確實正確？請根據 storage systems 的專業知識驗證。
-- 被標記為錯誤的三個選項是否確實是錯的？是否有任何一個「錯誤」選項在某些情境下也可能成立？
-- 如果正確答案有誤或存在歧義，必須在 quality_verdict 中標記為 "request-changes"。
+學生根據課程講義自行設計題目。請幫助他們確保題目的技術正確性。
+
+### 1. 正確性驗證（最重要）
+
+請對每個選項進行以下結構化分析，將分析過程寫入 option_analysis 欄位：
+
+**對每個選項（A/B/C/D），回答：**
+1. 這個選項的核心主張是什麼？
+2. 在題幹描述的情境下，這個主張是否成立？
+3. 如果是錯誤選項：它的 explanation 說它錯的理由是否正確？有沒有哪句斷言是事實上錯誤的？
+4. 如果是錯誤選項：在題幹的同一情境下，這個選項有沒有可能也是對的？
+
+**判定標準：**
+- 如果某個「錯誤」選項在題幹情境下也合理成立，破壞了單選性 → request-changes
+- 如果 explanation 中有會誤導學生的事實錯誤（例如把一個可能發生的行為說成「不可能」）→ soundness_ok = false
+- 合理的隱含假設不需要標記，小幅簡化也可以放過
 
 ### 2. 品質評估
-- 題目是否在測試推理、應用或分析能力？而不是單純考定義或名詞解釋？
-- 正確答案是否毫無歧義地正確？
-- 四個選項是否都夠有誘答力？每個錯誤選項是否代表學生可能犯的真實錯誤？
-- Explanation 是否清楚且有教育價值？
-- 題目撰寫品質如何？（清楚、語法正確、有足夠的上下文）
+- 題目是否在測試推理或應用能力？
+- Explanation 是否有教育價值？
 
 ### 3. 重複偵測
-- 這題是否與所有既有題目在語意上不同？
-- 必須測試不同的面向、情境或推理過程 — 不能只是換數字或重新措辭。
+- 這題的推理核心是否與既有題目不同？兩題即使情境不同，如果考的核心推理鏈相同，就算重複。
 - 如果與既有題目重複，請指出是哪一題並說明重疊之處。
 
 ### 4. 範圍檢查
@@ -182,33 +190,41 @@ ${existingSection}
 - 如果題目考的是其他主題的內容（即使相關），應標記為超出範圍並建議正確的主題。
 - 如果主題頁面或講義無法取得，請略過此項檢查。
 
-### 5. 格式規範檢查
-**重要：你必須逐字元檢查原文，只標記確實違規的地方。如果原文已經有正確的空白，就不要標記。不確定時，判定為通過。**
-
-規則：
-- 中文與英文（或數字）之間必須有一個半形空白。違規範例：「每個page大小為4KB」（page 和 4KB 前後缺少空白）。正確範例：「每個 page 大小為 4KB」。
-- 如果題目為純英文，標點符號使用英文半形 \`,.:\`。如果題目為繁體中文，標點符號使用全形 \`，。：\`。
-- 禁止使用 em dash（—）。如需連接語句，請用逗號或分號。
-
-檢查方式：對每個疑似違規處，先引用原文中該處的前後 5 個字元，確認空白確實不存在後才標記。如果原文已正確，formatting_ok 設為 true，formatting_issues 設為 null。
+**不要檢查格式、標點或排版。只看內容是否正確且嚴謹。**
 
 請以下列 JSON 格式回覆（feedback 和 explanation 請用繁體中文寫，技術名詞維持英文）：
 {
+  "option_analysis": [
+    "選項 A：（核心主張）...（在題幹情境下是否成立）...（explanation 是否有事實錯誤）...",
+    "選項 B：...",
+    "選項 C：...",
+    "選項 D：..."
+  ],
   "quality_verdict": "approve" | "request-changes",
   "quality_feedback": "一段話說明你的評估。",
   "correctness_ok": true | false,
   "correctness_issue": "如有正確性問題，說明哪裡有誤或有歧義" | null,
+  "soundness_ok": true | false,
+  "soundness_issue": "如有嚴謹度問題，說明哪個選項的 explanation 有事實錯誤或哪個假設未交代" | null,
   "is_duplicate": true | false,
   "duplicate_of": "filename.yaml" | null,
   "duplicate_explanation": "..." | null,
   "in_scope": true | false,
   "scope_issue": "如果超出範圍，說明為何不屬於此主題，並建議應歸屬哪個主題" | null,
-  "formatting_ok": true | false,
-  "formatting_issues": ["列出每個格式違規處及建議修正"] | null,
+  "student_message": "如果需要修改，寫一段簡短友善的訊息給同學，說明需要修正什麼。如果可以合併，設為 null。" | null,
   "suggestions": ["2-3 個替代出題方向，供同學在題目重複或需改進時參考"]
 }`;
 
-  const systemPrompt = '你是一個研究所等級的 storage systems 課程的 quiz 審查員。你負責驗證題目正確性、評估品質、檢查是否重複、確認題目在主題範圍內。請用繁體中文回覆，技術名詞（如 FTL、NAND、write amplification、LSM-tree 等）維持英文。';
+  const systemPrompt = `你是一位研究所等級 storage systems 課程的 quiz 審查員。學生根據課程講義設計題目，你負責幫助他們確保題目的技術正確性。
+
+你的審查原則：
+- 鼓勵學生的努力，肯定設計良好的部分。
+- 只標記真正的技術錯誤或會讓答題者困惑的歧義，不要挑剔細節或邊緣情境。
+- 如果正確答案確實有誤、或某個錯誤選項在題幹描述的情境下同樣成立（破壞單選性），才標記為 request-changes。
+- explanation 中的事實錯誤要指出，但用語上的小瑕疵可以忽略。
+- 給同學的回饋要友善、具建設性，讓他們知道怎麼改就好。
+
+不要檢查格式或標點。請用繁體中文回覆，技術名詞維持英文。`;
 
   try {
     const response = await Promise.race([
@@ -228,11 +244,50 @@ ${existingSection}
     if (jsonMatch) text = jsonMatch[1];
 
     const review = JSON.parse(text.trim());
-    return { file: basename, relPath, review, error: null };
+    return { file: basename, relPath, review, error: null, content: newContent };
   } catch (err) {
     console.error(`  API 錯誤 (${basename}): ${err.message}`);
-    return { file: basename, relPath, review: null, error: err.message };
+    return { file: basename, relPath, review: null, error: err.message, content: newContent };
   }
+}
+
+// Regex-based format checking (replaces LLM-based format check)
+function checkFormatting(yamlContent) {
+  const issues = [];
+
+  // Extract all text fields from YAML content
+  const lines = yamlContent.split('\n');
+  const textLines = lines.filter(l => !l.match(/^\s*(author|date|correct):/));
+
+  const fullText = textLines.join('\n');
+
+  // Check: Chinese-English/number spacing
+  // Only flag CJK hanzi directly adjacent to ASCII letter/digit (no space between).
+  // CJK punctuation (，。：；「」（）etc.) next to ASCII is OK — no space needed.
+  const cjkNoSpaceBefore = /[\u4e00-\u9fff\u3400-\u4dbf]([a-zA-Z0-9])/g;
+  const cjkNoSpaceAfter = /([a-zA-Z0-9])[\u4e00-\u9fff\u3400-\u4dbf]/g;
+
+  let match;
+  const spacingViolations = new Set();
+  while ((match = cjkNoSpaceBefore.exec(fullText)) !== null) {
+    const ctx = fullText.slice(Math.max(0, match.index - 3), match.index + match[0].length + 3);
+    spacingViolations.add(ctx.trim());
+  }
+  while ((match = cjkNoSpaceAfter.exec(fullText)) !== null) {
+    const ctx = fullText.slice(Math.max(0, match.index - 3), match.index + match[0].length + 3);
+    spacingViolations.add(ctx.trim());
+  }
+  if (spacingViolations.size > 0) {
+    const examples = [...spacingViolations].slice(0, 5).map(s => `「${s}」`).join('、');
+    issues.push(`中英文/數字之間缺少空白: ${examples}`);
+  }
+
+  // Check: em dash usage
+  if (fullText.includes('—')) {
+    issues.push('使用了 em dash（—），請改用逗號或分號');
+  }
+
+  return issues;
 }
 
 async function main() {
@@ -265,6 +320,15 @@ async function main() {
       mdParts.push('');
     }
 
+    // Soundness
+    const soundIcon = (rv.soundness_ok === false) ? '\u274C 嚴謹度有問題' : '\u2705 通過';
+    mdParts.push(`**技術嚴謹度:** ${soundIcon}`);
+    if (rv.soundness_ok === false && rv.soundness_issue) {
+      mdParts.push(`> ${rv.soundness_issue}\n`);
+    } else {
+      mdParts.push('');
+    }
+
     // Quality
     const qualityIcon = rv.quality_verdict === 'approve' ? '\u2705 通過' : '\u26A0\uFE0F 建議修改';
     mdParts.push(`**品質評估:** ${qualityIcon}`);
@@ -291,10 +355,11 @@ async function main() {
       mdParts.push('**範圍檢查:** \u2796 無法判斷（主題頁面不可用）\n');
     }
 
-    // Formatting
-    if (rv.formatting_ok === false && rv.formatting_issues && rv.formatting_issues.length > 0) {
+    // Format check (regex-based, not LLM)
+    const fmtIssues = r.content ? checkFormatting(r.content) : [];
+    if (fmtIssues.length > 0) {
       mdParts.push('**格式規範:** \u274C 有格式問題');
-      for (const issue of rv.formatting_issues) {
+      for (const issue of fmtIssues) {
         mdParts.push(`> - ${issue}`);
       }
       mdParts.push('');
@@ -302,7 +367,13 @@ async function main() {
       mdParts.push('**格式規範:** \u2705 符合規範\n');
     }
 
-    if (rv.suggestions && rv.suggestions.length > 0 && (rv.is_duplicate || rv.quality_verdict !== 'approve' || !rv.correctness_ok)) {
+    // Student message
+    if (rv.student_message && rv.quality_verdict !== 'approve') {
+      mdParts.push('**給同學的訊息:**');
+      mdParts.push(`> ${rv.student_message}\n`);
+    }
+
+    if (rv.suggestions && rv.suggestions.length > 0 && (rv.is_duplicate || rv.quality_verdict !== 'approve' || !rv.correctness_ok || rv.soundness_ok === false)) {
       mdParts.push('**替代出題方向建議:**');
       for (let i = 0; i < rv.suggestions.length; i++) {
         mdParts.push(`${i + 1}. ${rv.suggestions[i]}`);

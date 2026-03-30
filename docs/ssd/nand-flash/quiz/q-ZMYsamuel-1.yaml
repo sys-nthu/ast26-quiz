@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  某資料中心計畫將儲存層的硬體從 TLC SSD 全面替換為 QLC SSD 以提升儲存密度。根據 NAND Flash 的物理特性，此升級會如何影響控制器在讀取與寫入時的操作機制？
+options:
+  - text: " QLC 的每個 Cell 需要區分 16 個電壓等級，導致相鄰電壓狀態之間的 Voltage Margin 變得極窄，控制器因此需要更多次的 Voltage Sensing 才能正確讀取資料，顯著增加了讀取延遲。"
+    correct: true
+    explanation: |
+      這是正確的物理機制分析。 TLC 儲存 3 bits（8 個狀態），而 QLC 儲存 4 bits（16 個狀態）。由於總電壓範圍固定，QLC 切分出更多狀態使得 Voltage Margin 變得很窄。讀取時（特別是 Soft-decision decoding）需要進行更多次的不同參考電壓感測才能確定 Cell 的實際狀態，這導致了 QLC 的讀取速度明顯慢於 TLC。
+  - text: " QLC 透過將每個 Cell 的容量提升至 4 bits，大幅減少了控制器需要下達 Erase 命令的頻率，因此 QLC SSD 能夠承受的 P/E Cycles 與整體壽命會顯著高於 TLC SSD。"
+    explanation: |
+      這個推論恰好與事實相反。正因為 QLC 的 Voltage Margin 很窄，氧化層（Tunnel Oxide）因為 Erase 造成的微小物理損傷都會極大程度地影響電壓狀態的判讀。因此，QLC 的耐久度（通常為 1000 P/E Cycles 以下）遠低於 TLC（約 3000 P/E Cycles）。
+  - text: "為了彌補 P/E Cycle 壽命下降的劣勢，QLC SSD 的控制器允許直接以 Page（通常為 16KB）為單位進行單獨的 Erase 操作，從而避免了 Block 層級抹除帶來的額外資料搬移負擔。"
+    explanation: |
+      這是對 NAND Flash 物理設計的誤解。無論是 SLC、MLC、TLC 還是 QLC，Erase 操作的最小物理單位永遠都是 Block。無法單獨對一個 Page 進行 Erase，這是導致 SSD 必須採用 Out-of-place write 與 Garbage Collection 的根本原因。
+  - text: "由於 QLC 將更多位元資料擠在同一個 Cell 中，寫入時控制器只需要施加一次高電壓即可同時改變 4 bits 的狀態，因此其隨機寫入吞吐量（Random Write Throughput）會大幅優於 TLC SSD。"
+    explanation: |
+      這完全誤解了 NAND Flash 的 Program 機制。為了精準控制 Cell 進入 16 個不同電壓狀態之一，寫入時必須使用增量階躍脈衝編程（ISPP），以極小的電壓步進反覆施加並驗證。狀態越多，需要的編程與驗證循環就越長，因此 QLC 的寫入速度實際上比 TLC 慢得多。

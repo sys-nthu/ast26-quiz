@@ -43,18 +43,13 @@ options:
   - text: "系統 X 選型號 B，系統 Y 選型號 A。系統 X 的持續高強度隨機寫入需要大 OP 來壓制 GC 壓力；系統 Y 寫入頻率極低，GC 壓力幾乎為零，型號 A 的高容量更符合成本效益。"
     correct: true
     explanation: |
-      這是正確答案。OP 的選擇應以**寫入強度與 Duty Cycle** 為核心依據。
+      **系統 X → 型號 B**
+      持續高強度隨機寫入會快速耗盡 Free Block Pool。OP 不足時，
+      Greedy GC 只能選到 Valid Ratio 偏高的 Block，WAF 可達 3～5，
+      GC internal write 與 host write 競爭 NAND die，p99 latency spike 因此失控。
+      28% OP 讓 GC 有足夠「可選空間」找到 Valid Ratio 更低的 Block，WAF 壓至 < 2，
+      tail latency 保持穩定。
 
-      **系統 X → 型號 B（Write-Intensive，28% OP）：**
-      持續高強度隨機寫入使 Free Block Pool 快速消耗，若 OP 不足（型號 A 僅 7%），
-      GC 被迫頻繁執行，在一般 Greedy-policy-based GC 演算法下只能選到 Valid Ratio 偏高的 Block，
-      WAF 可達 3~5，GC internal write 與 host write 競爭 NAND die，
-      導致 p99 latency 飆升至數十毫秒，遠超 5ms 門檻。
-      型號 B 充裕的 OP 讓 GC 能挑到 Valid Ratio 更低的 Block，
-      WAF 維持較低水準（通常 < 2），p99 latency spike 被有效抑制。
-
-      **系統 Y → 型號 A（Read-Intensive，7% OP）：**
-      系統 Y 寫入 Duty Cycle 極低，循序批次寫入對 GC 壓力極小，
-      大量 idle time 讓 controller 可從容進行背景 GC，WAF 本就接近 1。
-      型號 B 多出的 OP 在此場景下形同閒置，選型號 A 可獲得更多可用容量，
-      以相同成本儲存更多 ML 訓練資料集，成本效益更佳。
+      **系統 Y → 型號 A**
+      寫入頻率極低，idle time 充裕，controller 早已在背景完成 GC，WAF 接近 1。
+      此情境下 OP 邊際效益趨近於零；選型號 A 可多得 160 GB 可用容量，成本效益更佳。

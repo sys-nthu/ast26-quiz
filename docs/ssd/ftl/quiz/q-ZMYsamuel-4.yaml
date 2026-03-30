@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  針對 Wear Leveling (磨損均衡) 機制，假設某資料中心配置了一顆 SSD，其中劃分了兩個區域：一個存放龐大且幾乎不更新的虛擬機器映像檔（Cold Data），另一個存放頻繁高壓寫入的日誌檔（Hot Data）。若該 SSD 的 FTL「僅」實作了 Dynamic Wear Leveling 而完全沒有 Static Wear Leveling，經過長時間運作後會觀察到什麼現象？
+options:
+  - text: "儲存 Cold Data 的實體 Block 會一直佔據著極低的 Erase Count，而負責處理 Hot Data 寫入的 Free Block 則會迅速且反覆地累積 P/E Cycle，導致 SSD 內部少數 Block 過早損壞，整體壽命遠低於預期。"
+    correct: true
+    explanation: |
+      這是正解。Dynamic Wear Leveling 的作法是「當有新的寫入請求時，挑選目前 Erase Count 較低的 Free Block 來服務」。但它的侷限在於：如果某些資料（Cold Data）寫入後就再也不更新，它們所在的 Block 就不會變成 Invalid，也不會被釋放回 Free Block Pool。因此，這群 Cold Block 的 P/E Cycle 會永遠停留在極低值。這迫使所有後續的日誌檔（Hot Data）寫入，只能在剩餘的少數 Free Block 之間不斷輪轉，導致這些熱區 Block 提早達到壽命極限。必須依賴 Static Wear Leveling 主動將冷資料搬移至舊 Block，才能真正平衡全碟磨損。
+  - text: "控制器會主動監測到 Cold Data 所在的 Block 太久沒有更新，進而在背景將虛擬機器映像檔搬移到 P/E Cycle 較高的舊 Block 中，從而成功平衡全碟的磨損次數。"
+    explanation: |
+      這個選項描述的正是 Static Wear Leveling 的核心行為。題目已經明確假設該 SSD 「僅」實作 Dynamic Wear Leveling，因此控制器不會主動去搬移這些從不更新的冷資料。
+  - text: "Dynamic Wear Leveling 會強制讓每次針對 Hot Data 的寫入都伴隨一次全碟範圍的 Block Erase，藉此強迫所有 Block 同步消耗 P/E Cycle，但這會導致極高的寫入延遲。"
+    explanation: |
+      這是完全錯誤的機制想像。無論是哪一種 Wear Leveling，都不會為了同步消耗 P/E Cycle 而荒謬地「強制執行全碟範圍的 Block Erase」，這不僅違反 Erase-before-write 的運作邏輯，也會瞬間摧毀所有有效資料並產生無限大的寫入放大。
+  - text: "為了保護那些處理 Hot Data 的 Block，控制器會自動降低日誌檔的寫入頻寬，讓其消耗速度配合 Cold Data 的更新頻率，導致日誌系統出現 I/O Timeout 錯誤。"
+    explanation: |
+      這是錯誤的推論。FTL 不會因為欠缺 Static Wear Leveling 就主動在裝置層級「限速」以等待冷資料更新。SSD 依然會盡全力寫入，直到少數承載 Hot Data 的 Block 達到物理極限並報錯壞軌（Bad Block）為止。

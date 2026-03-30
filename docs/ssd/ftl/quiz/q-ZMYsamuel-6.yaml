@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  根據 ZKV 論文的設計，傳統的 Buffered B+-Tree（例如基於 $B\epsilon$-Tree 的 SplinterDB）在寫入效能上表現優異，但往往會嚴重犧牲循序掃描（Range Scan）與讀取的效能。
+
+  ZKV 為了打破這個限制，如何在 ZNS SSD 上透過其三層緩衝架構（Three-level Buffer Structure）與異質樹狀結構，同時實現極低的寫入放大與高效的讀取？
+options:
+  - text: "ZKV 將 B+-Tree 的 Internal Nodes 放在 DRAM 中，並透過 Merged Filter 將頻繁更新的熱資料保留在記憶體。對於冷資料，則透過 Adaptive Delta Buffer (ADB) 將分散的 kv-pairs 聚合，最後由 ZFlusher 打包成較大的連續區塊以 Append 模式寫入 ZNS SSD 的 Leaf Nodes，確保了讀取路徑的單純與循序寫入的高效。"
+    correct: true
+    explanation: |
+      完全正確。ZKV 的核心在於軟硬體協同設計。為了避免如 $B\epsilon$-Tree 等設計造成讀取時需查找多個 Buffer 導致延遲，ZKV 採用了 Z+-Tree 結構：將 Update-in-place 的 Internal nodes 放在 DRAM 中，Append-only 的 Leaf nodes 放在 ZNS SSD 上。透過 Merged Filter 攔截熱資料，並用 ADB (Adaptive Delta Buffer) 自動調整大小來收集同一個 Leaf node 的分散更新，最終由 ZFlusher 在 Zone level 進行大區塊的循序打包寫入。這使得查找路徑極短，且完全契合 ZNS 的 Append-only 限制。
+  - text: "ZKV 實作了硬體層級的 In-place update，讓 Merged Filter 可以直接在 ZNS SSD 的 Zone 內部覆寫 Leaf Nodes，完全不需要維護傳統的 L2P Mapping Table，從而消除了讀取時的位址轉換延遲。"
+    explanation: |
+      此選項違背了 ZNS SSD 的根本運作原理。ZNS SSD 是一個 Append-only 的介面，每個 Zone 必須循序寫入，絕對不支援硬體層級的 In-place update (原地覆寫)。ZKV 必須配合此特性以 Append 方式寫入 Leaf nodes。
+  - text: "ZKV 依賴底層的 F2FS 檔案系統來管理 Zone，Merged Filter 與 ADB 的主要作用是將所有隨機寫入轉換為單一大檔寫入並交給 F2FS，讓 F2FS 在背景自動執行 Garbage Collection 來優化掃描速度。"
+    explanation: |
+      這是對 ZKV 架構的誤解。ZKV 的設計動機之一（論文的 O3 觀察）就是認為傳統 B+-Tree 依賴檔案系統（如 F2FS-ZNS）會產生額外的 Metadata Write Amplification 並無法充分利用頻寬。因此 ZKV 是設計成「繞過檔案系統」，直接管理 Raw ZNS SSD Device 的。
+  - text: "ZKV 在寫入時會為每個 kv-pair 建立獨立的 Delta Record 串鏈（Linked List）存放在 Flash 中，並利用 ZFlusher 在背景將這些串鏈壓縮（Compaction），以維持循序讀取的效能。"
+    explanation: |
+      這個選項描述的是 Bw-Tree 的機制，而這正是 ZKV 所要避免的。在 Flash 中建立 Delta Record 串鏈會導致嚴重的指標追逐（Pointer Chasing），極大地傷害讀取效能。ZKV 透過 ADB 在記憶體中就將資料聚合，並與舊的 Data Page 合併成新的 Page 寫入，而非在 Flash 上建立串鏈。

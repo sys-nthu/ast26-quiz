@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  與傳統 HDD 面臨 Random Write 時需要耗時的 Seek 操作不同，SSD 在初始狀態下執行 Random Write 的效能極佳，但在 SSD 容量即將寫滿時，往往會面臨嚴重的效能斷崖（Performance Cliff）。根據 FTL 的基礎運作原理，造成這個「從極快到極慢」現象的根本原因為何？
+options:
+  - text: " FTL 採用 Out-of-place write 機制，將 Host 端的 Random Write 在物理層面轉化為循序寫入至空白的 Page，因此初期寫入極快；但當 Free Page 耗盡時，必須在背景觸發 Garbage Collection 進行 Live-page Copying 與 Block Erase，這些昂貴的操作嚴重阻塞了後續的寫入請求。"
+    correct: true
+    explanation: |
+      這是 SSD 效能特性的核心原因。因為 NAND Flash 具有 Erase-before-write 且不能覆寫的限制，FTL 引入了 Out-of-place write：無論邏輯上多麼隨機的寫入，在物理上都會被循序寫入到下一個空白的 Physical Page 中。這使得 SSD 的 Random Write 效能在有充足 Free Page 時遠勝 HDD。但這個機制會留下大量 Invalid Page，當空間寫滿、需要 Free Page 時，GC 必須先將有效資料複製走再執行耗時數毫秒的 Erase，這時就會出現效能斷崖。
+  - text: "大量隨機寫入會導致 Host 端的作業系統在 Block Layer 中累積過多的 I/O Request，進而觸發 Kernel 的流量管制（Throttling），強制將 SSD 切換至同步寫入模式以防止資料遺失。"
+    explanation: |
+      這偏離了 SSD 硬體與 FTL 的層次。效能斷崖主要是 SSD 裝置內部的 Garbage Collection 機制所引起的，並非由 Host 端 Kernel 的流量管制主動觸發。
+  - text: "當 SSD 空間即將寫滿時，FTL 為了節省 L2P Mapping Table 的記憶體空間，會被迫從高效能的 Page-level mapping 動態降級為 Block-level mapping，導致每一個 Page 的更新都變成整個 Block 的讀寫。"
+    explanation: |
+      這是對 FTL 架構設計的誤解。一顆 SSD 採用的 mapping 粒度（Page-level, Block-level 或是 Hybrid）通常是在韌體設計階段就決定好的架構，L2P table 的大小取決於邏輯容量，並不會因為物理空間被寫滿而動態「降級」並改變其基本的 mapping 結構。
+  - text: "Random Write 會讓 NAND Flash 中 Cell 之間產生嚴重的 Program Disturb，當空間寫滿時，控制器必須頻繁啟動 Soft-decision decoding 來修復寫入時產生的錯誤，進而拖慢寫入效能。"
+    explanation: |
+      這是物理機制與邏輯機制的錯置。Soft-decision decoding 是一種用來修復 Read（讀取）錯誤的機制（藉由多次不同電壓感測）。寫入效能斷崖的原因在於 GC 的 Erase 阻塞與有效資料搬移（Write Amplification），而非啟動讀取錯誤的修復機制。

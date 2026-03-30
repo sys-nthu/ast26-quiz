@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  根據 SSD-iq 論文的實驗觀察，針對商用 SSD 進行寫入效能與 Garbage Collection (GC) 演算法分析時，當寫入 Workload 的傾斜程度（Skewness）逐漸增加（例如 Zipf 分佈參數從 0 逐漸增加到 0.8）時，許多商用 SSD 的寫入放大（Write Amplification, WAF）不僅沒有受惠於資料冷熱分明，反而不減反增。
+
+  請問下列何者是造成此反直覺現象的主要原因？以及當 Zipf 參數極端達到 1.0 時，WAF 突然驟降的關鍵機制為何？
+options:
+  - text: "商用 SSD 多半採用基礎的 Naive Greedy GC 演算法，無法有效將冷熱資料隔離，導致混合資料在 GC 時產生更高的寫入放大；而當 Zipf 達到 1.0 時，極少數的超熱點資料被 SSD 內部的 DRAM Write Buffer 完全吸收，大幅減少了對底層 Flash 的實體寫入。"
+    correct: true
+    explanation: |
+      這是正確的分析。常理認為 Skewed workload 有助於降低 WAF，但 SSD-iq 的實驗揭露了多數商用 SSD 實作的 GC 演算法接近 Naive Greedy，這會將熱資料與冷資料混合搬移，在傾斜度增加時反而讓 WAF 變差。只有當 Zipf 達到 1.0 時，因超過 50% 的寫入集中在極少數（約 0.05%）的 Page 上，這些覆寫被控制器內容量極小的 DRAM Write Buffer 攔截並在記憶體內完成原地更新，因此 WAF 才會呈現斷崖式下降。
+  - text: "商用 SSD 採用了 2R-Greedy GC 演算法，在高度傾斜時會強迫觸發全碟資料的 Defragmentation 導致 WAF 上升；當 Zipf 達到 1.0 時，系統會自動切換回 Page-level mapping 來降低寫入放大。"
+    explanation: |
+      這個選項是對 GC 演算法的誤解。根據論文模擬，2R-Greedy (2 Regions Greedy) 是一種能「有效隔離冷熱資料」的進階演算法，若 SSD 採用此演算法，WAF 應該會隨著傾斜度增加而下降，而非上升。且 SSD 並不會因為寫入傾斜就動態切換基礎的 Mapping 粒度。
+  - text: "傾斜的隨機寫入會產生大量的 Read Disturb，迫使控制器啟動 Soft-decision decoding 並產生額外的資料搬移（WAF 上升）；當 Zipf 達到 1.0 時，控制器啟動 Wear Leveling 將熱點平均分散，從而降低 WAF。"
+    explanation: |
+      這是錯誤的物理機制推論。Read Disturb 是發生在「密集讀取」的場景，而本題探討的是純寫入的 Workload。此外，Wear Leveling 的目的是平衡抹寫次數以延長壽命，它本身需要搬移資料，通常會「增加」寫入放大，絕不可能透過 Wear Leveling 來讓 WAF 驟降。
+  - text: "高傾斜度會導致 L2P Mapping Table 的 Cache Miss Rate 飆高，使得控制器頻繁寫入 Translation Pages 造成 WAF 增加；當 Zipf 達到 1.0 時，因為只存取少數 LBA，Cache Hit Rate 回升，WAF 因此下降。"
+    explanation: |
+      這個選項的推論邏輯與 FTL 行為不符。首先，存取高度傾斜（少數 LBA 被頻繁存取）實際上會「提高」 Cache Hit Rate，而不是讓 Cache Miss Rate 飆高。其次，SSD-iq 實驗中 WAF 驟降的根本原因是被 Write Buffer 吸收了重複寫入，而非 Translation Pages 的更新開銷。

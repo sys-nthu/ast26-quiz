@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  GC 的 Victim Block Selection 策略對系統效能與壽命有重大影響。若一個 SSD 的 FTL 僅採用 Greedy 演算法來挑選 Victim Block，在經歷長期且帶有高度 Skewed 的寫入 Workload 後（即少數 Hot Data 頻繁更新，大量 Cold Data 保持不變），會產生什麼長期的負面影響？
+options:
+  - text: "包含大量 Valid Page 的 Cold Block 幾乎永遠不會被 Greedy 演算法選中進行回收，這阻礙了整體空間的有效流動與 Static Wear Leveling 的進行，導致負責接收 Hot Data 的 Block 其 P/E Cycle 被提早耗盡。"
+    correct: true
+    explanation: |
+      這是正確的分析。Greedy 演算法的唯一判斷標準是「選擇包含最多 Dead/Invalid Pages 的 Block」，目的是最小化 Live-Page Copying 的成本。在高度 Skewed 的環境中，Cold Data 所在的 Block 幾乎沒有 Invalid Page，因此永遠不會被 Greedy 演算法選作 Victim。這會導致這些 Cold Block 的 Erase Count 一直維持在極低的水準，無法實現全碟的 Wear Leveling，最終讓少數處理 Hot Data 的 Block 因頻繁抹寫而提早損壞。
+  - text: "Greedy 演算法會頻繁選中包含大量 Valid Page 的 Cold Block，導致 GC 過程中產生過多的 Live-Page Copying，消耗大量的 Channel 頻寬並嚴重拖慢系統的寫入效能。"
+    explanation: |
+      這個選項恰好與 Greedy 演算法的特性相反。Greedy 演算法正是為了「避免」搬移大量 Valid Page，所以它絕對不會去優先挑選包含大量 Valid Page 的 Cold Block。它總是挑選最「髒」（Invalid Page 最多）的 Block。
+  - text: "由於 Greedy 演算法必須在每次 GC 前遍歷所有 Block 的 Spare Area (OOB) 來確認 Page Liveness，這會佔用大量的控制器 CPU 週期，導致嚴重的 Tail Latency 突波。"
+    explanation: |
+      這是對 FTL 內部追蹤機制的誤解。雖然 Spare Area 確實存有 LBA 資訊可供反向驗證，但 FTL 在挑選 Victim Block 時，通常是直接查閱維護在 SRAM 中的 Block metadata（例如每個 Block 的 valid 數量計數器）來進行 Greedy 排序，不需要即時遍歷所有實體 Block 的 Spare Area。
+  - text: "Greedy 演算法強制要求每次回收必須同時抹除多個相鄰的 Block 以確保寫入連續性，這會導致 SSD 內部的 Write Amplification 呈現指數型上升。"
+    explanation: |
+      這是一個編造的機制。Greedy 演算法本身並沒有「強制抹除多個相鄰 Block」的規定，它單純是以 Block 內的 Invalid Page 數量為單一維度來進行貪婪挑選。寫入放大上升的主因是缺少 Free Block 時的無效資料搬移，而非相鄰抹除。

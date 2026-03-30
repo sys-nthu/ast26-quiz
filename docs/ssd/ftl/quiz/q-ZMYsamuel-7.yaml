@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在建構基於 SSD 陣列的 Cross-device Coded Storage（例如高效能 RAID 陣列）時，背景的 Garbage Collection (GC) 常會互相干擾，造成系統出現嚴重的長尾延遲（Tail Latency）。
+
+  若該儲存系統導入了「要求重定向（Request Redirection, RR）」的 GC 協調機制來馴服長尾延遲，下列對於 RR 機制的運作原理與系統代價之描述，何者最為準確？
+options:
+  - text: "RR 機制會協調各個 SSD 的 GC 時間，確保同一時間處於 GC 狀態的 SSD 數量不超過系統的容錯數量（Redundancy $m$）。當讀取請求遇到正在 GC 的 SSD 時，系統不需等待，而是讀取其他未 GC 的 SSD 中的 Data 與 Parity Chunks 進行 Degraded Read（降級讀取）來重建資料。此舉能穩定尾部延遲，但代價是會增加網路與 I/O 的總頻寬消耗。"
+    correct: true
+    explanation: |
+      這是 Request Redirection (RR) 機制的核心原理。為了避免 Global GC 帶來的整體效能停滯，RR 限制同時進行 GC 的 SSD 數量（$\le m$），利用編碼儲存的冗餘特性，主動將寫入重定向到其他 SSD，或是透過 Degraded Read 重建正在 GC 的 SSD 上的讀取資料。這能提供穩定且持續的低延遲，但重建資料需要讀取多個 Chunk 進行 XOR 或矩陣運算，因此不可避免地會產生額外的 I/O 放大與頻寬開銷。
+  - text: "RR 機制會強制所有 SSD 在同一個時間點一起執行 GC（即 Global GC），確保系統在大部分時間內都不會有任何 GC 干擾；當前端有請求時，會暫時將所有讀寫重定向到控制器內部的 DRAM Cache 中等待 GC 結束。"
+    explanation: |
+      這個選項描述的是 Global Garbage Collection (GGC) 機制的其中一種形式，而非 Request Redirection (RR)。GGC 的缺點正是在同步 GC 的時間窗口內，I/O 效能會發生嚴重的下降（DRAM 也不可能無限制吸收這段時間的所有 I/O）。
+  - text: "RR 機制將 SSD 陣列嚴格劃分為 Front-end 與 Back-end 兩大群組。Front-end 負責處理所有使用者請求且被強制禁止 GC，所有寫入都會在背景被重定向至 Back-end，藉此完全消除讀取的長尾延遲。"
+    explanation: |
+      這描述的是另一種稱為 Spatial Separation (SS) 的 GC 協調策略，並非 RR。SS 機制的問題在於整體 SSD 空間利用率與平行處理的頻寬會大幅下降，因為只有 Front-end 能夠服務寫入請求。
+  - text: "RR 機制利用 SSD 內部的寫入緩衝區，當遇到某個 Die 正在 GC 時，將寫入請求重定向至同一個 SSD 內未被 GC 佔用的其他 Plane。此方法不涉及跨 Device 的 Parity 運算，因此能在不產生額外 I/O 開銷的前提下消除延遲。"
+    explanation: |
+      這個選項混淆了 In-device coding / scheduling（例如論文中提及的 TTFLASH 的 intra-plane copy）與 Cross-device coding 的 RR 機制。在 Cross-device 的 RR 中，重定向是跨 SSD 的，且讀取時必然需要依賴跨 Device 的 Parity 進行運算（Degraded Read），因此一定會產生額外的 I/O 開銷。

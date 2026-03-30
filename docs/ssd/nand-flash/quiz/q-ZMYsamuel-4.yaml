@@ -1,18 +1,18 @@
 author: ZMYsamuel
 date: 2026-03-31
 question: |
-  傳統的 Block-interface SSD 面臨所謂的 block interface tax。近年來提出的 ZNS SSD 透過引入 Zone 介面來嘗試解決此問題。請問 ZNS SSD 如何從根本上消除 Device-layer 的 Write Amplification 以及對 Over-Provisioning 的需求？
+  隨著 SSD 採用更高密度的 TLC 或 QLC NAND Flash，每個 Cell 儲存的 bits 數增加，導致 Voltage Margin 變窄且 RBER 升高。根據課程與 Coded Storage 相關論文，在此情況下 SSD Controller 為了確保 Read 操作的正確性，會產生什麼主要的行為改變與效能影響？
 options:
-  - text: "ZNS SSD 將 Flash 實體的 Erase Block 邊界直接暴露給 Host 端，強制 Host 端 Sequential Append 並自行負責 GC，因此移除了傳統 FTL 需要在 SSD 內部進行 Out-of-place write 與搬移有效資料的開銷。"
+  - text: "當基本的 Hard-decision decoding 失敗時，Controller 會觸發 Soft-decision decoding，對同一個 Page 施加多種不同的 Reference Voltage 進行多次 Sensing，這能取得更精確的資料機率分佈，但會顯著增加 Read Latency。"
     correct: true
     explanation: |
-      這是正確的設計理念。傳統 Block-interface SSD 為了隱藏 NAND Flash 無法 In-place update 的物理特性，FTL 必須執行 Out-of-place write 與 GC，進而產生 Write Amplification 並需要預留 Over-Provisioning 空間。ZNS 介面透過要求 Sequential Append 並由 Host 端掌握資料擺放，將 GC 負擔轉移，使得 SSD 內部不再需要搬移資料，完美消除了硬體層的寫入放大與對 OP 空間的依賴。
-  - text: "ZNS SSD 支援了硬體層級的 In-place update 功能，因此當 Host 端修改資料時，可以直接覆寫原有的 Page，完全不需要進行 Block Erase 操作，從而消除了 Write Amplification。"
+      這是現代高密度 SSD 的標準行為。Hard-decision decoding 只需要一次電壓感測，速度極快；但在 TLC/QLC 或 P/E cycles 較高導致 RBER 上升時，往往無法成功解碼。此時 Controller 會切換到 Soft-decision decoding，透過多次不同電壓的 Sensing 來計算 LLR（Log Likelihood Ratio），其錯誤更正能力更強，但代價就是 Read Latency 會大幅飆升。
+  - text: "Controller 會動態將 TLC 或 QLC 降級為 SLC 模式運作，強制將每個 Cell 的儲存容量減少為 1 bit，藉此加寬 Voltage Margin 並完全避免使用高延遲的 LDPC 解碼演算法。"
     explanation: |
-      這個推論是錯誤的。無論是 Block-interface SSD 還是 ZNS SSD，底層都是使用 NAND Flash，而 NAND Flash 受到物理限制，絕對不支援 In-place update，必須遵守 Erase-before-write 的特性。
-  - text: "ZNS SSD 內建了容量極大的 DRAM 作為 Write Buffer，能將所有的 Random Write 在寫入 Flash 前完全轉換為 Sequential Write，因為不需要觸發 GC，所以不需要 Over-Provisioning 空間。"
+      這混淆了 SLC Cache 與讀取錯誤處理的機制。雖然 SSD 會使用部分區塊做為 SLC Cache 來加速寫入，但對於已經以 TLC/QLC 格式寫入的資料，在 Read 發生錯誤時，不可能「動態降級」成 SLC 來讀取，只能透過更強的 ECC 機制（如 Soft-decision decoding）來還原資料。
+  - text: "為了彌補 Voltage Margin 變窄的問題，Controller 會在每次 Read 發生錯誤時自動觸發 Program 操作來補充電子，確保 Cell 的電壓狀態回到最佳的 Threshold Voltage 區間。"
     explanation: |
-      這是對 ZNS 架構的誤解。ZNS 的設計方向反而是減少 SSD 內部對 DRAM 的依賴。此外，DRAM 容量有限且具有揮發性（Volatile），不可能無限期緩衝所有的 Random Write 來完全避免寫入放大。
-  - text: "ZNS SSD 允許 Host 端以 Page 為單位進行 Erase 操作，取代了傳統以 Block 為單位的 Erase 限制，因此在回收無效資料時不需要搬移同一 Block 內的有效資料。"
+      這個概念是錯誤的。NAND Flash 的 Program 操作是單向的（只能注滿電子），且受到 Erase-before-write 限制，無法在 Read 操作中直接「微調補充」電子。若要修復 Retention 造成的電壓漂移，SSD 必須將該資料重新寫入到一個全新且已 Erase 的 Block 中（Data Refresh）。
+  - text: "Controller 會直接略過耗時的內部 ECC 檢查，轉而向 Host 端發出中斷請求，要求 Host 端透過分散式 Erasure Coding 或 RAID 來還原損壞的資料，以維持 SSD 的 Read IOPS。"
     explanation: |
-      這個選項違反了 NAND Flash 的基本物理特性。在 NAND Flash 中，Read 與 Program 的最小單位是 Page，但 Erase 的最小單位永遠是 Block（通常包含數百個 Pages），這是無法透過軟體或介面改變的硬體限制。
+      這違背了儲存系統的防護階層設計。Device 內部的 ECC（In-device coding）永遠是第一道防線。只有當內部的 Soft-decision decoding 或跨晶片的 RAISE 等機制都宣告 Uncorrectable 時，才會向 Host 端報錯，並由 Host 端的 RAID 或 Erasure Coding 進行復原。SSD Controller 不會為了維持 IOPS 而主動略過內部 ECC。

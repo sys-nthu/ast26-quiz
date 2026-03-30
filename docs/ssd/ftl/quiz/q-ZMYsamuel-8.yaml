@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在分散式儲存系統的 Cross-machine Coding（如分散式 Erasure Coding）中，對 Stripe 進行部分更新（Partial Updates）會造成巨大的網路與 I/O 放大。為了解決此問題，近年來提出了「推測性部分寫入（Speculative Partial Write）」的最佳化策略。
+
+  相較於傳統的 Parity Logging 方法，Speculative Partial Write 策略的主要改進機制為何？
+options:
+  - text: "該策略假設更新所需之「舊版本資料（Old Data Chunk）」已經存在於 Parity Node 的快取或儲存中。因此在更新時，Data Node 僅需將新版本的資料傳送給 Parity Node，若此推測成立，Parity Node 即可自行計算 Parity Delta，從而省去從 Data Node 讀取並透過網路傳輸舊資料的昂貴開銷。"
+    correct: true
+    explanation: |
+      這是正解。在傳統 EC 的部分更新中，需要讀取舊資料、讀取舊 Parity、寫入新資料、寫入新 Parity。傳統 Parity Logging 雖然改善了 Parity 端的隨機寫入，但仍需取得舊資料來計算 Delta。Speculative Partial Write 的聰明之處在於，如果該資料之前已經被更新過，舊資料很可能已經留在 Parity Node 裡。因此它直接把新資料送過去，推測 Parity Node 能自行拿出舊資料做 XOR。如果推測命中，就省下了跨網路讀取與傳輸舊資料的步驟，極大地降低了熱點資料更新的網路負載。
+  - text: "該策略在發生部分更新時，完全不計算與寫入 Parity Chunk，而是將新資料同時寫入多個 Data Nodes 形成暫時的多副本（Multi-replica），等待系統網路閒置時，再推測性地將這些副本轉換合併為 EC Stripe。"
+    explanation: |
+      這個選項描述的是 Delayed Parity Update (或稱為 Two-phase write) 的概念。兩階段寫入先用 Replication 保證容錯與低延遲，事後再轉成 Erasure Coding 以節省空間，這與推測舊資料是否在 Parity Node 的 Speculative Partial Write 是不同的機制。
+  - text: "該策略要求所有的 Parity Chunks 必須存放在非揮發性記憶體（SCM）中，Data Node 可透過 RDMA 網路協定直接推測並覆寫遠端的 SCM，從而完全避免了 Parity 更新對傳統 SSD 的寫入放大與 GC 負擔。"
+    explanation: |
+      這個選項混淆了 Partial Parity Cache（PPC）與 RDMA 技術。PPC 確實利用了 SCM 來吸收 Parity 的微小更新，但 Speculative Partial Write 是一種基於網路傳輸邏輯的演算法最佳化，並不強制依賴 SCM 這種特定硬體來運作。
+  - text: "該策略將分散的部分更新全部合併為一個完整的 Log-structured Stripe，強制系統只能進行 Full-stripe Write，以此從根本上推翻並消除了 Partial Update 發生網路放大的可能性。"
+    explanation: |
+      這個選項描述的是 Log-structured EC（或 Log-structured RAID）的運作方式。Log-structured 機制確實能將所有更新轉為 Full-stripe Write 來避開 Partial Update，但這是一種資料擺放架構（Data Layout）的改變，而非 Speculative Partial Write 所採用的推測傳輸機制。

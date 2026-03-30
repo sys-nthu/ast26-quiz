@@ -26,5 +26,5 @@ options:
   - text: |
       同時啟用 SQPOLL 和 IOPOLL 在低負載下會造成兩個 polling thread 之間的 CPU 資源競爭。在高負載時兩者都有足夠的工作要做，分工明確；在低負載時兩者都在 idle spinning，競爭同一個 CPU core 的使用權，造成 context switch overhead 上升，間接拖慢 I/O 延遲。
     explanation: |
-      SQPOLL 是 kernel polling thread 監控 SQ，IOPOLL 是呼叫 io_uring_enter() 的 thread 在 kernel space busy-wait，這兩者的運作機制不同，不會形成兩個 polling thread 競爭同一 core的情況。
+      SQPOLL 是 kernel polling thread 監控 SQ，IOPOLL 是呼叫 io_uring_enter() 的 thread 在 kernel space busy-wait，這兩者的運作機制不同，不會形成兩個 polling thread 競爭同一 core 的情況。
       且這個解釋無法說明為何延遲飆升是 **週期性** 的，而不是持續性的。競爭導致的延遲應該在低負載時持續存在，而不是像脈衝一樣週期性出現。

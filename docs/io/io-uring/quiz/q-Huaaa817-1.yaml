@@ -1,0 +1,27 @@
+author: Huaaa817
+date: 2026-03-28
+question: |
+  某量化交易公司的一名工程師正在設計高頻交易系統（HFT storage layer），系統每秒需要處理數十萬次 4KB 隨機讀取。
+  他觀察到 CPU 使用率很高，但 SSD 使用率卻不高。進一步分析後發現，CPU 大量時間消耗在 system call 上。
+  因此他將系統從傳統 read() 改為 io_uring，並使用 batched submission，每次提交 32 個 I/O requests。
+
+  請問這個優化「主要降低」的是哪一段成本？
+
+options:
+  - text: "降低 SSD 的讀取延遲（device latency）"
+    explanation: |
+     實際上 SSD latency（數十微秒）不變，
+     io_uring 只減少 CPU 端開銷。這種說法較接近升級硬體或快取命中率提升的情境。
+  - text: "降低 DMA 傳輸成本，使資料搬運更快"
+    explanation: |
+      DMA 行為完全不變，仍由裝置負責資料搬運。實際 DMA 由硬體處理，io_uring 不改變傳輸機制。
+  - text: "將多個 I/O request 合併為單一實體 I/O，減少裝置操作次數"
+    explanation: |
+      混淆 batching 與 request merging。
+      本題是合併 syscall，不是合併 I/O。request merging 通常由 block layer scheduler 或裝置控制器完成。
+  - text: "攤平 user 與 kernel mode 切換成本，使每個 I/O 平均 syscall 成本下降"
+    correct: true
+    explanation: |
+      正確。io_uring 的 batching 讓多個 request 共用一次 syscall，
+      原本每個 I/O 都需要 mode switch，現在變成 amortized cost。
+      CPU 時間從「進出 kernel」轉回「實際工作」。

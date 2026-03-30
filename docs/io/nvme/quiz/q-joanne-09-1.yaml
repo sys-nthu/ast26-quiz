@@ -1,0 +1,21 @@
+author: joanne-09
+date: 2026-03-24
+question: |
+  在 NVMe Multi-Queue 架構中，關於採用 **Interrupt-based** 的 I/O 請求 **完成階段 (Completion Phase)**，CPU (Host) 與 NVMe Controller (Device) 之間的底層互動機制為何？
+options:
+  - text: "Controller 透過 DMA 將執行結果寫入位於 Host 記憶體中的 CQ，並發出 Interrupt。作業系統讀取 CQ 後，寫入 Controller 的 CQ Doorbell Register 來釋放該 CQ slot。"
+    correct: true
+    explanation: |
+      NVMe 讀寫狀態的傳遞是由 **Controller 發起 DMA** 寫回 Host 端 DRAM 裡的 Completion Queue (CQ)。
+      接著發送 Interrupt 通知 CPU。Host 處理完後，必須透過 MMIO 寫入實作在 Controller 端的 **CQ Doorbell Register**，讓硬體知道這塊記憶體已經被軟體處理掉了，可以回收給下一個 I/O 結果使用。
+  - text: "Controller 完成 I/O 後，將狀態寫入 Host 記憶體的 CQ，接著主動寫入 Host 端的 CQ Doorbell Register 以觸發 Interrupt 通知 CPU。"
+    explanation: |
+      Doorbell Registers 是位在 **NVMe Controller 裝置端** 的硬體暫存器（透過 PCIe MMIO 映射進記憶體空間）。
+      它們是由 **Host 軟體來主動寫入** 以通知硬體，Controller 不會去寫入 Host 端的 Doorbell。
+  - text: "Controller 直接將完成狀態覆寫回原先 Host 記憶體中 SQ 的指令位置，並發出 Interrupt，以節省記憶體開銷與頻寬。"
+    explanation: |
+      NVMe 架構在設計上本來就將 SQ 與 CQ 完全分開管理。這樣的設計允許更靈活的配置（例如多個獨立的 SQ 可以對應共享同一個 CQ），同時能明確劃分軟體與硬體在生產和消費請求時的界線，避免覆寫混淆。
+  - text: "Controller 僅發出 Interrupt 通知 CPU，作業系統收到中斷後，需要主動去 Controller 端的暫存器拉取完成狀態，處理完後再更新 Doorbell。"
+    explanation: |
+      在 NVMe 設計中，Host 是 **直接讀 Host memory 的 CQ**，而不是去 Controller 端拉取完成狀態。
+      因為去硬體端拉取資料會產生極高延遲的 PCIe MMIO Read，所以 NVMe 統一由 Controller 透過 DMA 將結果主動寫入 Host 記憶體中的 CQ，OS 收到中斷時只要讀取本機端記憶體即可。

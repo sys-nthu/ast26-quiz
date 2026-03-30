@@ -7,7 +7,7 @@ question: |
   目前 page 狀態如下：  
   -  slot array： slot 0～4 都已使用  
   -  page 內存在碎片（ fragmentation ）  
-  - 系統準備執行 **compaction（壓縮）**，將 records 重新排列以消除空洞  
+  - 系統準備執行 compaction，將 records 重新排列以消除空洞  
   -  compaction 過程中， **records 的實際位置（ offset ）會改變**  
   在 compaction 完成後，下列哪一個敘述 **必然正確**？  
 options:
@@ -20,7 +20,7 @@ options:
       外部 reference **不依賴 offset** ，依賴的是 slot_id 。即使實體 offset 改變，只要 slot array 沒變，外部引用就不需更新。
   - text: "為了避免更新 slot array，系統應避免移動 records，而只在 free space 中重新分配空間。"
     explanation: |
-      Compaction 正是為了處理內部碎片（ Internal fragmentation ）而移動 Record。如果不移動 Record，空間就無法連續化，這會導致即使總剩餘空間足夠，也無法插入較大的 Record 。
+      Compaction 正是為了處理頁面內的 external fragmentation 而移動 Record 。如果不移動 Record，空間就無法連續化，這會導致即使總剩餘空間足夠，也無法插入較大的 Record 。
   - text: "compaction 之後，slot 的順序（ slot_id ）通常會重新排序，以對應新的 record 位置，提升存取效率。"
     explanation: |
       如果重新排序 Slot ID，就會破壞所有 RID ，導致所有外部索引（ Indexes ）都需要更新，代價極大。

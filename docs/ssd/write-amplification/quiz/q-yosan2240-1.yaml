@@ -30,4 +30,4 @@ options:
       此措施**有效降低** device-level WAF。Greedy 策略只選 invalid page 最多的 block，
       但若該 block 內仍有大量頻繁更新的熱資料，搬移成本依然高昂。Cost-benefit 策略
       同時評估「可回收空間（benefit）」與「需搬移的 valid page 數（cost）」，
-      傾向選擇冷資料多、即將自然失效的 block，減少不必要的內部搬移，直接降低 WAF。
+      傾向選擇冷資料多、不太可能自然失效的 block，減少不必要的內部搬移，直接降低 WAF。

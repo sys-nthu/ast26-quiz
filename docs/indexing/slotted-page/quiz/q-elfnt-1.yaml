@@ -17,7 +17,7 @@ options:
   - text: "Fixed-length page 的優勢是 sequential scan 時可以平行讀多個 record；一旦 workload 出現任何 index 查詢，因為 fixed-length page 沒有 CTID，index 無法定址到 record。"
     explanation: |
       Sequential scan 平行讀多個 record 的能力來自 page 是連續的磁碟區塊，這與 slotted page 或 fixed-length page 無關，兩種 layout 都可以做 sequential scan。\
-      CTID 是 slotted page 的定址方式，fixed-length page 有自己的定址機制（page ID + slot number * record size），index 一樣可以用 (page ID, slot number) 來定址，不存在沒有 CTID 就無法建 index的問題。
+      CTID 是 slotted page 的定址方式，fixed-length page 有自己的定址機制（page ID + slot number * record size），index 一樣可以用 (page ID, slot number) 來定址，不存在沒有 CTID 就無法建 index 的問題。
   - text: "Fixed-length page 的優勢是省去在 Page Header 維護 `pd_lower`（Slot Array 末端）與 `pd_upper`（最新 Record 起點）的運算開銷；一旦有 Record 被刪除，Fixed-length page 會因為沒有 Slot Array 記錄位移，導致該 Page 無法回收剩餘空間"
     explanation: |
       Fixed-length 的回收機制只要直接計算 offset 覆蓋即可。

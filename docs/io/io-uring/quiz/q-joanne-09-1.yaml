@@ -4,7 +4,7 @@ question: |
   工程師在一個對延遲極度敏感的 key-value store 中同時啟用了 SQPOLL 和 IOPOLL 模式，並搭配 O_DIRECT。系統上線後觀察到以下現象：
 
   在 I/O 持續密集的時間段（每秒超過 80 萬次 I/O），延遲表現非常好。
-  但在每天凌晨 3~4 點的低峰期（每秒只有幾千次 I/O），偶爾會出現單筆請求延遲突然飆升到數十 ms 的情況，而且這種高延遲的發生是週期性的、而不是持續性的。
+  但在每天凌晨 3~4 點的低峰期（請求稀疏，常出現數秒的空窗期），偶爾會出現單筆請求延遲突然飆升到數十 ms 的情況，而且這種高延遲的發生是週期性的、而不是持續性的。
 
   請問最可能造成凌晨低峰期 **週期性延遲飆升** 的原因是什麼？
 options:
@@ -14,7 +14,7 @@ options:
       這個解釋混淆了因果關係。IOPOLL 的 busy-wait 確實佔用 CPU，但它讓延遲 **更低** 而非更高，因為省掉了 interrupt 的 delivery overhead。
       NVMe 省電模式確實存在，但這會讓所有 I/O 都變慢，不會造成週期性飆升，更不符合低峰期才出現的模式。
   - text: |
-      SQPOLL 的 kernel polling thread 在低 I/O 負載下會因為長時間沒有新的 SQE 而進入睡眠狀態。下一個 I/O 請求到來時，則必須把它叫醒，但這個 wake-up 本身有一定的延遲。因此在低峰期 I/O 稀疏的情況下，幾乎每個請求都需要先等待 polling thread 醒來，造成週期性的延遲飆升。
+      SQPOLL 的 kernel polling thread 在低 I/O 負載下會因為長時間沒有新的 SQE 而進入睡眠狀態。下一個 I/O 請求到來時，則必須把它叫醒，但這個 wake-up 本身有一定的延遲。因此在低峰期 I/O 稀疏的情況下，每次 idle sleep 過後的第一批請求需要等待喚醒，造成週期性的延遲飆升。
     correct: true
     explanation: |
       週期性這個關鍵詞是核心線索：不是每個請求都慢，而是 polling thread 睡著之後的第一個請求才慢，之後 polling thread 醒著的這段時間請求都正常，直到下一次 idle timeout 觸發。這個模式完全符合 SQPOLL idle timeout 機制的行為。

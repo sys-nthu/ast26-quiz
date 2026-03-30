@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  傳統的 Block-interface SSD 面臨所謂的 block interface tax。近年來提出的 ZNS SSD 透過引入 Zone 介面來嘗試解決此問題。請問 ZNS SSD 如何從根本上消除 Device-layer 的 Write Amplification 以及對 Over-Provisioning 的需求？
+options:
+  - text: "ZNS SSD 將 Flash 實體的 Erase Block 邊界直接暴露給 Host 端，強制 Host 端 Sequential Append 並自行負責 GC，因此移除了傳統 FTL 需要在 SSD 內部進行 Out-of-place write 與搬移有效資料的開銷。"
+    correct: true
+    explanation: |
+      這是正確的設計理念。傳統 Block-interface SSD 為了隱藏 NAND Flash 無法 In-place update 的物理特性，FTL 必須執行 Out-of-place write 與 GC，進而產生 Write Amplification 並需要預留 Over-Provisioning 空間。ZNS 介面透過要求 Sequential Append 並由 Host 端掌握資料擺放，將 GC 負擔轉移，使得 SSD 內部不再需要搬移資料，完美消除了硬體層的寫入放大與對 OP 空間的依賴。
+  - text: "ZNS SSD 支援了硬體層級的 In-place update 功能，因此當 Host 端修改資料時，可以直接覆寫原有的 Page，完全不需要進行 Block Erase 操作，從而消除了 Write Amplification。"
+    explanation: |
+      這個推論是錯誤的。無論是 Block-interface SSD 還是 ZNS SSD，底層都是使用 NAND Flash，而 NAND Flash 受到物理限制，絕對不支援 In-place update，必須遵守 Erase-before-write 的特性。
+  - text: "ZNS SSD 內建了容量極大的 DRAM 作為 Write Buffer，能將所有的 Random Write 在寫入 Flash 前完全轉換為 Sequential Write，因為不需要觸發 GC，所以不需要 Over-Provisioning 空間。"
+    explanation: |
+      這是對 ZNS 架構的誤解。ZNS 的設計方向反而是減少 SSD 內部對 DRAM 的依賴。此外，DRAM 容量有限且具有揮發性（Volatile），不可能無限期緩衝所有的 Random Write 來完全避免寫入放大。
+  - text: "ZNS SSD 允許 Host 端以 Page 為單位進行 Erase 操作，取代了傳統以 Block 為單位的 Erase 限制，因此在回收無效資料時不需要搬移同一 Block 內的有效資料。"
+    explanation: |
+      這個選項違反了 NAND Flash 的基本物理特性。在 NAND Flash 中，Read 與 Program 的最小單位是 Page，但 Erase 的最小單位永遠是 Block（通常包含數百個 Pages），這是無法透過軟體或介面改變的硬體限制。

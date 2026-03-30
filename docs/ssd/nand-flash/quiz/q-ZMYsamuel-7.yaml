@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  現代 Block-interface SSD 內部通常會配置 DRAM 來維持 FTL 的高效運作。假設一顆 1TB 容量的 SSD，採用 4KB 的 Page 作為 L2P Mapping 的基本單位。下列關於其 DRAM 需求以及改用 ZNS 介面後帶來的改變，何者分析正確？
+options:
+  - text: "FTL 維護細粒度的 L2P Mapping Table 大約需要消耗 1GB 的 DRAM（即 SSD 總容量的 0.1%）。若改用 ZNS SSD，因為強制 Sequential Write 且由 Host 管理資料擺放，SSD 端就能大幅縮減甚至移除此 Mapping Table，從而節省硬體成本。"
+    correct: true
+    explanation: |
+      這個分析與數據完全正確。在 Block-interface SSD 中，每一個 4KB 的 Logical Page 需要約 4 Bytes 來記錄其 Physical Page 位址。對於 1TB 的 SSD，總共有 $2.5 \times 10^8$ 個 Pages，相乘後大約需要 1GB 的 DRAM 來儲存 L2P Mapping Table。ZNS SSD 因為 Zone 內部只能循序寫入且沒有 FTL GC，因此不再需要這種 4KB 級別的細粒度隨機 Mapping 表，可以大幅減少 DRAM 需求與成本。
+  - text: "L2P Mapping Table 的大小與 SSD 總容量無關，只與 Write Buffer 的設計大小有關。改用 ZNS SSD 會因為 Zone 的寫入吞吐量增加，反而需要配置更大的 DRAM 來緩衝寫入資料。"
+    explanation: |
+      這是錯誤的認知。L2P Mapping Table 的大小與 SSD 的總邏輯容量（Logical Capacity）及 mapping 粒度（如 4KB）成絕對的正比關係，並且是 SSD 內部 DRAM 最大的消耗者，它與 Write Buffer 的大小並無直接關聯。
+  - text: "為了映射每一個 4KB 的 Logical Page，FTL 至少需要耗費 4KB 的 DRAM 空間來儲存 metadata，因此 1TB 的 SSD 需要高達 1TB 的 DRAM。ZNS SSD 則是透過將 Page Size 放寬到 2MB 來解決此問題。"
+    explanation: |
+      計算比例錯誤。映射一個 4KB 的 Page 通常只需要 4 Bytes 的記憶體空間，而非 4KB。因此 DRAM 與 SSD 容量的比例約為 1:1000（即 0.1%），絕不可能是 1:1。
+  - text: "SSD 內部的 DRAM 主要是為了存放 Garbage Collection 過程中需要搬移的 Valid Data 。即使改用 ZNS SSD 移除了 FTL，Host 端依然會將資料暫存在 SSD 的 DRAM 中進行 Defragmentation，因此 DRAM 總需求不變。"
+    explanation: |
+      這是對 DRAM 用途的誤解。雖然 DRAM 確實有一小部分被用作 Write Buffer 或 GC 緩衝，但佔用最大的依然是 L2P Mapping Table。並且，ZNS SSD 的架構設計就是要把 Defragmentation 與對應的記憶體負擔轉移到 Host 端的 CPU 與記憶體，SSD 內部不再負責這項工作。

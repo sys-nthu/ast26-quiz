@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  隨著 SSD 採用更高密度的 TLC 或 QLC NAND Flash，每個 Cell 儲存的 bits 數增加，導致 Voltage Margin 變窄且 RBER 升高。根據課程與 Coded Storage 相關論文，在此情況下 SSD Controller 為了確保 Read 操作的正確性，會產生什麼主要的行為改變與效能影響？
+options:
+  - text: "當基本的 Hard-decision decoding 失敗時，Controller 會觸發 Soft-decision decoding，對同一個 Page 施加多種不同的 Reference Voltage 進行多次 Sensing，這能取得更精確的資料機率分佈，但會顯著增加 Read Latency。"
+    correct: true
+    explanation: |
+      這是現代高密度 SSD 的標準行為。Hard-decision decoding 只需要一次電壓感測，速度極快；但在 TLC/QLC 或 P/E cycles 較高導致 RBER 上升時，往往無法成功解碼。此時 Controller 會切換到 Soft-decision decoding，透過多次不同電壓的 Sensing 來計算 LLR（Log Likelihood Ratio），其錯誤更正能力更強，但代價就是 Read Latency 會大幅飆升。
+  - text: "Controller 會動態將 TLC 或 QLC 降級為 SLC 模式運作，強制將每個 Cell 的儲存容量減少為 1 bit，藉此加寬 Voltage Margin 並完全避免使用高延遲的 LDPC 解碼演算法。"
+    explanation: |
+      這混淆了 SLC Cache 與讀取錯誤處理的機制。雖然 SSD 會使用部分區塊做為 SLC Cache 來加速寫入，但對於已經以 TLC/QLC 格式寫入的資料，在 Read 發生錯誤時，不可能「動態降級」成 SLC 來讀取，只能透過更強的 ECC 機制（如 Soft-decision decoding）來還原資料。
+  - text: "為了彌補 Voltage Margin 變窄的問題，Controller 會在每次 Read 發生錯誤時自動觸發 Program 操作來補充電子，確保 Cell 的電壓狀態回到最佳的 Threshold Voltage 區間。"
+    explanation: |
+      這個概念是錯誤的。NAND Flash 的 Program 操作是單向的（只能注滿電子），且受到 Erase-before-write 限制，無法在 Read 操作中直接「微調補充」電子。若要修復 Retention 造成的電壓漂移，SSD 必須將該資料重新寫入到一個全新且已 Erase 的 Block 中（Data Refresh）。
+  - text: "Controller 會直接略過耗時的內部 ECC 檢查，轉而向 Host 端發出中斷請求，要求 Host 端透過分散式 Erasure Coding 或 RAID 來還原損壞的資料，以維持 SSD 的 Read IOPS。"
+    explanation: |
+      這違背了儲存系統的防護階層設計。Device 內部的 ECC（In-device coding）永遠是第一道防線。只有當內部的 Soft-decision decoding 或跨晶片的 RAISE 等機制都宣告 Uncorrectable 時，才會向 Host 端報錯，並由 Host 端的 RAID 或 Erasure Coding 進行復原。SSD Controller 不會為了維持 IOPS 而主動略過內部 ECC。

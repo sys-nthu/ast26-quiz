@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  針對兩顆物理硬體完全相同，但 FTL 韌體設定不同的 Block-interface SSD 進行效能分析。 SSD A 設定了 7% 的 Over-Provisioning (OP)，而 SSD B 設定了 28% 的 OP。在經歷長時間的 Uniform Random Write 達到 Steady-state 後，OP 的多寡會如何影響硬體背景 Garbage Collection (GC) 的效率與 WAF ？
+options:
+  - text: " SSD B 能夠維持較高的穩態寫入吞吐量，因為較大的 OP 空間讓 GC 在挑選 Victim Block 時，更容易找到 Invalid Pages 比例較高的區塊，減少了有效資料的搬移量，從而降低了寫入放大。"
+    correct: true
+    explanation: |
+      這是正解。 Over-Provisioning (OP) 是預留給控制器做 GC 的彈性空間。當 OP 越大，資料在物理 Block 上的分佈就越稀疏。這意味著當 Block 被填滿並後續被覆寫標記為無效時，每個 Block 包含的 Invalid Pages 比例會更高。GC 在回收這些 Block 時需要複製出來的 Valid Pages 就更少，有效降低了 Write Amplification，並提升了使用者可見的穩態寫入頻寬。
+  - text: "兩者的穩態寫入吞吐量將會完全相同，因為 Uniform Random Write 無法產生資料 Hotspot ，硬體層級的 GC 演算法在缺乏 Hotspot 時，無法利用額外的 OP 空間來優化寫入放大。"
+    explanation: |
+      這是常見的誤解。雖然沒有資料熱點（即資料冷熱均勻），但根據寫入放大的數學模型（如 $WAF \approx 1 / (2 \times OP)$ ），只要有 OP 的存在，就能降低 Block 中 Valid Page 的平均比例。因此即使是 Uniform Random Write，較大的 OP 依然能透過數學機率顯著降低 WAF。
+  - text: " SSD A 的穩態寫入延遲會較低，因為較小的 OP 意味著 FTL（Flash Translation Layer）需要維護的 L2P Mapping Table 尺寸較小，減少了控制器在 DRAM 中查詢與更新位址的負擔。"
+    explanation: |
+      這是邏輯上的錯置。 L2P Mapping Table 的大小是取決於使用者可見的邏輯容量（Logical Capacity），而非 OP 的比例。且即使 L2P 表較大，由於存放在 DRAM 中，查詢延遲是奈秒等級；真正決定寫入延遲的是 Flash 物理寫入與 GC 造成的阻塞，SSD B 因為 GC 負擔輕，反而延遲表現會更好。
+  - text: " SSD B 的寫入放大大於 SSD A，因為系統控制器必須在背景消耗大量額外的通道頻寬與 CPU 週期來對這 28% 的隱藏空間持續進行資料重組（Defragmentation）與維護。"
+    explanation: |
+      這違背了 SSD 的運作原理。 OP 空間是一段供控制器靈活調度的「空白緩衝區」，控制器並不需要主動去「維護」或「重組」未使用的 OP 空間。相反地，充裕的 OP 空間減少了被迫搬移有效資料的次數，實質上減少了背景通道頻寬的消耗。

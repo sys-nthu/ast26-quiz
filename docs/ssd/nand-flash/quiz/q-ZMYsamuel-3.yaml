@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在一個支援高併發存取的 SSD 中，當前端應用程式正在對資料庫進行大量寫入時，此時發出的 Read Request 可能會面臨極長的 Tail Latency（飆高至數毫秒）。根據 SSD 的內部機制，下列何者是造成此讀取延遲突波的最主要原因？
+options:
+  - text: " Flash 的抹除（Erase）操作物理耗時極長（通常為數毫秒），若讀取請求剛好被分配到正在執行 GC 區塊抹除的 Flash Die 上，該讀取請求必須排隊等待抹除完成才能被處理。"
+    correct: true
+    explanation: |
+      這是導致 SSD Tail Latency 的核心硬體原因。NAND Flash 的 Program 通常需要數百微秒，而 Erase 需要數毫秒。由於 GC 會在背景觸發 Erase，如果主機端的一個 Read 請求正好落在正在進行 Erase 的 Die 或 Plane 上，即使讀取本身只要幾十微秒，也必須等待（Head-of-Line Blocking）長達數毫秒的 Erase 完成，造成嚴重的 Tail Latency。
+  - text: "大量的寫入操作會導致 FTL 的 Logical-to-Physical (L2P) 對應表頻繁發生 Cache Miss，迫使控制器必須從緩慢的 NAND Flash 重新讀取 Mapping Data，進而嚴重拖慢了讀取請求的位址解析速度。"
+    explanation: |
+      這是對現代 SSD 架構的誤解。企業級與現代高階 SSD 的 DRAM 容量通常依照 $1GB : 1TB$ 的比例配置，足以將整個 L2P Mapping Table 完整快取在控制器的 DRAM 中。因此，即使是大量隨機寫入，位址解析通常也能在 DRAM 內完成，不會因為 Cache Miss 造成長達數毫秒的延遲突波。
+  - text: "密集的寫入會立刻觸發 SSD 全區的 Wear-leveling 機制，將所有的 Cold Data 搬移至別的 Block，這個操作會一次性鎖住所有的 Channel，強制暫停所有主機端的讀取請求。"
+    explanation: |
+      這過度放大了 Wear-leveling 的影響。 Wear-leveling 是一個漸進式的背景操作，控制器會將這些搬移操作分散在不同的時間點與不同的 Die 上進行，絕不會一次性鎖住 SSD 內所有的 Channel 並強制暫停所有讀取，因此不會是造成這類 Tail Latency 突波的主要常態原因。
+  - text: "當 SSD 內部的 DRAM Write Buffer 滿載時，控制器會強制將新寫入的資料直接以 Read-Modify-Write 的方式覆蓋在原本的物理 Page 上，這種 In-place update 的特性拖慢了整體的 I/O 速度。"
+    explanation: |
+      這個選項代表了對 NAND Flash 根本物理限制的錯誤認知。NAND Flash 不支援 In-place update ，因此絕對不可能發生 Read-Modify-Write 來覆蓋舊 Page。資料寫入 Write Buffer 後，控制器會將其寫入全新的已抹除 Page（Out-of-place write）。

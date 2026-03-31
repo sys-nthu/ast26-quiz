@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在一個運行企業級資料庫的伺服器中，Host 端持續對 SSD 發出大量、且覆蓋整個 LBA 空間的 Random Write 請求（該 Workload 幾乎不具備 Locality）。若該 SSD 採用 DFTL (Demand-based FTL) 作為地址映射機制，此時系統最可能遇到什麼效能瓶頸？
+options:
+  - text: "由於寫入請求缺乏 Locality，SRAM 中的 Cached Mapping Table (CMT) 會頻繁發生 Cache Miss，迫使控制器不斷從 NAND Flash 讀取 Translation Page 來更新 Entry，造成額外的 NAND Read 操作並嚴重拖慢整體效能。"
+    correct: true
+    explanation: |
+      這是 DFTL 架構的核心弱點。DFTL 借鑑了 Virtual Memory 的概念，將完整的 Page-level Mapping Table 存放在 NAND Flash (Global Translation Directory) 中，僅在容量有限的 SRAM 中快取部分熱門的 Mapping Entry (CMT)。當 Workload 具有良好的 Locality 時，CMT Hit Rate 高，效能極佳；但當面臨完全隨機且缺乏 Locality 的存取時，會引發大量的 Cache Miss，導致每次寫入都需要先去 NAND Flash 讀取對應的地址映射資訊，產生嚴重的效能瓶頸。
+  - text: "Random Write 會導致 SRAM 中的 Cached Mapping Table (CMT) 產生嚴重的 Memory Fragmentation，當 SRAM 記憶體耗盡時，FTL 必須暫停所有寫入以進行 Defragmentation。"
+    explanation: |
+      這是不正確的推論。CMT 中的 Mapping Entry 都是固定大小的（例如每個 4 Bytes），快取的替換是基於 LRU 等 Eviction Policy 進行的，並不會產生導致系統停擺的 Memory Fragmentation。真正的瓶頸在於快取未命中造成的額外 I/O。
+  - text: "存放在 NAND Flash 中的 Global Translation Directory 會因為頻繁的 Random Write 而快速耗盡容量，導致 SSD 沒有足夠的空間來儲存使用者寫入的 Data Page。"
+    explanation: |
+      這混淆了 Mapping Table 佔用的空間比例。即使是完整的 Page-level Mapping Table，其容量需求大約也僅佔 SSD 總容量的 0.1%（例如 1TB SSD 需要約 1GB Mapping Table）。NAND Flash 的容量極大，存放這 0.1% 的 Metadata 綽綽有餘，不會因此耗盡儲存空間。
+  - text: "當 Cached Mapping Table (CMT) 發生 Cache Miss 時，控制器會強制切換為 Block-level mapping，將每個 Random Write 轉換為極度耗時的 Read-Modify-Write 操作。"
+    explanation: |
+      這是對 FTL 混合策略的誤解。雖然有些 Hybrid FTL 會結合 Block-level 與 Page-level，但在 DFTL 的設計中，底層的 Global Translation Directory 依然是完整的 Page-level mapping，發生 Cache Miss 時只是單純從 NAND Flash 讀取 Entry 到 SRAM 中，並不會動態切換 mapping 粒度或觸發 Block-level 的 Read-Modify-Write。

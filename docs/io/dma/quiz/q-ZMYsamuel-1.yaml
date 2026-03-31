@@ -1,0 +1,20 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  某開發團隊為他們的儲存系統優化效能。該系統的主要工作負載是頻繁地讀取少數幾個極熱門的設定檔與 metadata 資料。為了降低 CPU 的使用率，工程師決定引入 **zero-copy I/O** 技術，透過設定 `O_DIRECT` 來繞過 kernel buffer 的 `memcpy` 操作，期望藉此提升系統效能。
+
+  然而，在系統改版上線後，讀取這些熱門資料的 latency 反而大幅上升，且系統整體的 throughput 也隨之下降。根據上述情境，下列何者是最合理的解釋？
+options:
+  - text: "因為該工作負載具有極高的資料重複讀取特性，使用 **zero-copy I/O** 會直接繞過作業系統的 page cache 快取，導致每次讀取都必須向底層硬體發起實體 I/O 請求，失去了快取帶來的效能優勢。"
+    correct: true
+    explanation: |
+      這個選項是正確的。 **zero-copy I/O** 雖然省去了資料從 kernel buffer 複製到 user space 的 `memcpy` 成本，但也放棄了作業系統的 page cache 機制。對於有大量重複讀取相同資料的應用場景， page cache 的命中率通常非常高。繞過快取意味著每次讀取都必須真的去讀取硬體裝置，反而會讓延遲大幅增加。
+  - text: "因為 **zero-copy I/O** 會強制系統放棄 DMA 控制器，改由 CPU 透過 PIO 模式來搬運資料，導致 CPU 花費大量時間在處理暫存器的讀寫，降低了整體效能。"
+    explanation: |
+      這是一個常見的誤解。 **zero-copy I/O** 依然依賴 DMA 將資料直接到達 user space 的 buffer 中，以避免 CPU 介入的 `memcpy`。它並不會將傳輸模式退化為需要 CPU 親自跑迴圈搬運資料的 PIO 模式。
+  - text: "因為 **zero-copy I/O** 傳輸要求應用程式的 buffer 必須是 physically contiguous 的連續記憶體，在系統產生記憶體碎片化的情況下，無法分配出足夠空間，導致存取失敗與不斷重試。"
+    explanation: |
+      這個推理是錯誤的。現代系統廣泛使用 scatter-gather list 技術，讓 DMA 控制器可以處理分散在不連續的 physical page 的資料。因此即使實體記憶體出現碎片化，也不需要依賴一整塊 physically contiguous 的記憶體區域來完成傳輸。
+  - text: "因為使用 `O_DIRECT` 會將 DMA 傳輸的 buffer 標記為可以被 swap out 到磁碟的狀態，當需要讀取資料時觸發大量的 page fault 機制，導致讀取延遲增加。"
+    explanation: |
+      這個觀念完全相反。為了避免 DMA 控制器在搬運資料時寫到錯誤的實體位址並造成其他資料損毀， DMA 傳輸所使用的記憶體區域必須被 pin 住。這能確保記憶體在傳輸期間絕對不會被 swap out 到磁碟上。

@@ -1,5 +1,5 @@
-author: your-github-username
-date: 2026-01-01
+author: WayneHuang1185
+date: 2026-03-31
 question: |
   某資料庫系統的 page 大小為 8 KB ，每個 page 的 header 固定 24 bytes。
   系統原本使用 slotted page，每筆 record 除了 128 bytes 資料外，還需要 4 bytes 的 slot

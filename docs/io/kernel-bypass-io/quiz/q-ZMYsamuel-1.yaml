@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在設計基於 8-lane PCIe Gen5 NVMe SSD 的極致效能儲存系統時，開發者發現傳統 Linux Kernel I/O stack 難以達到硬體標稱的 IOPS，因此考慮導入 SPDK (Storage Performance Development Kit)。關於 SPDK 能夠僅使用極少量的 CPU 資源便榨乾 SSD 效能的主要原因，下列敘述何者最符合其設計邏輯？
+options:
+  - text: "SPDK 透過 IOMMU 將硬體存取權限移轉至 User space，藉此徹底繞過硬體層的 DMA 延遲，從實體層縮短 Data Path。"
+    explanation: |
+      這是常見的誤解。IOMMU 的角色在於確保 Security 與 Isolation，限制裝置只能存取特定記憶體區域，它並不能「繞過」硬體本身的實體延遲。SPDK 的效能優勢主要來自於軟體層架構的改變。
+  - text: "SPDK 採用 Share-nothing 架構，為每個 Worker Thread 分配專屬的 NVMe Queue Pair 並結合 io_uring 機制，達成無鎖化 (Lockless) 設計。"
+    explanation: |
+      雖然 SPDK 確實強調 Share-nothing 與 Lockless，但它屬於 Kernel Bypass 技術，設計目標是完全繞過 Kernel；而 `io_uring` 仍然是基於 Kernel space 的非同步優化機制，兩者在架構路徑上是互斥的。
+  - text: "當 NVMe SSD 的 I/O Latency 降至 10-20 微秒時，傳統 Interrupt 的固定 Overhead 佔比顯著提升，SPDK 透過 Polling 徹底消除了 Context Switch 與 IRQ 處理負擔。"
+    explanation: |
+      這是核心原因。在 HDD 時代，Interrupt 的微秒級開銷佔比極小，但在高速 NVMe 環境下，這項固定成本會佔用高達 15-30% 的資源。Polling 讓 CPU 不再空轉等待 Interrupt，進而大幅提升單一核心的處理效率。
+    correct: true
+  - text: "SPDK 在 User space 重新實作了完整的 POSIX 檔案系統抽象層，並透過進階的 Block Merging 演算法大幅減少發往硬體的指令總數。"
+    explanation: |
+      錯誤。SPDK 為了效能往往必須犧牲 POSIX 的兼容性與層層抽象。此外，對於具備 Multi-queue 能力的 NVMe SSD 而言，減少指令總數的 Block Merging 雖然有益，但不再像傳統 HDD 需要優化磁頭移動那般具有決定性的效能影響。

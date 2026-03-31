@@ -14,7 +14,7 @@ options:
       同時，將同一個 VM (壽命相近) 的資料集中寫入相同的 Host-managed Block 中，能讓該區塊的資料接近同時失效，大幅降低 Host-side FTL 未來的 GC 負擔與 WAF。
     correct: true
     explanation: |
-      完全正確。CSAL 中有兩層 GC 概念，分別為 1. Write Shaping 的循序大檔寫入能避免QLC 裝置端硬體內部的 GC；2. 同 VM 短壽命資料分群在一起，則是為了當 Host 端軟體層的 FTL 需要做 GC 時，該區段多數資料已經 Invalid，可以直接整塊回收，從而降低 Host-side FTL 層的 WAF。
+      完全正確。CSAL 中有兩層 GC 概念，分別為 1. Write Shaping 的循序大檔寫入能避免 QLC 裝置端硬體內部的 GC；2. 同 VM 短壽命資料分群在一起，則是為了當 Host 端軟體層的 FTL 需要做 GC 時，該區段多數資料已經 Invalid，可以直接整塊回收，從而降低 Host-side FTL 層的 WAF。
   - text: |
       Compaction 完成後必須更新 Host FTL 的 L2P mapping。由於此映射表主體放在較慢的儲存層且不在 DRAM 中，Compaction 結束後的第一批前端讀取勢必會發生大量 Cache Miss，嚴重惡化讀取延遲，且 SPDK 的高並發 (High Queue Depth) 模型無法掩蓋這種延遲，成為該架構固有的瓶頸。
     explanation: |

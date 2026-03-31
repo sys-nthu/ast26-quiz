@@ -1,4 +1,3 @@
-id="k9x3qp"
 author: 92Jay0810
 date: 2026-03-31
 question: |
@@ -23,7 +22,8 @@ options:
     explanation: |
       io_uring 並不強制使用 page cache，可搭配 buffered I/O 或 direct I/O。
       效能取決於 workload 特性，例如是否有 temporal locality，而不是必然優於 kernel bypass。
-  - text: "io_uring 只支援 interrupt 模式，而 kernel bypass 使用 polling，因此 latency 較高"
+  - text: "io_uring 主要使用 interrupt，而 kernel bypass 主要使用 polling，因此 latency 較高"
     explanation: |
-      io_uring 同時支援 interrupt 與 polling（例如 IORING_SETUP_SQPOLL）。
-      latency 表現取決於具體設定與 workload，而非固定由 interrupt 或 polling 決定。
+      io_uring 並不限於 interrupt，也支援 polling（例如 IORING_SETUP_SQPOLL）。
+      同樣地，kernel bypass 常見使用 polling，但這並非唯一模式。
+      latency 表現取決於實際設定與 workload，而非由 interrupt 或 polling 單一因素決定。

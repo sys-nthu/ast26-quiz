@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  `SSD Steady-State Behavior` 一文中指出，多數人在開箱測試全新 SSD 時，測量到的皆為 Fresh State 的高效能，但在真實伺服器環境中，長期運作的 SSD 會進入效能顯著衰退的 Steady State，並帶來嚴重的 Tail Latency Spikes（如 p99 延遲飆高到數十毫秒）。假設你有一個對延遲極度敏感的 OLTP 系統，並對比了一顆 7% Over-Provisioning (OP) 的消費級 SSD 與一顆 28% OP 的企業級 SSD。下列關於 Steady State 下延遲變化機制的敘述，何者正確？
+options:
+  - text: "在 Steady State 下，NAND flash 必須同時服務使用者的 I/O 請求與背景 GC 所需的 block erase 與資料搬移。當 OP 達到 28% 時，SSD 隨時有更多空閒的 blocks，使得 GC 可以挑選 invalid pages 比例更高的 block 來回收。這不僅降低了 Write Amplification，也減少了 GC 與前台 I/O 競爭底層頻寬的強度，進而大幅減輕 tail latency spikes。"
+    correct: true
+    explanation: |
+      正確。Tail latency 的主因來自於背景 GC 正在執行耗時極長的 Block Erase 或搬移大量 Valid Pages，導致前台的讀寫請求被迫排隊等待。OP 比例越高的企業級 SSD，其 GC 不需要等到空間極度緊迫才啟動，且更容易找到含有大量 invalid pages 的 Block 進行低成本的回收。這有效降低了 I/O 競爭，是控制 Steady State 下 Tail Latency 的關鍵硬體優勢。
+  - text: "企業級 SSD 的 28% OP 專門用來將 FTL (Flash Translation Layer) 的全域 mapping table 釘選（Pin）在內部。在 Steady State 時，由於 mapping table 完全不需要在寫入時同步更新至外部 NAND flash，徹底消除了因為 Read-Modify-Write 造成的 latency spikes。"
+    explanation: |
+      這是錯誤的架構認知。OP 空間是開放給 GC 靈活運用的隱藏 NAND flash 容量，用來吸收寫入與優化垃圾回收效率。FTL 的 mapping table 主要是存放在 SSD 的內建 DRAM 或藉由 HMB (Host Memory Buffer) 存放於系統記憶體中，並非將龐大的 OP 空間浪費在釘選 mapping table 上。
+  - text: "Steady State 中出現的 tail latency spikes，主要是因為作業系統的 Page Cache 預設採用 Write-Back caching 機制，導致 dirty pages 會以不可預測的巨大 batch 一次性 flush 到硬碟。只要透過 `fsync()` 將程式改為 Write-Through，即可完全消除底層硬體的 tail latency。"
+    explanation: |
+      這完全倒果為因。作業系統的 write buffering 實際上是為了隱藏底層慢速磁碟的寫入延遲而設計的。頻繁呼叫 `fsync()` 強迫 Write-Through，反而會讓應用程式直接暴露在 SSD 發生 GC 時動輒數十毫秒的 Block Erase 延遲中，這會大幅惡化（而非消除）應用程式觀測到的 tail latency。
+  - text: "為了緩解 Steady State 下的 tail latency，企業級 SSD 支援 Erase Suspension 機制，允許無限期暫停任何進行中的 GC 操作來優先處理使用者的寫入請求。這代表在 28% OP 的 SSD 上，只要系統持續高負載運作，GC 就永遠不會執行，從根本上消除了 WAF。"
+    explanation: |
+      這種推論在邏輯上是不成立的。Erase Suspension 是一種能短暫暫停 Erase 來讓讀取低延遲通過的機制。但 SSD 空間有限，GC 絕對不可能被無限期暫停。若系統持續受到寫入高負載，SSD 遲早必須強迫恢復並完成 GC 以騰出新的可用空間，否則 SSD 將無法接收任何新資料。因此，GC 的負載與 WAF 無法被這類機制所消除。

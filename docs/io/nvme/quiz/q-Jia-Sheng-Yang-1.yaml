@@ -1,20 +1,20 @@
 author: Jia-Sheng-Yang
 date: 2026-03-24
 question: |
- 一位系統架構師正在排查高效能資料庫伺服器的效能問題。他觀察到儘管伺服器配備了 64 個 CPU ，但在處理高並行的工作負載時，若使用基於 AHCI 的 SSD，儲存吞吐量（throughput）會停滯不前。
+ 一位系統架構師正在排查高效能資料庫伺服器的效能問題。他觀察到儘管伺服器配備了 64 個 CPU ，但在處理高並行的工作負載時，若使用基於 AHCI 的 SSD，throughput 會停滯不前。
  分析結果顯示，所有 I/O completion 都經由同一條中斷線送到同一個 CPU core，造成單核中斷處理瓶頸。下列哪一項 NVMe 協定的架構轉變，解決了上述的同步瓶頸，使 I/O 效能得以便隨 CPU 核心數量的增加而線性擴展？
 options:
   - text: "NVMe 允許我們將不同的 Completion Queues 映射至各自獨立的 Interrupt Vectors，並透過 Interrupt Affinity 機制將中斷處理負載分佈到特定的 CPU Cores 上處理。"
     correct: true
     explanation: |
-      NVMe 協定利用 MSI-X 支援大量的中斷訊號，允許每個 Completion Queue 擁有專屬的 Interrupt Vector。透過作業系統設定 Interrupt Affinity，可以確保 I/O 完成後的處理程序（Interrupt Handling）在多核心之間平衡分佈，
+      NVMe 協定利用 MSI-X 支援大量的中斷訊號，允許每個 Completion Queue 擁有專屬的 Interrupt Vector。透過作業系統設定 Interrupt Affinity，可以確保 I/O interrupt handling 在多核心之間平衡分佈，
       消除 AHCI 架構中單一中斷線造成的單核瓶頸，從而實現效能的線性擴展。
   - text: "實作多組且彼此獨立的 Submission Queues 與 Completion Queues 配對。"
     explanation: |
       NVMe 支援多達 65,535 個隊列。在多核心系統中，每個核心可以分配到專屬的 Queue pair，這使得 I/O 的提交與完成不再需要跨核心的 lock contention，但與題目說的效能瓶頸為不同問題。
   - text: "從傳統的 SATA 指令集轉向較精簡的 command set。"
     explanation: |
-      雖然這能減少每個 I/O 消耗的 CPU 週期，但與多核心擴展性（Lock contention）無直接關聯。
+      雖然這能減少每個 I/O 消耗的 CPU 週期，但與 lock contention 無直接關聯。
   - text: "將 command queue depth 從 32 擴展至 65536 個。"
     explanation: |
       單一 Queue 仍然需要鎖來同步，無法解決多核心競爭的問題。

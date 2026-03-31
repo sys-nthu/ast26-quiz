@@ -33,4 +33,4 @@ options:
   - text: "將 hot data 與 cold data 分開寫入，可以讓每個 block 的有效頁面數量更平均，降低 GC 選擇 block 的難度。"
     explanation: |
       Hot/Cold separation 的主要目的不是讓 valid pages 分布更平均，而是讓具有相似更新頻率的資料位於同一 block。這樣 hot blocks
-      可以快速累積 invalid pages，使 GC 在回收時需要搬移的 valid pages減少，從而降低 write amplification。
+      可以快速累積 invalid pages，使 GC 在回收時需要搬移的 valid pages 減少，從而降低 write amplification。

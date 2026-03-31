@@ -1,0 +1,43 @@
+author: shirou1217
+date: 2026-03-31
+question: |
+  某資料庫系統使用 slotted page 管理 heap records，並採用 `( page_id, slot_id )` 作為外部 record identifier（RID）。
+
+  現在考慮以下操作序列：
+
+  1. page 中已有多筆 variable-length records，slot array 持續增長
+  2. 多次 INSERT 後，slot array 已經接近 heap area（`pd_lower` 接近 `pd_upper`）
+  3. 此時執行多筆 DELETE，但系統僅將對應 slot 標記為 unused，未進行 compaction
+  4. 接著嘗試 INSERT 一筆小型 record（例如 20 bytes）
+
+  已知 heap area 中存在大量因 DELETE 留下的 holes，且這些 holes 的總大小遠大於 20 bytes
+
+  在這種情況下，INSERT 仍然可能失敗。請問最合理的解釋是什麼？
+
+options:
+  - text: "因為 DELETE 之後 slot array 會自動縮小，導致 `pd_lower` 回退，覆蓋掉原本的 free space，使 INSERT 無法進行。"
+    explanation: |
+      錯。DELETE 並不會讓 slot array 自動縮小。slot 通常只是被標記為 unused，
+      `pd_lower` 不會回退，因此不會發生覆蓋 free space 的情況。
+      這個選項混淆了 slot 管理與空間回收機制。
+
+  - text: "因為 INSERT 需要同時在 heap area 放資料與在 slot array 新增 slot，如果 slot array 已經沒有連續空間，即使 heap area 有空間也無法插入。"
+    explanation: |
+      錯。 Slot Array 位於頁面頂端，透過 pd_lower 指標線性增長，本身不存在碎片化或不連續的問題。
+      此外，若有 unused 的 slot，系統可直接重用 ID 而無需擴張陣列。
+      本題 INSERT 失敗的關鍵不在於指標空間不足，而在於存放資料紀錄的 Heap Area 存在大量不連續孔洞（Holes），導致無法提供足夠長的連續空間來容納 20 bytes 的資料。
+
+  - text: "因為 heap area 的 free space 是 fragmented（不連續），即使總空間足夠，也可能沒有一段連續空間同時滿足 record 存放需求，因此需要 compaction 才能成功 INSERT。"
+    correct: true
+    explanation: |
+      正確。slotted page 要求 record 必須存放在一段「連續的空間」中。
+      DELETE 只會留下 holes，導致 free space 被切成多段碎片（fragmentation）。
+      即使總空間足夠，如果沒有一段連續空間 >= record size，INSERT 仍然會失敗。
+      compaction 的作用正是將存活的 records 壓縮，合併 holes，
+      形成一塊大的連續 free space，才能支援後續 INSERT。
+
+  - text: "因為 slot_id 必須保持連續（0,1,2,...），當中間存在 unused slot 時，系統禁止插入新 record 以避免破壞 slot ordering。"
+    explanation: |
+      錯。slot_id 不需要保持連續對應有效 record。
+      slotted page 允許中間存在 unused slots，甚至可以重用這些 slot。
+      slot ordering 並不是 INSERT 的限制條件，這個選項誤解了 slot array 的設計目的。

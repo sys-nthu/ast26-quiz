@@ -1,0 +1,29 @@
+author: Smallfu666
+date: 2026-03-28
+question: |
+  某個團隊正在為一個 LSM-tree based 的 key-value store 設計查詢加速機制。資料主要存放在 SSD 上；
+  若無法先用 memory metadata 過濾，就必須往下檢查多個 SSTable，造成額外 I/O。團隊正在評估是否導入
+  標準 Bloom filter。
+
+  以下哪一個情境最適合使用標準 Bloom filter，且最能發揮其效益？
+options:
+  - text: "系統是 write-heavy，且大部分查詢的 key 都真的存在。團隊希望 Bloom filter 直接回覆 key 一定存在，藉此避免大部分資料讀取。"
+    explanation: |
+      Bloom filter 對 positive lookup 的幫助有限，因為它只能回答「可能存在」，
+      不能保證「一定存在」。此外，當 workload 以 write-heavy 為主，且多數查詢都真的命中時，
+      Bloom filter 也不是最能發揮價值的工具。
+  - text: "系統需要頻繁刪除元素。團隊認為只要把某元素對應的 bit 全部設回 0，就能安全刪除，而且不會影響其他元素。"
+    explanation: |
+      標準 Bloom filter 不支援安全刪除，因為不同元素可能共享同一個 bit。
+      若直接把某元素對應的 bit 清成 0，可能會把其他仍存在元素需要的 bit 一起清掉，
+      進而造成 false negative。
+  - text: "系統對 false positive 完全不能接受，因此團隊決定使用標準 Bloom filter，因為它可以同時保證沒有 false negative，也沒有 false positive。"
+    explanation: |
+      標準 Bloom filter 的特性是沒有 false negative，但可能有 false positive。
+      它只能保證「若判定不存在，就一定不存在」，無法保證每次判定存在都是真的存在。
+  - text: "系統是 read-heavy，且有大量查詢是在找不存在的 key。若 Bloom filter 判定某 key 不存在，就可以直接跳過多個 SSTable，減少不必要的 SSD I/O；而系統幾乎不需要刪除操作。"
+    correct: true
+    explanation: |
+      標準 Bloom filter 最適合用在 read-heavy、negative lookup 很多、而且底層查詢成本高的情境。
+      它能先在記憶體中擋掉大量不存在的查詢，避免白跑多個 SSTable 或 SSD read；若系統又幾乎不需要刪除，
+      那麼標準 Bloom filter 就很適合。

@@ -5,7 +5,7 @@ question: |
   並試圖將這個陣列的指標位址直接傳遞給一個傳統的 DMA controller（該controller不支援 IOMMU），
   要求硬體將磁碟資料寫入該位址。這個操作會引發什麼災難性的後果，其根本原因為何？
 options:
-  - text: "DMA controller會將該virtual address誤認為實體位址並直接寫入，導致覆寫到系統其他不可預知的physical memory區域，造成資料毀損或系統崩潰。"
+  - text: "DMA controller會將該virtual address誤認為physical address並直接寫入，導致覆寫到系統其他不可預知的physical memory區域，造成資料毀損或系統崩潰。"
     correct: true
     explanation: |
       應用程式拿到的指標是virtual address，在physical memory中極可能是破碎且不連續的。
@@ -23,4 +23,4 @@ options:
 
   - text: "記憶體分配會直接失敗，因為 malloc() 無法在作業系統中分配出高達 1 MB 且實體連續的記憶體空間。"
     explanation: |
-      malloc() 分配的是虛擬記憶體，分配 1 MB 虛擬連續空間非常容易。問題不在於分配失敗，而在於開發者將virtual address錯誤地餵給了只懂實體位址的硬體。
+      malloc() 分配的是virtual memory，分配 1 MB 虛擬連續空間非常容易。問題不在於分配失敗，而在於開發者將virtual address錯誤地餵給了只懂physical address的硬體。

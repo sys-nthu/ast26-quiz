@@ -1,0 +1,34 @@
+author: your-github-username
+date: 2026-01-01
+question: |
+  某資料庫系統的 page 大小為 8 KB ，每個 page 的 header 固定 24 bytes。
+  系統原本使用 slotted page，每筆 record 除了 128 bytes 資料外，還需要 4 bytes 的 slot
+  ，讀取一次slot的時間可看作5ns。
+  
+  現在要對1000000筆records進行sequential scan，假設讀一個 page 進入 CPU 可見快取層級的成本為 100 ns，
+  且可以忽略 CPU 算術成本、prefetch、branch等其他成本。
+  試問把 slotted page 改成 fixed-length page layout 後，總花費時間大約可減少多少？
+  
+
+options:
+  - text: 5.05 ms
+    correct: true
+    explanation: |
+      在slotted page下，每筆record需要128 bytes資料 + 4 bytes slot = 132 bytes。
+      可用空間為8192 - 24 = 8168 bytes，所以每一個page可以存放floor(8168 / 132) = 61筆record。
+      因此需要ceil(1000000 / 61) = 16394個page，其中page的讀取成本為16394 * 100 ns = 1.6394 ms。
+      slot 額外讀取成本為1000000(records)*5ns = 5 ms，總花費為1.6394 ms + 5 ms = 6.6394 ms。
+      而在fixed-length page layout下，每筆record只需要128 bytes資料，
+      可用空間仍是為8168 bytes，所以每一個page可以存放floor(8168 / 128) = 63筆record。
+      因此需要ceil(1000000 / 63) = 15874個page，其中page的讀取成本為15874 * 100 ns = 1.5874 ms。
+      不需要額外的讀取成本，所以總花費為1.5874 ms。
+      因此總花費時間減少了6.6394 ms - 1.5874 ms = 5.052 ms，約為5.05 ms。
+  - text: 0.5 ms
+    explanation: |
+      錯誤，詳細解釋可見正確選項的解釋。
+  - text: 0.05 ms
+    explanation: |
+      錯誤，詳細解釋可見正確選項的解釋。
+  - text: 50.5 ms
+    explanation: |
+      錯誤，詳細解釋可見正確選項的解釋。

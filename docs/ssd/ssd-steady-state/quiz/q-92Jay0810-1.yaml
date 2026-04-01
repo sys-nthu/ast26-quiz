@@ -1,13 +1,13 @@
 author: 92Jay0810
 date: 2026-03-13
 question: |
-  一個全新的 SSD（Fresh Out of the Box, FOB）在進行持續的隨機寫入時，其 Write Amplification (WA) 會經歷一段變化過程。
+  一個全新的 SSD（Fresh Out of the Box, FOB）在進行持續的隨機寫入時，其 write amplification (WA) 會經歷一段變化過程。
   請分析從 FOB 階段過渡到 Steady-State 的過程中，WAF 的變化趨勢及其物理原因：
 options:
-  - text: "WAF 最初接近 1.0，直到 Free Blocks 耗盡並觸發 GC 後，WAF 才開始上升並最終穩定在一個大於 1 的數值。"
+  - text: "WAF 最初接近 1.0，直到 free blocks 耗盡並觸發 GC 後，WAF 才開始上升並最終穩定在一個大於 1 的數值。"
     correct: true
     explanation: |
-      在 FOB 階段，SSD 有大量的 Free Blocks，寫入時不需要執行 GC，因此 $WAF = 1$。當這些空間被填滿，controller 必須開始搬移 valid pages 以清出空間，WAF 隨之上升。當回收速度等於寫入速度時，分佈穩定，WAF 達到 Steady-state 值。
+      在 FOB 階段，SSD 有大量的 free blocks，寫入時不需要執行 GC，因此 $WAF = 1$。當這些空間被填滿，controller 必須開始搬移 valid pages 以清出空間，WAF 隨之上升。當回收速度等於寫入速度時，分佈穩定，WAF 達到 Steady-state 值。
   - text: "WAF 最初會非常高（例如 > 10），隨著 FTL 表格建立完成，WAF 會逐漸下降至穩定值。"
     explanation: |
       剛開始寫入時，因為沒有舊資料需要搬移，WAF 是最低的（為 1）。高 WAF 通常出現在空間極度不足或大量隨機小檔寫入的「穩定狀態」中，而非初期。

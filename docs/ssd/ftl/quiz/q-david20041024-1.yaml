@@ -9,7 +9,7 @@ options:
       SSD 不能進行覆寫，所以會將原本的 physical page 標記為 invalid，並將新資料連續地寫入空白的 Page，所以 SSD 的 random write 效能很高。
   - text: "DFTL 的演算法中，在滿的時候通常會利用 LRU 來淘汰 CMT 裡的資料，是基於 Spatial Locality"
     explanation: |
-      LRU 是基於 Temporal locality，認為最近被訪問的資料在未來也很可能會被訪問，而不是 Spatial Locality。
+      LRU 是基於 temporal locality，認為最近被訪問的資料在未來也很可能會被訪問，而不是 Spatial Locality。
   - text: "除了 DFTL 的演算法外，Log block 的方法能徹底消除 Block-level mapping 在小資料更新中，所需要的 Read-Modify-Write"
     explanation: |
       Log block 只能起到緩衝的作用，最後還是需要將資料寫回原本的 block，因此仍然會有 Read-Modify-Write 的問題。

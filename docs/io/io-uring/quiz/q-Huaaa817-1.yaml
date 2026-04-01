@@ -8,7 +8,7 @@ question: |
   請問這個優化「主要降低」的是哪一段成本？
 
 options:
-  - text: "降低 SSD 的讀取延遲（device latency）"
+  - text: "降低 SSD 的 device latency"
     explanation: |
      實際上 SSD latency（數十微秒）不變，
      io_uring 只減少 CPU 端開銷。這種說法較接近升級硬體或快取命中率提升的情境。

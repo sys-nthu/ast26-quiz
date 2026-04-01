@@ -13,7 +13,7 @@ options:
     explanation: |
       每 64 個 I/O 合併為一次提交，因此 syscall 次數從 640,000 次降為 10,000 次。
       關鍵節省來自兩點：
-      第一， batched submission 減少 user mode 與 kernel mode 的切換（mode switch）次數；
+      第一， batched submission 減少 user mode 與 kernel mode 的 mode switch 次數；
       第二， `io_uring` 將 SQE 直接放在 shared memory 中，kernel 不需要逐筆 copy request。
 
   - text: "雖然 syscall 次數下降，但每次 `io_uring_enter()` 需要處理更多 SQE，因此總 syscall overhead 不變，只是延遲被集中。"

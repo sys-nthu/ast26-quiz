@@ -6,7 +6,7 @@ question: |
 options:
   - text: "增加 Over-provisioning (OP) 空間比例"
     explanation: |
-      增加 OP 空間主要目的是為了降低 Write Amplification (WAF) 並提升 Endurance。
+      增加 OP 空間主要目的是為了降低 write amplification (WAF) 並提升 Endurance。
       但題目設定的工作負載是「寫入極少」，代表 P/E cycles 的消耗並非主要瓶頸，增加 OP 無法解決電荷隨著時間自然洩漏導致的 Retention 問題。
   - text: "降低裝置的每日寫入量 (DWPD) 額定值"
     explanation: |

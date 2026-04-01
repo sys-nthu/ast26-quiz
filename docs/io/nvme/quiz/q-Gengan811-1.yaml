@@ -16,7 +16,7 @@ options:
       這是一個常見的迷思。雖然 NVMe 確實改用了高頻寬的 PCIe bus，但 bandwidth 解決的是「資料傳輸量」的問題，而非「指令發送的併發衝突」問題。如果軟體架構依然只有一個共享的 queue，多個 core 在「寫入指令到 queue」這個軟體階段就已經因為 lock contention 而卡住了，根本還沒進入實體的 PCIe 傳輸階段。
   - text: "NVMe 實作了硬體層級的 **namespace** 隔離技術。透過將一顆實體 SSD 切割成 64 個獨立的 namespace 並分配給 64 個 core，每個 core 就能繞過作業系統，直接對自己的 namespace 進行無鎖的讀寫。"
     explanation: |
-      這混淆了 namespace 的用途。Namespace 是一種邏輯儲存空間的分割機制（類似於更靈活的 partition），主要用於 multi-tenant 環境或虛擬機（VM）的容量分配與隔離。解決 CPU 多核心並發送指令（I/O submission）瓶頸的技術是 multi-queue 架構，而不是儲存空間的 namespace 分割。
+      這混淆了 namespace 的用途。Namespace 是一種邏輯儲存空間的分割機制（類似於更靈活的 partition），主要用於 multi-tenant 環境或 VM 的容量分配與隔離。解決 CPU 多核心並發送指令（I/O submission）瓶頸的技術是 multi-queue 架構，而不是儲存空間的 namespace 分割。
   - text: "NVMe 強制廢除了 interrupt 機制，全面改用 **doorbell register** 進行 polling。這消除了傳統 AHCI 在處理 interrupt 時所需的 context switch，是降低 CPU lock contention 開銷的唯一解法。"
     explanation: |
       這個選項將不同的概念強行拼湊。首先，NVMe 並沒有廢除 interrupt，它依然支援並廣泛使用 MSI-X 等 interrupt 機制來通知 I/O 完成。其次，doorbell register 雖然是每個 queue 必備的通知機制（用來通知控制器 queue 有新指令或已消費結果），但它本身並不是用來解決多核心 lock contention 的關鍵設計。解決 lock contention 常見的解法是資料結構的去中心化（如 per-core queue pair）。

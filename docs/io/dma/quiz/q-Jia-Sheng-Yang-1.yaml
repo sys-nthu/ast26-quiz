@@ -3,7 +3,7 @@ date: 2026-03-18
 question: |
   一個高度依賴儲存效能的應用程式需要將系統 RAM 中一個 2 MB 的資料 Buffer 寫入 SSD。
   由於作業系統使用 Paging ，這 2 MB 的資料在記憶體中並非連續儲存，而是分散在 512 個不同的 4 KB Physical Page 中。
-  請問下列哪種方法可以讓儲存控制器以最少的 CPU 指令數且不需經過任何中間記憶體複製（Zero-copy） 的情況下，完成這項資料傳輸？
+  請問下列哪種方法可以讓儲存控制器以最少的 CPU 指令數且不需經過任何 memory copy（即 Zero-copy） 的情況下，完成這項資料傳輸？
 options:
   - text: "作業系統準備一份 Scatter-Gather List，其中包含所有 512 個碎片的實體起始位址與長度，並將此清單交給具備 DMA 功能的儲存控制器。"
     correct: true

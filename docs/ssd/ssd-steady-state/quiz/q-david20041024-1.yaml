@@ -5,10 +5,10 @@ question: |
 options:
   - text: "QLC SSD 中的 SLC Cache 通常是由物理上獨立、造價昂貴的專用 SLC 顆粒組成"
     explanation: |
-      現代 QLC SSD 多採用「模擬 SLC 模式（pSLC）」，即透過韌體讓 QLC Cell 僅存儲 1-bit 電壓狀態來充當 Cache，以兼顧效能與成本，而非使用物理獨立的 SLC 顆粒。
+      現代 QLC SSD 多採用「模擬 SLC  pSLC 模式」，即透過韌體讓 QLC Cell 僅存儲 1-bit 電壓狀態來充當 Cache，以兼顧效能與成本，而非使用物理獨立的 SLC 顆粒。
   - text: "相較於 QLC，SLC SSD 必須配置更高比例的 OP (Over-Provisioning) 空間來應對垃圾回收 (GC)"
     explanation: |
-      事實上，QLC 因為 P/E cycle 極低且寫入放大（WAF）對壽命影響劇烈，在設計上更依賴較大的 OP 空間來降低 WAF 並提升穩態效能；而 SLC 雖然也需要 OP，但其原生耐用度較高，對 OP 比例的依賴程度相對 QLC 較低。
+      事實上，QLC 因為 P/E cycle 極低且 WAF 對壽命影響劇烈，在設計上更依賴較大的 OP 空間來降低 WAF 並提升穩態效能；而 SLC 雖然也需要 OP，但其原生耐用度較高，對 OP 比例的依賴程度相對 QLC 較低。
   - text: "為了應對較高的原始錯誤率 (RBER)，QLC 的每個物理 Page 通常配備比 SLC 更大的 Spare Area (OOB)"
     correct: true
     explanation: |

@@ -2,7 +2,7 @@ author: Jia-Sheng-Yang
 date: 2026-03-18
 question: |
   某個伺服器應用程式為處理傳入的網路請求，使用 Synchronous I/O 並將每筆請求的紀錄寫入本地儲存設備。
-  在壓力測試期間，管理員觀察到伺服器的 Throughput 大幅下降且 Latency 增加，然而 CPU 使用率卻維持在極低的水準。
+  在壓力測試期間，管理員觀察到伺服器的 throughput 大幅下降且 Latency 增加，然而 CPU 使用率卻維持在極低的水準。
   下列何者最能解釋為何在 CPU 閒置的情況下，吞吐量依然低落？
 options:
   - text: "每個 Worker Thread 在等待儲存 I/O 完成時皆進入了 Blocked State，導致這些執行緒無法被用來處理新的傳入網路請求。"
@@ -12,9 +12,9 @@ options:
   - text: "作業系統正在使用 Polling 來檢查儲存設備的狀態，這導致 CPU 在等待 I/O 完成期間無法執行任何應用程式層級的程式碼。"
     explanation: |
       如果系統正在進行 busy waiting，CPU 使用率通常會非常高，因為 CPU 正積極地執行指令來檢查狀態暫存器，而不是處於閒置狀態。
-  - text: "儲存設備使用的是 Interrupt-driven I/O ，而高頻率的中斷導致 CPU 將所有時間都花在執行中斷服務程序（ISR）上。"
+  - text: "儲存設備使用的是 Interrupt-driven I/O ，而高頻率的中斷導致 CPU 將所有時間都花在執行 ISR 上。"
     explanation: |
-      雖然 Interrupt Storm 是真實存在的 I/O 問題，但它會表現為極高的 CPU 使用率，因為 CPU 必須不斷進行 context switch 來處理 ISR，而不會導致 CPU 閒置。
+      雖然 interrupt storm 是真實存在的 I/O 問題，但它會表現為極高的 CPU 使用率，因為 CPU 必須不斷進行 context switch 來處理 ISR，而不會導致 CPU 閒置。
   - text: "系統正利用 DMA 來處理資料傳輸；由於 CPU 在資料搬移過程中被繞過，因此它會一直保持在閒置狀態，直到硬體為整批資料傳輸完成發送的訊號。"
     explanation: |
       無論資料如何搬移，吞吐量低是因為執行緒被卡住了，而不是因為 CPU 在等傳輸完成的訊號。

@@ -19,13 +19,13 @@ options:
   - text: "CSAL 將 random write 轉為 sequential write，減少 QLC 的內部 garbage collection，因此同時降低 write amplification 並改善 tail latency"
     correct: true
     explanation: |
-      這是 CSAL 的核心機制 **"Write Shaping"**。QLC 最忌諱小碎片隨機寫入，因為這會觸發頻繁的 SSD 內部垃圾回收（GC），進而導致寫入放大（WAF）飆升與 P99 延遲不穩。CSAL 在 Host 端將隨機寫入整合成大塊的循序寫入（Batching），從根本上降低了 QLC 的 GC 壓力，穩定了尾端延遲（P99）。
+      這是 CSAL 的核心機制 **"Write Shaping"**。QLC 最忌諱小碎片隨機寫入，因為這會觸發頻繁的 SSD 內部 GC，進而導致 WAF 飆升與 P99 延遲不穩。CSAL 在 Host 端將隨機寫入整合成大塊的 Sequential 寫入（Batching），從根本上降低了 QLC 的 GC 壓力，穩定了 P99 延遲。
   - text: "CSAL 將 FTL 從 SSD 移到 host，使 SSD controller 負載下降，因此 write amplification 與 tail latency 同時改善"
     explanation: |
       CSAL 雖然確實將部分邏輯移至 Host 端處理，但其主要目的是改變「寫入行為」而非單純減少控制器負載。「把 FTL 從 SSD 移到 host」不是這題最自然的 CSAL 解釋。
   - text: "CSAL 使用 RAID-like striping 將寫入分散到多顆 QLC SSD，降低單顆 SSD 壓力，因此 write amplification 與 tail latency 改善"
     explanation: |
       RAID-like striping 是為了提升吞吐量或容錯，但「分散寫入」若維持隨機性質，依然無法解決 QLC 的 WAF 問題。
-  - text: "CSAL 將所有 write 轉為同步寫入（synchronous write），確保資料一致性，這降低了 write amplification 並改善 tail latency"
+  - text: "CSAL 將所有 write 轉為 synchronous write，確保資料一致性，這降低了 write amplification 並改善 tail latency"
     explanation: |
       同步寫入通常會顯著「惡化」P99 延遲（因為必須等待確認），且同步機制與降低 WAF（寫入放大）並無直接物理因果關係。

@@ -3,20 +3,20 @@ date: '2026-03-28'
 question: |
   某新創公司正在評估兩款 1TB 容量的 NVMe SSD 作為核心資料庫的儲存媒體。其中，A 款為消費級 SSD（保留極少的 Over-Provisioning 空間）；B 款為企業級 SSD（保留了高達 28% 的 Over-Provisioning 空間）。
   
-  一位資淺工程師對這兩款全新且完全空白（Fresh Out of Box, FOB）的 SSD 執行了 10 分鐘的隨機寫入效能測試（Random write benchmark）。測試結果顯示，A 款與 B 款的 IOPS 幾乎一樣高，工程師因此結論：「多花錢買大 OP 空間的企業級 SSD 對隨機寫入效能毫無幫助」。
+  一位資淺工程師對這兩款全新且完全空白（Fresh Out of Box, FOB）的 SSD 執行了 10 分鐘的隨機寫入效能測試（random write benchmark）。測試結果顯示，A 款與 B 款的 IOPS 幾乎一樣高，工程師因此結論：「多花錢買大 OP 空間的企業級 SSD 對隨機寫入效能毫無幫助」。
   
-  根據 SSD 的「穩定態（Steady-State）」與「垃圾回收（Garbage Collection）」原理，這位工程師的測試方法論犯了什麼致命的錯誤，導致其結論完全失效？
+  根據 SSD 的「Steady-State」與「garbage collection」原理，這位工程師的測試方法論犯了什麼致命的錯誤，導致其結論完全失效？
 options:
-  - text: "因為 SSD 處於全新的 FOB 狀態，所有的實體區塊（Physical blocks）都是空白的。在最初的 10 分鐘內，FTL 只需要不斷尋找新的空白區塊寫入，完全不需要啟動背景的垃圾回收（GC），此時的寫入放大率（WAF）完美等於 1。要看出 OP 空間對效能的真實價值，必須先對 SSD 進行**預處理（Preconditioning，例如寫滿整顆磁碟數次）**，迫使其進入缺乏空白區塊、GC 頻繁運作的**穩定態（Steady-State）**後再進行測試。"
+  - text: "因為 SSD 處於全新的 FOB 狀態，所有的 physical blocks 都是空白的。在最初的 10 分鐘內，FTL 只需要不斷尋找新的空白區塊寫入，完全不需要啟動背景的 GC，此時的 WAF 完美等於 1。要看出 OP 空間對效能的真實價值，必須先對 SSD 進行**預處理（Preconditioning，例如寫滿整顆磁碟數次）**，迫使其進入缺乏空白區塊、GC 頻繁運作的**Steady-State**後再進行測試。"
     correct: true
     explanation: |
-      這是正確的。在 SSD 的生命週期中，全新的 FOB（Fresh Out of Box）狀態會展現出極高且不真實的效能，因為此時完全沒有 GC 的開銷。當磁碟被寫滿並開始覆寫時，效能會經歷「懸崖式下跌」並進入穩定態（Steady-State）。在穩定態下，大容量的 Over-Provisioning（OP）空間能讓 GC 更容易找到無效頁面（Invalid pages）進行回收，大幅降低 WAF 並維持較高的 IOPS 底線。工程師只測了最初的 10 分鐘，根本還沒把磁碟寫滿觸發 GC，因此無法測出 OP 的真實效益。
-  - text: "因為 10 分鐘的測試時間太短，NVMe 控制器內部的 DRAM 快取（Cache）還沒有被完全寫滿。在快取耗盡之前，所有的隨機寫入都會被暫存在 DRAM 中並回報完成，導致 A 款與 B 款的效能看起來一樣。只要將測試時間延長到 30 分鐘讓 DRAM 滿載，就能看出兩者的差異。"
+      這是正確的。在 SSD 的生命週期中，全新的 FOB（Fresh Out of Box）狀態會展現出極高且不真實的效能，因為此時完全沒有 GC 的開銷。當磁碟被寫滿並開始覆寫時，效能會經歷「懸崖式下跌」並進入 Steady-State。在穩定態下，大容量的 Over-Provisioning（OP）空間能讓 GC 更容易找到 invalid pages 進行回收，大幅降低 WAF 並維持較高的 IOPS 底線。工程師只測了最初的 10 分鐘，根本還沒把磁碟寫滿觸發 GC，因此無法測出 OP 的真實效益。
+  - text: "因為 10 分鐘的測試時間太短，NVMe 控制器內部的 DRAM Cache 還沒有被完全寫滿。在快取耗盡之前，所有的隨機寫入都會被暫存在 DRAM 中並回報完成，導致 A 款與 B 款的效能看起來一樣。只要將測試時間延長到 30 分鐘讓 DRAM 滿載，就能看出兩者的差異。"
     explanation: |
-      這是一個常見的迷思。雖然 DRAM 快取確實能吸收突發的寫入，但 10 分鐘的連續隨機寫入早就遠遠超過了任何商用 SSD 內部幾 GB 的 DRAM 容量。導致效能看起來一樣的真正原因，是底層 NAND flash 還有大量的空白區塊（Free blocks）可以使用，尚未觸發 GC 導致效能衰退，而不是因為資料還停留在 DRAM 裡。
-  - text: "工程師使用了**隨機寫入（Random write）**來進行測試。在 SSD 的硬體架構中，Over-Provisioning（OP）空間主要是用來加速連續寫入（Sequential write）的頻寬。如果改用大區塊的連續寫入進行測試，即使在全新的 FOB 狀態下，B 款企業級 SSD 也能立刻展現出效能優勢。"
+      這是一個常見的迷思。雖然 DRAM 快取確實能吸收突發的寫入，但 10 分鐘的連續隨機寫入早就遠遠超過了任何商用 SSD 內部幾 GB 的 DRAM 容量。導致效能看起來一樣的真正原因，是底層 NAND flash 還有大量的 free blocks 可以使用，尚未觸發 GC 導致效能衰退，而不是因為資料還停留在 DRAM 裡。
+  - text: "工程師使用了**Random write**來進行測試。在 SSD 的硬體架構中，Over-Provisioning（OP）空間主要是用來加速 sequential write 的頻寬。如果改用大區塊的連續寫入進行測試，即使在全新的 FOB 狀態下，B 款企業級 SSD 也能立刻展現出效能優勢。"
     explanation: |
-      這是對 OP 空間用途的嚴重誤解。連續寫入（Sequential write）會讓整個 Block 依序填滿，失效時也會整塊失效，GC 回收時幾乎不需要搬運有效資料，因此本來就不太依賴 OP 空間。OP 空間最大的價值，正是用來拯救會產生嚴重碎塊與高 WAF 的**隨機寫入（Random write）**負載。
-  - text: "在全新的 FOB 狀態下，SSD 控制器會強制開啟**SLC 快取模式（SLC Caching）**。這個模式會將所有的 TLC 或 QLC 顆粒模擬成 SLC 來寫入，從而掩蓋了 OP 空間的大小差異。必須透過軟體指令手動關閉 SLC 快取，才能測出穩定態的真實效能。"
+      這是對 OP 空間用途的嚴重誤解。Sequential write 會讓整個 Block 依序填滿，失效時也會整塊失效，GC 回收時幾乎不需要搬運有效資料，因此本來就不太依賴 OP 空間。OP 空間最大的價值，正是用來拯救會產生嚴重碎塊與高 WAF 的**Random write**負載。
+  - text: "在全新的 FOB 狀態下，SSD 控制器會強制開啟**SLC SLC Caching**。這個模式會將所有的 TLC 或 QLC 顆粒模擬成 SLC 來寫入，從而掩蓋了 OP 空間的大小差異。必須透過軟體指令手動關閉 SLC 快取，才能測出穩定態的真實效能。"
     explanation: |
-      這個選項將不同的快取機制混為一談。SLC Caching 確實是現代消費級 SSD 用來短暫提升效能的機制，但它與 SSD 是否進入「穩定態（Steady-State）」的核心定義（即全碟寫滿、GC 與寫入達到進出平衡）不同。要測量真實的企業級效能，標準的做法是透過全碟覆寫（Preconditioning）來耗盡 SLC 空間與空白區塊，逼出底層的真實速度，而不是單純尋找手動關閉快取的軟體指令。
+      這個選項將不同的快取機制混為一談。SLC Caching 確實是現代消費級 SSD 用來短暫提升效能的機制，但它與 SSD 是否進入「Steady-State」的核心定義（即全碟寫滿、GC 與寫入達到進出平衡）不同。要測量真實的企業級效能，標準的做法是透過全碟覆寫（Preconditioning）來耗盡 SLC 空間與空白區塊，逼出底層的真實速度，而不是單純尋找手動關閉快取的軟體指令。

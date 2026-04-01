@@ -1,0 +1,18 @@
+author: nehs9ney
+date: 2026-03-31
+question: |
+  網路上常見一種建議：「SSD 不要裝太滿，保留 10-20% 的空間可以提升效能與壽命。」某位使用者聽從這個建議，在一顆廠商預設 7% over-provisioning 的 1 TB 消費級 SSD 上只存放了約 800 GB 的資料，刻意將剩餘約 20% 的使用者可見空間保持閒置。對於這個做法，下列哪個詮釋最為妥當？
+options:
+  - text: "這個做法要能實際降低 WAF，前提是 host 端必須有對該 SSD 發送 TRIM 指令。若未發送 TRIM，SSD 無法得知哪些空間已被釋放，那些曾經被寫入過的區域仍會被視為 valid data，無法被 controller 當作可用的 free block。"
+    correct: true
+    explanation: |
+      正確。使用者層面的剩餘空間要能被 SSD 利用，前提是 SSD 知道那些 LBA 上的資料已不再有效。TRIM 正是 host 通知 SSD「這些 LBA 不再需要」的機制。收到 TRIM 後，controller 可將對應的 physical page 標記為 invalid，使這些空間等效於額外的 over-provisioning。若未發送 TRIM，SSD 會持續將那些已刪除的資料視為 valid，GC 時仍會搬移它們，使用者留的空間就無法發揮降低 WAF 的效果。
+  - text: "不需要任何前提條件。只要使用者不將空間寫滿，SSD 的 controller 就能自動偵測並利用這些剩餘空間，效果等同於廠商出廠預留的 over-provisioning。"
+    explanation: |
+      如果這些空間從未被寫入過，SSD 確實知道它們是空的。但在正常使用中，SSD 的可用空間往往經歷過「寫入 → 刪除 → 再寫入」的循環。一旦某個 LBA 被寫入過，即使後來被 host 刪除，SSD 在未收到 TRIM 的情況下仍會將其視為 valid data。因此「不需要任何前提條件」的說法不正確。
+  - text: "使用者必須透過 SSD 廠商提供的工具軟體手動設定 over-provisioning 比例，否則剩餘空間無法被 controller 利用。"
+    explanation: |
+      廠商工具的 over-provisioning 設定功能，本質上只是建立一個使用者不可存取的隱藏分割區來保留空間。這是實現 over-provisioning 的一種方式，但並非唯一途徑。只要 host 有發送 TRIM，controller 就能將任何被標記為不再使用的空間當作可用的 free block，不需要透過廠商工具額外設定。
+  - text: "這個做法完全沒有意義。SSD 的 controller 只會使用廠商出廠時硬體層級預留的 over-provisioning 空間，無論使用者留多少空間都不會影響 GC 的效率或 WAF。"
+    explanation: |
+      廠商預留的 over-provisioning 確實是 controller 永遠可用的固定空間，但 controller 同樣能利用使用者層面的可用空間。當 TRIM 通知 SSD 某些 LBA 已不再使用時，對應的 physical page 會被標記為 invalid，GC 可直接回收這些空間而不需搬移資料。這等效於增加了可用的 free block，與 over-provisioning 的效果類似。

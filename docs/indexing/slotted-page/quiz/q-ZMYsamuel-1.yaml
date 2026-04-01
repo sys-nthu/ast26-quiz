@@ -1,21 +1,19 @@
 author: ZMYsamuel
 date: 2026-03-31
 question: |
-  在採用 PostgreSQL 的資料庫時，某個 8 KB 的 heap page 內部剩餘的連續可用空間（亦即 `pd_lower` 與 `pd_upper` 之間的距離）僅剩下 20 bytes。
-  此時，應用程式對該 page 內的某筆 variable-length record 執行了一次 `UPDATE` 操作，將其 `VARCHAR` 欄位的內容大幅縮減，使得更新後的新版本 record 比舊版本足足小了 100 bytes，且「新版本 record（含 tuple header）總大小為 50 bytes」。假設目前系統中還有其他 transaction 正在執行，且尚未觸發任何背景的 VACUUM 清理程序。
-  針對此次 `UPDATE` 操作發生後該 page 的內部狀態變化，下列敘述何者最為正確？
+  在 PostgreSQL 的儲存架構中，假設一個 8 KB 的 heap page 內部剩餘的連續可用空間（即 `pd_lower` 與 `pd_upper` 之間的距離）僅剩下 20 bytes。此時，應用程式對該 page 內的某筆 variable-length record 執行一次 `UPDATE` 操作，將其 `VARCHAR` 欄位縮減，使新版本 record（含 tuple header）的總大小為 50 bytes。
+  假設目前系統中有其他 transaction 正在執行，且尚未觸發背景的 `VACUUM` 程序。關於此次 `UPDATE` 發生後該 page 的內部狀態變化，下列敘述何者最正確？
 options:
-  - text: "由於剩餘空間不足以容納新版 record 與對應的新 slot，新版本 record 無法寫入此 page，必須被配置到其他有足夠空間的 page 中。"
+  - text: "由於剩餘空間不足以容納新版 record 與其對應的 slot，新版本 record 無法寫入此 page，必須配置到其他有足夠空間的 page 中。"
     correct: true
     explanation: |
-      在 PostgreSQL 的設計中，`UPDATE` 操作等同於「標記舊版本為刪除」加上「插入新版本」。為了支援多版本並發控制，舊版本必須保留給其他潛在的 transaction 讀取，因此不能立刻回收其佔用的空間。插入新版本需要分配一個全新的 4 bytes slot（推進 `pd_lower`）以及寫入新 record 資料（推進 `pd_upper`）。即使新版本體積較小，但因為這兩筆空間都必須從現有的 20 bytes 連續 free space 中扣除，空間依然不足，因此只能寫入到別的 page。
-      題目已明確給定新版本 record 總大小為 50 bytes，所以最少需要 50 + 4 = 54 bytes（不含其他對齊/額外管理開銷），顯然超過目前僅剩的 20 bytes 連續 free space。
-  - text: "系統會直接在舊版本 record 原本佔用的實體位置進行 in-place update，並將多出來的 100 bytes 標記為 page 內部的 hole 供未來使用。"
+      PostgreSQL 的 `UPDATE` 實質上是「標記舊版本為刪除」並「插入新版本」的組合（MVCC 機制）。為了支援並發控制，舊版本在其他 transaction 結束前必須保留，無法立刻釋放空間。插入新版本需要一個新的 4 bytes slot（推進 `pd_lower`）與 record 資料（50 bytes，推進 `pd_upper`），總計需要 54 bytes 的連續空間。由於目前的連續 free space 僅有 20 bytes，且舊紀錄尚未變為「無人需要」的廢棄狀態，因此無法在原 page 完成更新。
+  - text: "系統會直接在舊版本 record 原本佔用的位置進行 in-place update，並將縮減產生的 100 bytes 空間標記為 page 內部的 hole。"
     explanation: |
-      這是一個常見的錯誤認知。雖然新紀錄較小，似乎可以放進原本的空間，但因為系統必須保留舊版本以供其他尚未結束的 transaction 讀取，所以絕對不能直接覆寫（in-place update）舊資料。
-  - text: "系統會立刻對該 page 觸發 compaction，強制回收舊版本 record 的空間以取得 100 bytes 的連續可用空間，確保新紀錄能保存在同一個 page 中以維持 index 的 locality。"
+      這違反了 MVCC 的設計原則。為了確保其他正在執行的 transaction 能夠讀取到一致的舊版本資料，系統不能直接 in-place update 現有的 record 內容，否則會破壞 isolation。
+  - text: "系統會立刻對該 page 觸發 compaction，將舊版本 record 視為廢棄空間並整併出 100 bytes 的連續空間，確保新紀錄能保存在同一個 page。"
     explanation: |
-      這違背了 slotted page 運作原理。Compaction 的前提是「回收那些已經確認沒有任何人需要的舊 record」，但題目明示系統中還有其他 transaction 正在執行，代表舊紀錄仍可能被讀取。在這種情況下，系統不能強制回收它的空間，因此無法透過 compaction 擠出空間給新紀錄。
-  - text: "系統會在 slot array 的末端新增一個 slot 來指向新版本 record，但為了節省空間，會將該 record 拆分成兩半，前 16 bytes 塞入剩下的連續空間，剩餘部分則寫入溢位分頁。"
+      雖然 slotted page 支援 compaction，但其前提是回收「不再被任何 transaction 需要」的舊 record。題目提到目前還有其他 transaction 正在執行，這代表舊紀錄仍具備 visibility，屬於存活狀態。在這種情況下，系統無法透過 compaction 或 page pruning 強行回收該空間來供應新紀錄。
+  - text: "系統會將該 record 拆分為兩部分，前 16 bytes 填補入剩餘的連續空間，剩餘部分則寫入溢位分頁，並在 slot array 紀錄兩者的 offset。"
     explanation: |
-      Slotted page 本身的設計單位是單一完整的 record，page header 內的 metadata（如 `pd_lower` 與 `pd_upper`）與 slot 所記錄的 offset 與 length 並沒有內建將單一 record 在 heap area 切割成多個不連續區塊的機制。資料庫不會將普通的 record 零碎地填補在 free space 中。
+      Slotted page 的設計是以完整的 record 為管理單位，其 header 中的 `pd_lower` 與 `pd_upper` 以及 slot 所記錄的 offset 是針對單一連續區塊的 metadata。資料庫不會為了湊齊微小的空間而將單一 heap record 破碎地分散在同一個 page 的不同位置。

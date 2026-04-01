@@ -14,10 +14,10 @@ options:
       這是將軟體的指令佇列與硬體層級的 Wear Leveling 混為一談。
       SQ/CQ 的數量增加主要是為了解決主機端 (Host) 提交指令的瓶頸，而非直接控制後端 Flash 的物理負載。
 
-  - text: "多個 Queue 允許不同 CPU core 獨立提交指令，消除了多核心競爭單一鎖 (Lock Contention) 的軟體開銷，大幅提升平行處理能力。"
+  - text: "多個 Queue 允許不同 CPU core 獨立提交指令，消除了多核心競爭單一鎖 (lock contention) 的軟體開銷，大幅提升平行處理能力。"
     correct: true
     explanation: |
-      在單一 Queue 設計下，所有 CPU core 必須同步存取同一個佇列，導致嚴重的 Lock Contention。
+      在單一 Queue 設計下，所有 CPU core 必須同步存取同一個佇列，導致嚴重的 lock contention。
       NVMe 提供 Per-core queue，讓指令提交與完成確認可以真正平行化，是提升 IOPS 的技術核心。
 
   - text: "多個 Queue 設計旨在縮短單一指令的傳輸路徑 (Path Length)，藉此抵消快閃記憶體 (NAND Flash) 先天的物理讀取延遲。"
@@ -25,7 +25,7 @@ options:
       傳輸路徑的縮短來自於 NVMe 簡化了軟體協定層次（相較於 SCSI 或 ATA），
       而非單純增加 Queue 的數量。Queue 的數量增加是為了解決「等待」而非「傳輸速度」。
 
-  - text: "多個 Queue 可提供硬體層級的優先級排序 (Strict Priority)，確保高優先級應用程式能獲得比單一 Queue 更低的平均深度 (Queue Depth)。"
+  - text: "多個 Queue 可提供硬體層級的優先級排序 (Strict Priority)，確保高優先級應用程式能獲得比單一 Queue 更低的平均深度 (queue depth)。"
     explanation: |
       雖然 NVMe 支援優先權管理，但多 Queue 架構的主要效能貢獻來自於「平行性」，
-      而非透過限制 Queue Depth 來優化效能。實際上 NVMe 支援極大的佇列深度以換取高吞吐量。
+      而非透過限制 queue depth 來優化效能。實際上 NVMe 支援極大的佇列深度以換取高吞吐量。

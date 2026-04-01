@@ -26,4 +26,4 @@ options:
   - text: "方案 Y(QLC)TBW 較高，因為每次 erase 可以寫入更多位元。"
     explanation: |
       QLC 每次 erase 後確實能寫入更多資料，但其可承受的 erase 次數遠少於 SLC。
-      雖然 QLC 容量較大，但 P/E cycle 的下降幅度通常更顯著，因此整體 TBW 仍低於 SLC,忽略 endurance 與容量之間的trade-off。
+      雖然 QLC 容量較大，但 P/E cycle 的下降幅度通常更顯著，因此整體 TBW 仍低於 SLC,忽略 endurance 與容量之間的 trade-off。

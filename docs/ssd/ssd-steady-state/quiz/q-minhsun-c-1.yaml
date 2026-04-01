@@ -5,7 +5,7 @@ question: |
   兩者的實體 NAND 總容量皆為 1024 GB。
   - Drive A 配置了 7% 的 OP (可用容量為 960 GB)。
   - Drive B 配置了 28% 的 OP (可用容量為 800 GB)。
-  當兩顆硬碟在持續隨機寫入負載下達到 **穩態** 後，Drive B 的吞吐量 (Throughput) 
+  當兩顆硬碟在持續隨機寫入負載下達到 **穩態** 後，Drive B 的吞吐量 (throughput) 
   顯著高於 Drive A。下列哪一個選項最能解釋這種效能差距？
 
 options:

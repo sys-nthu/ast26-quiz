@@ -1,15 +1,15 @@
 author: elfnt
 date: 2026-03-17
 question: |
-  假設 Host 在持續寫入一 SSD，該 SSD 正在執行 Garbage Collection。\\ 
-  且在一個待回收的 Block 中，總共有 256 個 Pages，其中 Valid Pages 的數量為 $V$，其餘為 Invalid Pages。\\ 
-  若僅考慮 Host Writes 以及 Garbage Collection 所造成的 Write Amplification，分析回收該 Block 時其內部的 $V$ 與 $WAF$ 的關聯何者較為合理？
+  假設 Host 在持續寫入一 SSD，該 SSD 正在執行 garbage collection。\\ 
+  且在一個待回收的 Block 中，總共有 256 個 Pages，其中 Valid Pages 的數量為 $V$，其餘為 invalid pages。\\ 
+  若僅考慮 Host Writes 以及 garbage collection 所造成的 write amplification，分析回收該 Block 時其內部的 $V$ 與 $WAF$ 的關聯何者較為合理？
 options:
   - text: "當 $V$ 趨近於 $0$ 時，代表該區塊幾乎全是無效資料，此時 GC 搬移量極小，使得 $WAF$ 會趨近於 $1.0$"
     correct: true
     explanation: |
       根據公式，$WAF = \frac{1}{1 - \frac{V}{256}}$，所以當 $V$ 趨近於 $0$ 時，$WAF$ 會趨近於 $1.0$，這代表 GC 搬移量極小，因為幾乎沒有有效資料需要搬移。
-  - text: "執行 GC 時，SSD 產生的內部額外寫入負擔（Internal Write Cost）在數值上等於 $256 - V$，即該區塊中因 Invalid 資料而浪費的空間"
+  - text: "執行 GC 時，SSD 產生的 internal write cost 在數值上等於 $256 - V$，即該區塊中因 Invalid 資料而浪費的空間"
     explanation: |
       需要額外寫入的應該等於 $V$（搬移的量），而不是 $256 - V$。需要搬移的應該是 Valid 的資料，而不是 Invalid 的資料。
   - text: "若該區塊的 $V = 128$，則該次操作所產生的 $WAF$ 數值應為 $1.5$"

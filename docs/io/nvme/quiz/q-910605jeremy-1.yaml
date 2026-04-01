@@ -5,10 +5,10 @@ question: |
   以及其相對於 AHCI 的優化，下列敘述何者最能精確反映其在高負載下的底層行為與硬體限制？
   
 options:
-  - text: "NVMe 支援多個 Queue，讓作業系統能為每個 CPU 核心分配專屬的 Queue Pair (Per-Core Queue)。這使得不同核心在提交 I/O 時無需競爭同一個核心鎖 (Kernel Lock)，徹底消除了 Lock Contention 導致的效能瓶頸。"
+  - text: "NVMe 支援多個 Queue，讓作業系統能為每個 CPU 核心分配專屬的 Queue Pair (Per-Core Queue)。這使得不同核心在提交 I/O 時無需競爭同一個核心鎖 (Kernel Lock)，徹底消除了 lock contention 導致的效能瓶頸。"
     correct: true
     explanation: |
-      這是 NVMe 效能優於 AHCI 的核心原因。傳統 AHCI 僅支援單一佇列 (Single Queue)，在多核環境下，所有 CPU 核心必須競爭同一個軟體鎖才能存取該佇列。NVMe 透過硬體層級的多佇列並行處理機制 (Parallelism)，讓每個核心具備獨立的 submission 與 completion 路徑，從而大幅提升系統在高並發下的吞吐量。
+      這是 NVMe 效能優於 AHCI 的核心原因。傳統 AHCI 僅支援單一佇列 (Single Queue)，在多核環境下，所有 CPU 核心必須競爭同一個軟體鎖才能存取該佇列。NVMe 透過硬體層級的多佇列並行處理機制 (parallelism)，讓每個核心具備獨立的 submission 與 completion 路徑，從而大幅提升系統在高並發下的吞吐量。
   
   - text: "當 Host 更新 SQ Tail Doorbell 後，NVMe 控制器會立即透過 PCIe 中斷機制回傳資料，這確保了 Queue Pair 在多個 Namespace 之間共享時，Command Set 的執行優先權能維持一致。"
     explanation: |

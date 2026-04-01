@@ -5,11 +5,11 @@ question: |
   
   由於 NAND flash 存在「寫入前必須抹除 (Erase-before-write)」的物理限制，SSD 控制器為了解決這個 4KB 的更新，在底層確切會執行什麼樣的物理懲罰操作？為什麼這種架構會在現代高效能 SSD 中被淘汰？
 options:
-  - text: "控制器必須將舊 Block 中剩餘的有效資料全部讀入 RAM，將這 `4KB` 的新資料合併進去後，再將完整的 `4MB` 資料寫入到一個全新且已抹除的 Physical block 中。這個 **Read-Modify-Write** 過程會引發極度嚴重的 Write Amplification (寫入放大)。"
+  - text: "控制器必須將舊 Block 中剩餘的有效資料全部讀入 RAM，將這 `4KB` 的新資料合併進去後，再將完整的 `4MB` 資料寫入到一個全新且已抹除的 Physical block 中。這個 **Read-Modify-Write** 過程會引發極度嚴重的 write amplification (寫入放大)。"
     correct: true
     explanation: |
       這是正確的。根據講義，在純 Block-level mapping 中，對照表的粒度只到 4MB 的 Block。如果你只更新其中一個 4KB Page，FTL 無法像 Page-level mapping 那樣隨便找個新 Page 寫入並更新指標。它必須將整個 4MB 區塊的有效資料讀出來，在記憶體中替換掉那 4KB，然後重新寫入一個完整的 4MB 新區塊。這種災難性的 Read-Modify-Write 開銷是 Block-level mapping 被淘汰的主因。
-  - text: "控制器會將這 `4KB` 的新資料寫入一個全新的空白 Physical page，並單獨在 SRAM 中更新該 Page 的路由條目，同時將舊的 Page 標記為 Invalid，等待未來的 Garbage Collection 回收。"
+  - text: "控制器會將這 `4KB` 的新資料寫入一個全新的空白 Physical page，並單獨在 SRAM 中更新該 Page 的路由條目，同時將舊的 Page 標記為 Invalid，等待未來的 garbage collection 回收。"
     explanation: |
       這個選項完美描述了 **Page-level mapping** 的運作方式（Out-of-place write），而非 Block-level mapping。純 Block-level mapping 沒有記錄單一 Page 位置的能力，因此無法做到這麼細粒度的靈活跳轉。
   - text: "控制器會透過施加更高的編程電壓 (Programming voltage)，直接在該 `4KB` Page 目前的實體位置上進行強制覆寫 (In-place overwrite)，代價是會加速消耗該 Cell 的 `P/E cycle` 壽命。"

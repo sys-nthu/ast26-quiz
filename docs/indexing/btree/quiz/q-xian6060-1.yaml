@@ -1,0 +1,19 @@
+author: xian6060
+date: 2026-04-01
+question: |
+  B+Tree 的每個 Node 大小通常設計成等於一個 disk page（常見 4 KB 或 8 KB），為什麼不將 Node Size 預設為 1 MB 或更大以換取極大的 Fan-out？
+options:
+  - text: "因為要避免 Write Amplification 和提高快取利用率"
+    correct: true
+    explanation: |
+      Explain WHY this is correct. Show the reasoning or calculation.
+  - text: "Second option (a plausible wrong answer)"
+    explanation: |
+      Explain the misconception this represents.
+      Why might a student pick this?
+  - text: "因為 CPU 無法處理大於 16KB 的資料運算"
+    explanation: |
+      Explain what's wrong and what it would be correct for.
+  - text: "因為 B+Tree 規定樹高不能低於三層"
+    explanation: |
+      Explain the error in reasoning.

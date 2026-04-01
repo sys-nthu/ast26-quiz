@@ -1,0 +1,18 @@
+author: nehs9ney
+date: 2026-03-31
+question: |
+  你五年前購買了一顆全新的 1 TB TLC SSD，使用至今其平均 P/E cycle count 約為 2500 次。你打算將這顆老化但仍可運作的 SSD 用於個人資料的異地離線備份，且預計未來五年內完全不通電。請問這樣做最主要的風險是什麼？
+options:
+  - text: "由於尚未達到該顆 TLC SSD 的額定 P/E cycle 壽命，且目前仍可正常運作，因此可以安全地長期離線存放資料而不會有資料損壞的風險。"
+    explanation: |
+      這個選項混淆了 endurance 與 retention。P/E cycle 壽命衡量的是 NAND 能承受多少次寫入（endurance），而非資料在斷電後能保存多久（retention）。高 P/E cycle count 的 NAND 因 tunnel oxide 受損加劇，電荷洩漏速率加快，使得斷電後的 data retention 時間大幅縮短。「還沒寫壞」不代表「能安全放著不通電」。
+  - text: "長時間斷電後，NAND cell 中的電荷會逐漸洩漏，導致儲存的資料毀損。但這屬於資料層面的損壞，cell 的物理結構並未因此失效，重新抹除並寫入後仍可繼續使用。"
+    correct: true
+    explanation: |
+      正確。NAND flash 的 data retention 取決於 cell 中電荷的保持能力。隨著 P/E cycle 累積，tunnel oxide 磨損加劇，電荷洩漏速率增加。已使用 2500 次 P/E cycle 的 TLC 接近額定壽命，其 data retention 時間可能從全新時的數年縮短至數週到數月，五年斷電極有可能超出安全範圍。然而 retention failure 的本質是電荷流失，而非 cell 結構的物理失效，因此 cell 仍可被重新抹除與寫入。
+  - text: "SSD 與 HDD 一樣適合長期離線儲存。只要不是 controller 故障或人為物理損害，不會因為長期放置而導致資料損壞。"
+    explanation: |
+      HDD 使用磁性儲存，資料保存期限可達數十年，遠長於 NAND flash 的電荷式儲存。NAND flash 的 cell 依賴電荷維持資料，長時間斷電後電荷會自然洩漏，這是物理特性而非故障。對於長期離線儲存或冷儲存場景，retention 才是主要挑戰，不能將 SSD 與 HDD 等同看待。
+  - text: "即使五年斷電後部分資料發生 bit error，SSD 內部的 ECC 機制在重新通電時能完整修正這些錯誤，因此資料不會遺失。"
+    explanation: |
+      ECC 確實能修正一定數量的 bit error，但其修正能力有上限。在高 P/E cycle count 加上長時間斷電的雙重條件下，累積的 bit error 數量很可能超出 ECC 的修正能力，產生 uncorrectable error，導致資料永久遺失。

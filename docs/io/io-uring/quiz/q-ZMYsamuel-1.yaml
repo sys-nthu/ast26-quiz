@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  某高效能資料庫團隊在使用 `io_uring` 時發現，雖然已經將 `SQ` 與 `CQ` 的機制發揮到極致，但 Linux `block layer` 內部的 `I/O scheduler`（如 `merging` 或 `reordering`）在高速 `NVMe SSD` 環境下反而成為了多餘的 `overhead`。若團隊希望應用程式能直接掌控硬體，甚至發送裝置專屬的 `vendor-specific command`，最合適的架構選擇及其伴隨的代價為何？
+options:
+  - text: "使用 `io_uring_cmd` 進行 `NVMe passthrough`。這允許應用程式直接繞過 `block layer` 並發送 `raw command` 給驅動程式。代價是開發者必須自行管理 `DMA buffer`，且會失去 `file system` 與 `encryption` 等核心功能。"
+    correct: true
+    explanation: |
+      `io_uring` 的預設路徑仍需經過 `block layer` 的處理邏輯，而 `io_uring_cmd` 提供了 `passthrough` 機制直接對接 `driver`。這能跳過針對傳統磁碟設計的優化開銷，但也意味著應用程式必須承擔原本由 `kernel` 處理的資源管理責任，且無法享用基於 `block device` 構建的檔案系統功能。
+  - text: "同時啟用 `SQPOLL` 與 `IOPOLL` 模式。這能實現無 `system call` 提交與無 `interrupt` 完成的極致路徑。代價是會持續佔用 `CPU` 核心進行輪詢，且依然無法發送 `block layer` 不支援的硬體指令。"
+    explanation: |
+      這兩項技術分別針對 `submission` 端的 `system call` 與 `completion` 端的 `interrupt` 進行優化。即便兩者並行，請求在 `kernel` 內部依然是透過標準的 `block layer` 路徑傳遞，因此無法解決 `I/O scheduler` 帶來的延遲，也無法發送非標準的硬體指令。
+  - text: "在開啟檔案時強制使用 `O_DIRECT` 旗標。這能確保資料不經過 `page cache` 而直接寫入硬體。代價是必須滿足特定的記憶體對齊要求，但底層路徑仍受 `block layer` 的規範限制。"
+    explanation: |
+      `O_DIRECT` 的設計目標是消除 `page cache` 的複製與同步開銷。雖然減少了記憶體層級的負擔，但請求進入 `kernel` 後仍會被封裝成標準的 `I/O` 請求並遵循 `block layer` 的排程與處理機制，無法達成對硬體的直接指令控制。
+  - text: "透過調整 `io_uring_setup()` 的參數來增加 `entries` 數量並配合 `batched submission`。這能顯著提升單次 `io_uring_enter` 處理的指令總數。代價是記憶體開銷增加，且無法改變指令在 `kernel` 內部的傳遞路徑。"
+    explanation: |
+      `batching` 技術的核心在於減少頻繁進出 `kernel` 門檻（`system call`）的時間成本。它優化的是指令的提交密度而非處理路徑，指令內容本身仍受限於 `io_uring` 預設的結構定義，無法夾帶不符合規範的硬體指令。

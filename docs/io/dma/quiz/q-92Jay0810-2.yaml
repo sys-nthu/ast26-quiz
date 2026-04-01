@@ -5,25 +5,25 @@ question: |
   系統在以下兩種 workload 上進行測試：
 
   - **Workload A：** 連續掃描大型資料集，每筆資料只讀取一次
-  - **Workload B：** 反覆讀取一個大小為 $2 \times$ DRAM 的資料集，且存取具有時間區域性（temporal locality），其 working set 明顯小於可用 DRAM，因此 page cache hit rate 很高
+  - **Workload B：** 反覆讀取一個大小為 $2 \times$ DRAM 的資料集，且存取具有 temporal locality，其 working set 明顯小於可用 DRAM，因此 page cache hit rate 很高
 
-  實驗結果顯示，Workload A 效能提升，但 Workload B 效能顯著下降。
+  實驗結果顯示，workload A 效能提升，但 workload B 效能顯著下降。
   假設儲存裝置為 NVMe SSD，且 I/O queue depth 足夠高，請選出最合理的解釋：
 options:
-  - text: "在 Workload B 中，direct I/O 無法利用 OS page cache 的 readahead 機制，導致 sequential throughput 下降"
+  - text: "在 workload B 中，direct I/O 無法利用 OS page cache 的 readahead 機制，導致 sequential throughput 下降"
     explanation: |
-      雖然 direct I/O 繞過 page cache，因此也不會使用 OS 的 readahead，但題目中的 Workload B 重點是 temporal locality，而非 sequential throughput。
+      雖然 direct I/O 繞過 page cache，因此也不會使用 OS 的 readahead，但題目中的 workload B 重點是 temporal locality，而非 sequential throughput。
       即使沒有 readahead，主要效能差異仍來自 cache reuse，而不是 prefetch。
-  - text: "在 Workload B 中，由於資料集大於 DRAM，page cache 無法有效運作，因此 direct I/O 與 `read()` 應具有相同效能"
+  - text: "在 workload B 中，由於資料集大於 DRAM，page cache 無法有效運作，因此 direct I/O 與 `read()` 應具有相同效能"
     explanation: |
       題目已明確指出 working set 明顯小於 DRAM，因此 page cache 可以保留大部分 hot data，並達到很高的 hit rate。
       即使整體資料集大於 DRAM，只要存取具有 temporal locality，page cache 仍然能有效降低 I/O 次數。
-  - text: "在 Workload B 中，`read()` 可利用 page cache 保留近期使用的 hot data，而 direct I/O 每次都需從 SSD 重新讀取，導致效能下降"
+  - text: "在 workload B 中，`read()` 可利用 page cache 保留近期使用的 hot data，而 direct I/O 每次都需從 SSD 重新讀取，導致效能下降"
     correct: true
     explanation: |
       `read()` 透過 page cache 保留最近使用的資料，使得具有 temporal locality 的存取可以直接命中 DRAM。
       direct I/O（O_DIRECT）繞過 page cache，使每次讀取都需從 SSD 載入資料，無法利用 locality，導致效能下降。
-  - text: "在 Workload B 中，direct I/O 會限制 I/O queue depth，導致無法充分利用 NVMe 的內部平行性"
+  - text: "在 workload B 中，direct I/O 會限制 I/O queue depth，導致無法充分利用 NVMe 的內部平行性"
     explanation: |
       I/O queue depth 通常由應用程式與 driver 控制，而不是 direct I/O 的直接限制因素。
       在題目假設 queue depth 足夠高的情況下，NVMe 平行性並不是瓶頸。 

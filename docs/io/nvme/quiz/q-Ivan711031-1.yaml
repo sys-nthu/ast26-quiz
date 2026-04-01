@@ -11,10 +11,10 @@ options:
   - text: "由於 Doorbell 屬於硬體暫存器，硬體會自動保證寫入的先後順序。因此，驅動程式在更新 Doorbell 之前，完全不需要使用任何特殊的指令（如 Memory Barrier）來規定順序。"
     explanation: |
       雖然 MMIO 寫入在某些架構下有順序性，但 CPU 對一般記憶體的寫入與對 MMIO 暫存器的寫入可能被處理器重新排序。如果 Doorbell 先被寫入，而 SQ 指令內容還在 CPU Cache 裡沒寫回 DRAM， Controller 透過 DMA 抓到的將會是舊的或錯誤的指令。
-  - text: "驅動程式必須在「寫入指令到記憶體」與「寫入 Doorbell」之間加入一個 Write Barrier，以確保當 Controller 收到通知準備抓取指令時，指令的內容已經在記憶體中準備就緒，能被 Controller讀取到。"
+  - text: "驅動程式必須在「寫入指令到記憶體」與「寫入 Doorbell」之間加入一個 Write Barrier，以確保當 Controller 收到通知準備抓取指令時，指令的內容已經在記憶體中準備就緒，能被 Controller 讀取到。"
     correct: true
     explanation: |
-      因為 CPU 有時候會為了效能調換指令順序。如果 Doorbell比 SQ 指令更早抵達控制器，控制器就會讀到舊的或錯誤的資料。所以必須加一個 Write Barrier 來擋住，確保指令是正確的，Doorbell才更新。
+      因為 CPU 有時候會為了效能調換指令順序。如果 Doorbell 比 SQ 指令更早抵達控制器，控制器就會讀到舊的或錯誤的資料。所以必須加一個 Write Barrier 來擋住，確保指令是正確的，Doorbell 才更新。
   - text: "為了避免多個處理器核心同時寫入 Doorbell 導致硬體發生衝突或當機，驅動程式在每次更新 Doorbell 前，都必須先取得一個 Global Lock，確保同一時間只有一個核心能操作硬體。"
     explanation: |
       NVMe 的設計精髓就是多隊列，每個 CPU 核心可以各跑各的，互不干擾，所以不需要加 Global Lock 來限制效能。

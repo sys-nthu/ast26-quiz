@@ -6,7 +6,7 @@ options:
   - text: "在相同的物理矽晶片面積下，QLC 能提供 4 倍的資料容量，降低單位容量的製造成本"
     correct: true
     explanation: |
-      QLC 每個 Cell 可以儲存 4 個bit，而 SLC 每個 Cell 可以儲存 1 個 bit，在同容量下，QLC 的 Cell 數量是 SLC 的 1/4，因此降低單位容量的製造成本。
+      QLC 每個 Cell 可以儲存 4 個 bit，而 SLC 每個 Cell 可以儲存 1 個 bit，在同容量下，QLC 的 Cell 數量是 SLC 的 1/4，因此降低單位容量的製造成本。
   - text: "QLC 在製成上，浮閘物理上被切分成很多隔間，所以隔間內的製造難度降低了"
     explanation: |
       浮閘並沒有進行物理上的切分處理，而使用閾值來判斷儲存的資料，因此製造難度並沒有降低。

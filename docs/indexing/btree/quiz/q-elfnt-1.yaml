@@ -20,10 +20,10 @@ options:
   - text: "$P > R > Q > S$"
     explanation: |
       Check the correct answer to see the explanation.
-  - text: "$S > P > Q > R$"
+  - text: "$S > Q > P > R$"
     explanation: |
       Check the correct answer to see the explanation.
-  - text: "$R > P > Q > S$"
+  - text: "$Q > P > R > S$"
     explanation: |
       Check the correct answer to see the explanation.
       

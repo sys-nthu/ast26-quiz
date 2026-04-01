@@ -1,0 +1,34 @@
+author: WayneHuang1185
+date: 2026-04-01
+question: |
+  某高 QPS 的 in-memory key-value service 在主查詢路徑前使用 Bloom filter 做 negative lookup pruning。
+  此團隊最近做了效能分析，得到以下結果：
+  -目前有 95% 的查詢，其 key 實際上不存在
+  -Bloom filter 的 false positive rate = 0.6%
+  -一旦發生 false positive，系統就會多做一次後端 exact lookup；這個額外 lookup 成本約為 800 ns
+  另外，Bloom filter 本身的查詢成本如下：
+  -hash　計算成本約 10 ns
+  -每次查詢平均會造成 4 次 cache miss，而每次cache miss 的成本約為 40 ns
+  目前團隊希望優先降低目前的平均查詢延遲，且不希望明顯增加記憶體用量。
+  在這個情境下，下列哪一個調整方向最合理？
+options:
+  - text: 改用 blocked Bloom filter 或其他能讓 probes 更集中於少數 cache lines 的設計
+    correct: true
+    explanation: |
+      這個選項正確指出目前 Bloom filter 的主要成本在於 cache miss，而 blocked Bloom filter 的設計就是為了讓 probes 更集中，降低 cache miss 數量，進而改善平均查詢延遲。
+      主要的成本結構如下：
+      - hash 計算成本：10 ns
+      - cache miss 成本：4 次 × 40 ns = 160 ns
+      - false positive 成本：0.6% × 800 ns = 4.8 ns
+      從此可以看出cache miss 是主要的成本來源，因此改用 blocked Bloom filter 是最合理的調整方向。
+  - text: 進一步增大 bit array，降低FPR，如此可以大幅降地昂貴的exact lookup 成本，進而降低平均查詢成本。
+    explanation: |
+      因為系統的主要瓶頸在於 Bloom filter 的 cache miss 成本，這個選項雖然能降低FPR，但會顯著增加記憶體用量，造成cache miss 數量增加，反而會讓平均查詢延遲變更糟。
+  - text: 改用 Counting Bloom filter，因為 counter 比 bit 擁有更多資訊量，所以能在不改變主要成本結構的情況下，同時改善 Bloom filter 的查詢效率。
+    explanation: |
+      Counting Bloom filter 的主要用途是支援較安全的 deletion，不是改善 cache locality。
+      而且 counter array 通常更大，cache miss 數量反而會增加，導致平均查詢延遲變更糟。
+  - text: 改用更快的 hash function 實作，如此能大幅降低bloom filter 的計算成本，能直接改善平均查詢成本。
+    explanation: |
+      因為目前 Bloom filter 的 hash 計算成本只有 10 ns，相較於 cache miss 的 160 ns 相對要低得多。
+      因此即使改用更快的 hash function，對整體平均查詢延遲的改善也非常有限。

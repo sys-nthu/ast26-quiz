@@ -12,7 +12,7 @@ options:
       QLC 需要更精細的電壓區分，對電壓誤差更敏感，因此並不會增加單位 cell 的 P/E cycle。
   - text: "停用 ECC 機制減少 controller 運算負擔"
     explanation: |
-      少了 ECC，會讓每個 cell 的容錯率降至 0。
+      少了 ECC，cell 雖仍可存放資料，只是無法修正發生的 bit error，反而會加速 cell 的失效，縮短 P/E cycle。
   - text: "大幅調高 P-well 的電壓減少 erase 時間"
     explanation: |
       更容易讓電子衝過氧化層，進而降低 P/E cycle。

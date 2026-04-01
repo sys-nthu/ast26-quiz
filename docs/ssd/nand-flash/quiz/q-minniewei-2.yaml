@@ -1,0 +1,18 @@
+author: minniewei
+date: 2026-04-01
+question: |
+  下列關於提升單位 Cell 的 P/E Cycle 潛力與延長 SSD 整體使用壽命的策略，哪一項是最正確且有效的？
+options:
+  - text: "採用 ISPP (Incremental Step Pulse Programming) 技術"
+    correct: true
+    explanation: |
+      透過逐漸增加脈衝電壓而非一次性高壓，可以減少對 cell 的物理應力，從而延長 P/E cycle。
+  - text: "將儲存架構從 SLC 改為 QLC"
+    explanation: |
+      QLC 需要更精細的電壓區分，對電壓誤差更敏感，因此並不會增加單位 cell 的 P/E cycle。
+  - text: "停用 ECC 機制減少 controller 運算負擔"
+    explanation: |
+      少了 ECC，會讓每個 cell 的容錯率降至 0。
+  - text: "大幅調高 P-well 的電壓減少 erase 時間"
+    explanation: |
+      更容易讓電子衝過氧化層，進而降低 P/E cycle。

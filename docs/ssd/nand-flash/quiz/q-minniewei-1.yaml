@@ -1,0 +1,18 @@
+author: minniewei
+date: 2026-04-01
+question: |
+  在 NAND flash 的 erase 操作中，為了將每個 block 的資料清空 (變成全 1)，WL/BL 會如何協作？
+options:
+  - text: "將該 block 的所有 WL 接地，BL 保持特定電壓，並在 P-well 注入高電壓"
+    correct: true
+    explanation: |
+      在 erase 操作中，WL 會被接地以確保所有 cell 都處於低電壓狀態，而 BL 保持特定電壓以協助將電荷從 floating gate 中移除。P-well 注入高電壓則是為了提供足夠的能量。
+  - text: "將 WL 施加高電壓，BL 施加負電壓"
+    explanation: |
+      這個選項的誤解在於認為施加負電壓可以幫助擦除資料。
+  - text: "將 WL 施加高電壓，BL 保持接地"
+    explanation: |
+      這個選項的錯誤在於 WL 不應該施加高電壓，這是寫入操作的方式，而不是擦除操作。
+  - text: "WL 和 BL 都施加高電壓"
+    explanation: |
+      這個選項的錯誤在於 WL 和 BL 都不應該施加高電壓，這會導致不正確的操作。

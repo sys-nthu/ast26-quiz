@@ -9,7 +9,7 @@ options:
       這是 B+ tree 的核心設計。由於 Internal Node 不存資料，節點內可以容納更多 key （有較高的 Fan-out ），且所有搜尋路徑長度一致。這種設計確保了查詢效能的穩定性，且因為 Internal Node 較小，更容易被快取在記憶體中。
   - text: "在執行 Point Query 時，若 Internal Node 已包含目標 Key ，搜尋可立即在該層停止並回傳資料。"
     explanation: |
-      這是 B-tree 的特性，而非 B+ tree 。在 B+ tree 中，中間節點僅作為「導航」使用，並不儲存實際的資料列或指向資料檔案的指標。即便在中間節點找到了對應的鍵值，搜尋仍必須持續向下進行，直到抵達Leaf Node 。
+      這是 B-tree 的特性，而非 B+ tree 。在 B+ tree 中，中間節點僅作為「導航」使用，並不儲存實際的資料列或指向資料檔案的指標。即便在中間節點找到了對應的鍵值，搜尋仍必須持續向下進行，直到抵達 Leaf Node 。
   - text: "為了優化 Range Query ， B+ tree 在所有層級（包括 Interal Node 與 Leaf Node ）都建立了水平的 Doubly Linked List 。"
     explanation: |
       雖然 B+ tree 確實使用 Linked List 來加速範圍查詢，但這種結構僅存在於 Leaf Nodes 之間。這讓系統在找到範圍的起點後，可以直接順著串列掃描後續資料，而不需要反覆回到 Parent Node 。

@@ -30,7 +30,7 @@ options:
       - $p95 = 0.15$ ms：代表連大部分偏慢的 request 也仍然很快
       - 但 $p99 = 25$ ms、$p99.9 = 60$ ms：代表只有極少數 request 突然變得非常慢
 
-      這正是steady state 下 GC（Garbage Collection）造成的典型現象。
+      這正是 steady state 下 GC（garbage collection）造成的典型現象。
       原因是在 steady state 中，SSD 裡大部分 block 都已經被寫過
       - 新寫入不再能永遠直接使用全新的 erased block
       - controller 必須回收空間
@@ -39,7 +39,7 @@ options:
   - text: "Wear leveling 將資料搬移到較低 P/E cycle 的 block"
     explanation: |
       Wear leveling 確實會搬移資料，因此看起來也可能造成額外延遲。但它通常是
-      **較為平滑且背景式（background）的操作**，目的是讓所有 block 的 P/E cycle
+      **較為平滑且 background 的操作**，目的是讓所有 block 的 P/E cycle
       分布更平均，而不是在空間即將耗盡時緊急回收空間。
       因此 wear leveling 的影響通常是：
       - 輕微增加整體 write latency

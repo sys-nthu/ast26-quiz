@@ -17,4 +17,4 @@ options:
       Bloom Filter 本身就是設計來處理位元 collision 的，這並不會封鎖該結構的運作。
   - text: "它會強迫引擎將該 Bloom Filter 視為失效 invalidated，從而繞過 filter，並對後續該 page 的所有請求都預設執行 data area 的 full scan 。"
     explanation: |
-      引擎並不會追蹤哪些 bits 是過時的 (除非是counting bloom filter 才會把每個 bit 換成一個計數器)，它只會單純根據機率性的結果來執行。
+      引擎並不會追蹤哪些 bits 是過時的 (除非是 counting bloom filter 才會把每個 bit 換成一個計數器)，它只會單純根據機率性的結果來執行。

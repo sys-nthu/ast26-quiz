@@ -2,13 +2,13 @@ author: Smallfu666
 date: 2026-03-20
 question: |
   根據 HotStorage '22 的研究（"When Poll is More Energy Efficient than Interrupt"），在 Ultra-low Latency (ULL) 儲存環境下，Linux Kernel 提供了三種 I/O Completion 機制：
-  1. Interrupt：由硬體發出通知，涉及 Context Switch。
-  2. Classic Polling：CPU 持續在迴圈中檢查狀態（Busy-polling），不釋放 CPU 資源。
+  1. Interrupt：由硬體發出通知，涉及 context switch。
+  2. Classic Polling：CPU 持續在迴圈中檢查狀態（busy-polling），不釋放 CPU 資源。
   3. Hybrid Polling：結合兩者，先讓 Thread 進入 Sleep 再進行 Polling，旨在降低 CPU Utilization。
 
   實驗觀察到一個反直覺的現象：Hybrid Polling 的 CPU Utilization 雖然明顯低於 Classic Polling，但其整機 Power Consumption 卻反而較高。請問造成此現象的核心繫統原因為何？
 options:
-  - text: "Hybrid Polling 在 Poll 階段會強制鎖定 PCIe Bus 的 Bandwidth，導致 Data Path 產生 Congestion 並消耗額外的 Energy。"
+  - text: "Hybrid Polling 在 Poll 階段會強制鎖定 PCIe Bus 的 bandwidth，導致 Data Path 產生 Congestion 並消耗額外的 Energy。"
     explanation: |
       Polling 行為僅是讀取 Memory-mapped I/O Register，並不會對 PCIe Bus 造成實質性的 Congestion 與 Energy 損耗。
   - text: "Classic Polling 模式能透過持續存取讓 CPU 維持在最低的 Clock Frequency（DVFS），從而降低整體 Power Consumption。"
@@ -17,7 +17,7 @@ options:
   - text: "Hybrid Polling 會強制觸發 CPU 的深度 C-state 切換，導致 SSD 的 DMA 控製器必須反覆重啟，增加了硬體端的 Power Consumption。"
     explanation: |
       論文指出 Power Consumption 增加主要來自 Host 端處理 Scheduling 與 Timer 的 Software Overhead，與 SSD 端的 DMA 或硬體狀態無關。
-  - text: "為了管理 Sleep 與喚醒機制，Kernel Scheduler 產生的 Context Switch 與 hrtimer 維護成本導致了大量的 Load/Store 指令開銷，其 Power Overhead 超過了單純 Busy-polling。"
+  - text: "為了管理 Sleep 與喚醒機制，Kernel Scheduler 產生的 context switch 與 hrtimer 維護成本導致了大量的 Load/Store 指令開銷，其 Power Overhead 超過了單純 busy-polling。"
     correct: true
     explanation: |
       系統軟體在極短 Latency 內頻繁切換 Thread 狀態與處理 Timer 的 Fixed Cost 極高。相比之下，Classic Polling 雖然佔用 CPU Cycle，但其 Execution Path 極簡，產生的額外 Instruction Overhead 反而較小。

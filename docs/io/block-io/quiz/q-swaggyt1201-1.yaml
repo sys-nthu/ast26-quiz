@@ -11,16 +11,16 @@ options:
       若要維持 500K IOPS 且每次讀 128KB，硬體頻寬必須達到 64GB/s，遠超硬體極限。
   - text: "IOPS 將提升至 1M 以上，因為 128KB 的大區塊請求會被控制器自動判定為 Sequential I/O 並進行加速。"
     explanation: |
-      隨機（Random）或順序（Sequential）是由 LBA（邏輯區塊位址）是否連續決定的，跟單一 Page 的大小無關。
-      即便 Page 很大，只要每次讀取的位置在磁碟上是跳躍的，它依然屬於 Random I/O。
-  - text: "Throughput 會下降，因為 SSD 處理 128KB 隨機資料塊的內耗（Internal Overhead）遠高於處理 4KB。"
+      Random 或 Sequential 是由 LBA（邏輯區塊位址）是否連續決定的，跟單一 Page 的大小無關。
+      即便 Page 很大，只要每次讀取的位置在磁碟上是跳躍的，它依然屬於 random I/O。
+  - text: "Throughput 會下降，因為 SSD 處理 128KB random I/O 的 Internal Overhead 遠高於處理 4KB。"
     explanation: |
-      事實上，Page Size 變大通常會讓 Throughput 上升或維持在頂峰。
+      事實上，Page Size 變大通常會讓 throughput 上升或維持在頂峰。
       處理一個 128KB 的請求，控制器只需要進行 1 次地址轉換；若拆成 32 個 4KB 請求，則需 32 次流程。
       因此，加大 Page Size 反而能更有效率地利用頻寬。
-  - text: "IOPS 將大幅下降至約 31K 左右，因為系統會先觸發 Bandwidth 的硬體物理頻寬瓶頸。"
+  - text: "IOPS 將大幅下降至約 31K 左右，因為系統會先觸發 bandwidth 的硬體物理頻寬瓶頸。"
     correct: true
     explanation: |
       當請求大小變為 128KB 時，達到 500K IOPS 需要 500K x 128KB = 64GB/s。
       然而硬體上限僅 4GB/s，因此實際 IOPS 會被限制在 4000MB/128KB \approx 31250。
-      這說明瓶頸已從 IOPS 轉向了 Bandwidth。
+      這說明瓶頸已從 IOPS 轉向了 bandwidth。

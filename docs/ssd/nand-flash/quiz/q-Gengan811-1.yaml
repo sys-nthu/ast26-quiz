@@ -1,7 +1,7 @@
 author: Gengan811
 date: '2026-03-08'
 question: |
-  A data center recently replaced its `SLC`-based caching tier with `QLC` SSDs to save costs. After a year of heavy write workloads, the system administrators notice a severe increase in **read tail latency**, even when there are no ongoing background Garbage Collection (GC) operations. 
+  A data center recently replaced its `SLC`-based caching tier with `QLC` SSDs to save costs. After a year of heavy write workloads, the system administrators notice a severe increase in **read tail latency**, even when there are no ongoing background garbage collection (GC) operations. 
   
   Based on the physical characteristics of NAND flash and error correction mechanisms, what is the fundamental reason for this read latency degradation?
 options:
@@ -11,7 +11,7 @@ options:
       This is correct. `QLC` stores 4 bits per cell, requiring 16 tight voltage levels. As `P/E cycles` increase, oxide damage causes these levels to widen and overlap. To recover data, the SSD controller uses advanced ECC like **LDPC soft-decision decoding**, which physically requires sensing the cell multiple times with different voltage thresholds, drastically increasing the read latency.
   - text: "`QLC` erase blocks are significantly larger than `SLC` erase blocks (e.g., 16MB vs. 2MB). Therefore, even without GC, the read operations must wait longer for the larger blocks to be physically energized before the pages can be sensed."
     explanation: |
-      This represents a misconception about the operational granularity of NAND flash. While `QLC` **blocks** are larger, the fundamental unit of a read operation is a **Page** (typically 4-16 KB). Block size primarily affects Erase operations and Garbage Collection overhead, not the inherent time it takes to read a static page.
+      This represents a misconception about the operational granularity of NAND flash. While `QLC` **blocks** are larger, the fundamental unit of a read operation is a **Page** (typically 4-16 KB). Block size primarily affects Erase operations and garbage collection overhead, not the inherent time it takes to read a static page.
   - text: "Because `QLC` cells can only endure around 1,000 `P/E cycles`, the SSD firmware artificially throttles the read speed to prevent **read disturb** errors from wearing out the remaining lifespan of the cells."
     explanation: |
       This is a misconception about how SSD firmware handles device aging. While **read disturb** is a real phenomenon where reading a cell affects adjacent cells, controllers do not artificially throttle read speeds to prevent it. Instead, they might trigger a background data refresh. The latency spike here is due to physical sensing difficulty, not artificial firmware throttling.

@@ -1,7 +1,7 @@
 author: vinwerill  
 date: 2026-04-01  
 question: |
-  在資料庫系統中，Slotted Page 結構通常被用於管理頁面內的記錄（records）。請問在以下四種理由中，哪一個最能解釋「何種類型的資料最適合使用 Slotted Page 結構」？  
+  在設計資料庫的 page layout 時，工程師需要根據資料特性選擇合適的儲存結構。Slotted Page 是一種常見的頁面內資料管理方式。請問在以下情境中，哪一種最適合使用 Slotted Page？  
 options:  
   - text: "**商品描述 或 使用者備註**，通常是可變長文字欄位。"  
     correct: true  
@@ -12,10 +12,10 @@ options:
     explanation: |
       這類固定長度欄位資料可直接用連續陣列儲存，不需要 slot table 管理，因此使用 Slotted Page 的效益不大。  
 
-  - text: "**產品規格 或 價格列表**，欄位長度通常固定 或 變化不大，例如尺寸、顏色、價格欄位。"  
+  - text: "**產品規格 或 價格列表**，欄位長度為變長但變動幅度不大，因此使用固定長度配置也不會造成明顯空間浪費。"  
     explanation: |
-      這類資料雖然包含多個欄位，但每個欄位大小固定 或 變動幅度很小，Slotted Page 的彈性管理優勢不明顯，使用簡單結構即可有效儲存。  
+      當欄位雖為 variable length，但實際長度差異很小時，可以用固定長度配置簡化設計，且不會造成顯著的空間浪費，因此 Slotted Page 的優勢有限。  
 
-  - text: "**用戶登入紀錄**，例如每次登入的時間戳 與 使用者 ID。"  
+  - text: "**訂單建立日期 或 出貨日期**，固定長度的日期欄位格式。"  
     explanation: |
-      這類資料以固定長度欄位為主，且通常以 append-only 方式寫入，Slotted Page 的 slot table 彈性管理並不會帶來明顯好處。
+      這類日期資料通常為固定長度欄位，例如 timestamp 或 date type，可直接以規則排列方式儲存，不需要 Slotted Page 的 slot table 來管理變動長度資料。

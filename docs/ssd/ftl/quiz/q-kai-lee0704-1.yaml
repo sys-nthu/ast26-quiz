@@ -14,10 +14,10 @@ options:
   - text: "SSD 採用 out-of-place write 策略，但 FTL 尚未完成 mapping 的更新"
     correct: true
     explanation: |
-      mapping 尚未更新導致還指向舊資料
+      out-of-place write 把新資料寫到新的 physical page，重啟後 mapping仍指向舊的physical page，所以讀到舊資料；新資料雖然存在 NAND 中，但沒有 mapping 指向它，等同不可見
   - text: "block 因為斷電導致被 erase"
     explanation: |
       block 的 erase 不會因為斷電而突然發生，而是需要對整個 block 施加高電壓
-  - text: "SSD 使用 write buffer，buffer 尚未 flush 到 NAND"
+  - text: "斷電導致 NAND 中的新資料覆寫了舊資料的一部份，造成新舊資料混雜而無法讀取正確內容"
     explanation: |
-      buffer 已有 flush 到 NAND，因此 NAND 裡已有新資料，只是 mapping 來不及更新
+      根據 out-of-place write 機制，每次寫入都會選擇空白的 new page 寫入，而非直接 erase block 來進行資料的改動

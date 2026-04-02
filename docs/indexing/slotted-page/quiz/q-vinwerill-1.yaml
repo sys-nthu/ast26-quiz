@@ -6,7 +6,7 @@ options:
   - text: "**商品描述 或 使用者備註**，通常是可變長文字欄位。"  
     correct: true  
     explanation: |
-      Slotted Page 透過 slot table 管理每個記錄的起始位置與長度，非常適合這類變長欄位資料。它能有效利用頁面空間，避免內部碎片，並方便在頁面內進行插入、刪除 或 更新操作。  
+      Slotted Page 透過 slot table 管理每個記錄的起始位置與長度，非常適合這類變長欄位資料。它能有效利用頁面空間，避免 fixed-length layout 為每筆 record 預留最大空間造成的空間浪費，並方便在頁面內進行插入、刪除 或 更新操作。  
 
   - text: "**訂單編號 或 會員 ID**，固定長度整數欄位。"  
     explanation: |

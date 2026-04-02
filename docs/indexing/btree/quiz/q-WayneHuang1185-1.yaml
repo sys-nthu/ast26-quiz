@@ -1,0 +1,24 @@
+author: WayneHuang1185
+date: 2026-04-02
+question: |
+  在某大型購物資料庫中，為了讓使用者按下「查看訂單」時能立即獲得結果，系統採用了 B+Tree 索引。
+  對於 B+Tree 物理結構與磁碟 I/O 的分析，下列哪一個敘述最正確？
+options:
+  - text: 在 Inner Node 執行 Prefix Truncation，主因是為了讓單個 Page 塞入更多指標以提升 Fan-out，進而降低樹的高度並減少磁碟讀取次數。
+    correct: true
+    explanation: |
+      Prefix Truncation 可以有效地降低 Inner Node 中 Key 的大小
+      使得每個 Page 可以容納更多的指標，從而提升 Fan-out，降低樹的高度，減少磁碟讀取次數，提升查詢效率。
+  - text: B+Tree 的 Leaf Node 之間使用 Doubly Linked List 串接，其主要目的是為了加快點查詢（Point Lookup）的速度，避免每次都必須從 Root 節點開始搜尋。
+    explanation: |
+      使用 Doubly linked list 串接 Leaf Node 的主要目的是為了加快 Range Query 的速度
+      而 Point Lookup 的速度主要是由 B+Tree 的高度決定的。
+  - text: 為了提升讀取效能，B+Tree 刻意讓 Inner Node 也存儲部分 Data Record，這樣在搜尋時就有機會在中間層直接命中，而不必一路走到 Leaf Node。
+    explanation: |
+      B+Tree 的設計原則是 Inner Node 只存儲 Key 和指標，不存儲 Data Record。
+      而且如果在 Inner Node 存儲 Data Record，反而會降低 Fan-out，增加樹的高度，進而導致有些查詢需要更多的disk I/O。
+  - text: 假設 Fan-out = 500，處理一千萬筆訂單時，B+Tree 的高度約為 3 層；而若改用二元搜尋樹（BST），高度將達到 24 層。這意味著 B+Tree 在硬碟上的查詢速度會比 BST 快上約 8 倍。
+    explanation: |
+      雖然在數字上，I/O所需次數確實差到了8倍，但實際上因為B+Tree的前面兩層常常會在cache中，所以實際上實際物理讀取可能僅 1 次
+      而BST因為其資料結構特性，節點在記憶體或磁碟中通常是離散分布的，導致很難被cache命中，因此實際的物理讀取次數可能會接近24次，這樣的差距遠超過8倍。
+      

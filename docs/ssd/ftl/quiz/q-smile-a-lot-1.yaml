@@ -14,9 +14,9 @@ options:
       場景甲只需對單一 data block 進行一次 full merge，代價為 $N$ 次 page 讀取與 $N$ 次 page 寫入。
       而在場景乙中，由於 $N$ 個 pages 散落在 $N$ 個不同的 data block，且每個 block 都只有 $1$ 個 page 在 log block 中，FTL 必須針對這 $N$ 個 data blocks 各別執行一次 full merge（讀取該 block 原本的 $N-1$ 個舊 page 加上 log block 中的 $1$ 個新 page，再寫入新 block）。
       這導致總讀寫次數膨脹為 $N \times N$ 次（即場景甲的 $N$ 倍），並需要抹除 $N$ 個舊 data blocks 與 $1$ 個 log block，總計 $N + 1$ 次。
-  - text: "場景甲與場景乙造成的系統延遲與寫入放大（write amplification）完全相同，因為兩者都是在回收一個滿的 log block。"
+  - text: "場景甲與場景乙造成的系統延遲與 write amplification 完全相同，因為兩者都是在回收一個滿的 log block。"
     explanation: |
-      這個選項忽略了 log block 的關聯性（associativity）。當 log block 內的資料散落在不同 data blocks 時，FTL 無法在單次操作中完成重組，必須觸發多次獨立的合併流程，導致系統開銷成倍數暴增。
+      這個選項忽略了 log block 的 associativity。當 log block 內的資料散落在不同 data blocks 時，FTL 無法在單次操作中完成重組，必須觸發多次獨立的合併流程，導致系統開銷成倍數暴增。
   - text: "場景乙可以透過 switch merge 直接取代舊資料，因此只需要執行 $0$ 次 page 讀取與 $1$ 次 block 抹除。"
     explanation: |
       Switch merge 只能發生在 log block 內的資料與原本的 data block 完全一致（同一個 block 且順序相同）的情況下。場景乙的資料分散在多個不同的 blocks 且題目已限制必須執行 full merge，因此絕對無法使用 switch merge。

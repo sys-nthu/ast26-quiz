@@ -1,0 +1,35 @@
+author: b0yi
+date: 2026-04-01
+question: |
+  某個資料庫系統採用 slotted page，並以 `(page_id, slot_id)` 作為 record 的外部識別（RID）。
+  B+Tree index 的 leaf node 直接儲存這些 RID 作為指向 heap record 的 pointer。
+
+  現在考慮以下操作序列：
+
+  1. 某個 page 中已有 6 筆 records，分別對應 slot 0～5，且該 table 上有一個 B+Tree index。
+  2. DELETE slot 2 的 record；系統將該 slot 標記為 unused，heap area 留下一個洞洞。
+  3. 緊接著，INSERT 一筆新 record。
+  4. 工程師甲說：「slot 2 已經是 unused，直接把新 record 分配到 slot 2 就好，這樣不用讓 slot array 再往後長。」
+  5. 工程師乙說：「不行，即使 slot 2 是 unused，立刻重用這個 slot 仍然有問題。」
+
+  工程師乙的說法正確嗎？原因最接近下列哪一個描述？
+
+options:
+  - text: "工程師乙正確。因為 slot array 只能往後增長，slotted page 在結構上根本不允許重用中間的 unused slot，否則 `pd_lower` 指標的語義會被破壞。"
+    explanation: |
+      重用 unused slot 不需要動 `pd_lower`，`pd_lower` 只追蹤 slot array 的末端。
+      結構上完全允許，問題在於「安不安全」，而非「能不能」。
+  - text: "工程師乙正確。因為 B+Tree index 的 leaf node 可能仍然持有指向 `(page_id, 2)` 的 pointer；若把新 record 放到 slot 2，這個 index entry 就會變成 dangling pointer，指向完全不同的 record。"
+    correct: true
+    explanation: |
+      Slot indirection 保護的是「同一筆 record 在 page 內搬移」，前提是 slot 的身份不變。
+      重用 slot 給另一筆 record 會讓舊 index entry `(page_id, 2)` 成為 dangling pointer，
+      刪除 heap record 並不會自動清除 index entry，兩者生命週期獨立。
+  - text: "工程師甲正確。DELETE 已經把 slot 2 標記為 unused，代表任何人都無法再透過正常查詢存取它。此時重用 slot 2 完全安全，也能省下 slot array 不必要的增長。"
+    explanation: |
+      Unused 標記只代表對新查詢不可見，B+Tree index entry 不會因此自動消失。
+      外部仍可能持有指向 slot 2 的 pointer，重用會造成 dangling pointer。
+  - text: "工程師甲正確。Slot indirection 的設計目的就是讓 slot 可以自由重用，只要更新 slot array 裡的 (offset, length) 即可，外部 pointer 透過 slot array 查詢時自然會讀到新位置。"
+    explanation: |
+      Indirection 保護的是「同一個 slot 的 offset 改變」，不是「slot 換了主人」。
+      外部 pointer 透過 slot_id 找到的永遠是同一個邏輯身份，重用後身份已被替換，indirection 無法修正這個問題。

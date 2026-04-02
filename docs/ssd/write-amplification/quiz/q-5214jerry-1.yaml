@@ -2,14 +2,14 @@ author: 5214jerry
 date: 2026-03-16
 question: |
   在缺乏大量超額配置 (Over-provisioning) 空間的消費級 SSD 中，
-  哪一種 I/O 工作負載模式會導致最嚴重的寫入放大 (Write Amplification) 現象？
+  哪一種 I/O 工作負載模式會導致最嚴重的寫入放大 (write amplification) 現象？
 
 options:
   - text: "針對大檔案進行持續且密集的循序寫入。"
     
     explanation: |
       當這個大檔案未來被使用者修改或刪除時，通常是整批資料一起過期。
-      因此，這個物理區塊內的所有Pages 會同時變成無效 (Invalid) 狀態。
+      因此，這個物理區塊內的所有 Pages 會同時變成無效 (Invalid) 狀態。
   - text: "長時間進行大量的純讀取操作，偶爾穿插小檔案的寫入。"
     explanation: |
       讀取不會消耗可用的空白區塊。寫入頻率極低，SSD 有非常充裕的時間與空白空間來處理這些零星的小檔案寫入。

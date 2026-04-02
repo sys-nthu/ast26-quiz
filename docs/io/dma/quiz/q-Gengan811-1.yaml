@@ -1,7 +1,7 @@
 author: Gengan811
 date: '2026-03-21'
 question: |
-  某資料庫工程師為了解決系統 CPU 負載過高的問題，決定將儲存引擎的讀取路徑全面改寫為 **零拷貝 I/O（Zero-copy I/O，例如使用 Linux 的 `O_DIRECT`）**。該資料庫的工作負載（Workload）主要集中在「頻繁反覆讀取同一批熱點索引區塊（Hot index blocks）」。
+  某資料庫工程師為了解決系統 CPU 負載過高的問題，決定將儲存引擎的讀取路徑全面改寫為 **零拷貝 I/O（Zero-copy I/O，例如使用 Linux 的 `O_DIRECT`）**。該資料庫的 workload 主要集中在「頻繁反覆讀取同一批熱點索引區塊（Hot index blocks）」。
   
   改寫上線後，工程師原本預期能省下大量的 CPU `memcpy` 開銷並提升效能，但實際測試卻發現資料庫的讀取延遲大幅增加，整體吞吐量嚴重衰退。根據 DMA 與 I/O 軟體堆疊的原理，造成此反直覺現象的最主要原因是什麼？
 options:

@@ -3,27 +3,27 @@ date: 2026-03-18
 question: |
   你有一個 SSD，規格如下：
 
-  - Bandwidth 上限：1.5 GiB/s
+  - bandwidth 上限：1.5 GiB/s
   - 當 CPU 的 interrupt 高於每秒 380 千次，會出現 interrupt storm，所以會切換成 Polling 模式。
-  - 假設可以直接用 Bandwidth = IOPS * IO Size，來算 IOPS。
+  - 假設可以直接用 bandwidth = IOPS * IO Size，來算 IOPS。
 
   今天我先 Random 4KiB read 一陣子，再 Sequential 256KiB write 一陣子。
-  請問在操作1的 4KiB 負載下，該 SSD 的 IOPS 表現最接近每秒幾千次，以及兩個操作的 CPU 模式？
+  請問在操作 1 的 4KiB 負載下，該 SSD 的 IOPS 表現最接近每秒幾千次，以及兩個操作的 CPU 模式？
 
 options:
-  - text: "每秒 393 千次；操作1: Polling 模式；操作2: Interrupt 模式"
+  - text: "每秒 393 千次；操作 1: Polling 模式；操作 2: Interrupt 模式"
     correct: true
     explanation: |
       GiB 是以 1024 為基底的單位，所以 1.5 GiB/s = 1.5 * 1024 * 1024 KiB/s。
-      操作1: 1.5 * 1024 * 1024 / 4 = 每秒 393 千次。所以是 Polling 模式。
-      操作2: 1.5 * 1024 * 1024 / 256 = 每秒 6.144 千次。所以是 Interrupt 模式。
-  - text: "每秒 393 千次；操作1: Interrupt 模式；操作2: Interrupt 模式"
+      操作 1: 1.5 * 1024 * 1024 / 4 = 每秒 393 千次。所以是 Polling 模式。
+      操作 2: 1.5 * 1024 * 1024 / 256 = 每秒 6.144 千次。所以是 Interrupt 模式。
+  - text: "每秒 393 千次；操作 1: Interrupt 模式；操作 2: Interrupt 模式"
     explanation: |
-      操作1中，每秒 393 千次大於每秒 380 千次，所以會出現 interrupt storm，會切換成 Polling 模式。
-  - text: "每秒 375 千次；操作1: Interrupt 模式；操作2: Interrupt 模式"
+      操作 1 中，每秒 393 千次大於每秒 380 千次，所以會出現 interrupt storm，會切換成 Polling 模式。
+  - text: "每秒 375 千次；操作 1: Interrupt 模式；操作 2: Interrupt 模式"
     explanation: |
       GiB 是以 1024 為基底的單位，而 GB 是以 1000 為基底的單位。
       所以不小心算成 1.5 * 1000 * 1000 / 4 = 每秒 375 千次。
-  - text: "每秒 6.144 千次；操作1: Interrupt 模式；操作2: Interrupt 模式"
+  - text: "每秒 6.144 千次；操作 1: Interrupt 模式；操作 2: Interrupt 模式"
     explanation: |
-      題目的敘述是需要求操作1的 IOPS 表現最接近每秒幾千次，而不是計算操作2。
+      題目的敘述是需要求操作 1 的 IOPS 表現最接近每秒幾千次，而不是計算操作 2。

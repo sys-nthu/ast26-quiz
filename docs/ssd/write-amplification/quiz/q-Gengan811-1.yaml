@@ -3,12 +3,12 @@ date: '2026-03-15'
 question: |
   某企業儲存系統同時處理頻繁更新的交易紀錄 (**Hot data**) 與幾乎不修改的歷史封存檔案 (**Cold data**)。最初，這兩種資料被混合寫入 SSD 的同一個 Erase Block 中，導致系統的 GC 寫入放大 (WAF) 居高不下。
   
-  工程師隨後在應用層實作了**「冷熱分離 (Hot/Cold Data Separation)」**，強制將這兩類資料分開寫入不同的 Block。根據講義中 GC 寫入放大的估算公式 `$WAF_{gc} = 1 / (1 - valid\_ratio)$`，為什麼這個架構改動能大幅降低整體的 WAF？
+  工程師隨後在應用層實作了**「冷熱分離 (Hot/cold data Separation)」**，強制將這兩類資料分開寫入不同的 Block。根據講義中 GC 寫入放大的估算公式 `$WAF_{gc} = 1 / (1 - valid\_ratio)$`，為什麼這個架構改動能大幅降低整體的 WAF？
 options:
   - text: "集中存放的 Hot block 內的資料會迅速被多次覆寫而失效，導致該 Block 的 `valid_ratio`（有效頁面比例）極低。當 GC 挑選這些 Block 作為回收對象時，幾乎不需要搬移 (Copy-forward) 任何有效資料即可回收一整塊空間。由於被回收的 Block 其 `valid_ratio` 趨近於 0，根據公式計算，`$WAF_{gc}$` 就會自然逼近於理想值 1。"
     correct: true
     explanation: |
-      這是正確的。根據講義，GC 造成的 WAF 與 Victim block 的 **valid page ratio** 直接相關。如果冷熱資料混寫，Block 內總是會殘留那些「不會被更新的 Cold data」，導致 `valid_ratio` 卡在中間（例如 0.5），計算出的 `$WAF_{gc} = 2$`。實施冷熱分離後，Hot block 會迅速充滿 Invalid pages（`valid_ratio` 降至接近 0）；而 Cold block 則充滿 Valid pages 且不會被 GC 挑中。GC 專挑 Hot block 下手，搬運成本極低，大幅降低了整體的寫入放大。
+      這是正確的。根據講義，GC 造成的 WAF 與 Victim block 的 **valid page ratio** 直接相關。如果冷熱資料混寫，Block 內總是會殘留那些「不會被更新的 Cold data」，導致 `valid_ratio` 卡在中間（例如 0.5），計算出的 `$WAF_{gc} = 2$`。實施冷熱分離後，Hot block 會迅速充滿 invalid pages（`valid_ratio` 降至接近 0）；而 Cold block 則充滿 Valid pages 且不會被 GC 挑中。GC 專挑 Hot block 下手，搬運成本極低，大幅降低了整體的寫入放大。
   - text: "將冷資料獨立出來後，Cold block 會長期保持極高的 `valid_ratio`（接近 100%）。根據公式 `$WAF_{gc} = 1 / (1 - valid\_ratio)$`，當 `valid_ratio` 數值越高時，分母越小，計算出來的 WAF 值就會越低，從而成功拉低了系統整體的平均寫入放大。"
     explanation: |
       這是一個嚴重的數學與邏輯迷思。根據公式 `$WAF_{gc} = 1 / (1 - valid\_ratio)$`，當 `valid_ratio` 越高（例如接近 0.99 時），分母會變成 0.01，計算出的 WAF 會飆升至 100（極度惡化）。實際上，GC 演算法會**刻意避開**去回收高 `valid_ratio` 的 Cold block，而是專攻低 `valid_ratio` 的 Hot block 來降低搬運成本。

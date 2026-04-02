@@ -1,0 +1,30 @@
+author: joanne-09
+date: 2026-03-29
+question: |
+  工程師在一個對延遲極度敏感的 key-value store 中同時啟用了 SQPOLL 和 IOPOLL 模式，並搭配 O_DIRECT。系統上線後觀察到以下現象：
+
+  在 I/O 持續密集的時間段（每秒超過 80 萬次 I/O），延遲表現非常好。
+  但在每天凌晨 3~4 點的低峰期（請求稀疏，常出現數秒的空窗期），偶爾會出現單筆請求延遲突然飆升到數十 ms 的情況，而且這種高延遲的發生是週期性的、而不是持續性的。
+
+  請問最可能造成凌晨低峰期 **週期性延遲飆升** 的原因是什麼？
+options:
+  - text: |
+      IOPOLL 在低 I/O 負載下會造成 kernel busy-wait 的時間拉長。因為 NVMe 裝置在 I/O 少的時候進入省電模式，response time 變慢，kernel polling thread 需要 busy-wait 更長時間才能等到 completion，導致單筆 I/O 的延遲上升。
+    explanation: |
+      這個解釋混淆了因果關係。IOPOLL 的 busy-wait 確實佔用 CPU，但它讓延遲 **更低** 而非更高，因為省掉了 interrupt 的 delivery overhead。
+      NVMe 省電模式確實存在，但這會讓所有 I/O 都變慢，不會造成週期性飆升，更不符合低峰期才出現的模式。
+  - text: |
+      SQPOLL 的 kernel polling thread 在低 I/O 負載下會因為長時間沒有新的 SQE 而進入睡眠狀態。下一個 I/O 請求到來時，則必須把它叫醒，但這個 wake-up 本身有一定的延遲。因此在低峰期 I/O 稀疏的情況下，每次 idle sleep 過後的第一批請求需要等待喚醒，造成週期性的延遲飆升。
+    correct: true
+    explanation: |
+      週期性這個關鍵詞是核心線索：不是每個請求都慢，而是 polling thread 睡著之後的第一個請求才慢，之後 polling thread 醒著的這段時間請求都正常，直到下一次 idle timeout 觸發。這個模式完全符合 SQPOLL idle timeout 機制的行為。
+      且 SQPOLL 適合的場景是 I/O 非常密集、需要最低延遲的 workload。如果你的 I/O 是偶爾才來一個，SQPOLL 就是在浪費 CPU。
+  - text: |
+      IOPOLL 模式要求呼叫 io_uring_enter() 時 kernel 在 kernel space busy-wait。在低峰期，因為同時執行的 I/O 請求少，busy-wait 的競爭降低，反而讓 kernel 把更多 CPU 時間花在其他系統任務上，造成 I/O completion 的處理被延後。
+    explanation: |
+      這個邏輯是自相矛盾的。IOPOLL 的 busy-wait 是主動輪詢 NVMe CQ，它不會因為競爭降低就把 CPU 讓給其他任務。低峰期 I/O 少反而讓每次 busy-wait 更快結束（因為等待的 I/O 少），不會造成延遲飆升，更不會是週期性的現象。
+  - text: |
+      同時啟用 SQPOLL 和 IOPOLL 在低負載下會造成兩個 polling thread 之間的 CPU 資源競爭。在高負載時兩者都有足夠的工作要做，分工明確；在低負載時兩者都在 idle spinning，競爭同一個 CPU core 的使用權，造成 context switch overhead 上升，間接拖慢 I/O 延遲。
+    explanation: |
+      SQPOLL 是 kernel polling thread 監控 SQ，IOPOLL 是呼叫 io_uring_enter() 的 thread 在 kernel space busy-wait，這兩者的運作機制不同，不會形成兩個 polling thread 競爭同一 core 的情況。
+      且這個解釋無法說明為何延遲飆升是 **週期性** 的，而不是持續性的。競爭導致的延遲應該在低負載時持續存在，而不是像脈衝一樣週期性出現。

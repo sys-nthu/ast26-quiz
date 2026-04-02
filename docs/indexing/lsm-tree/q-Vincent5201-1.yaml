@@ -1,0 +1,19 @@
+author: Vincent5201
+date: 2026-04-02
+question: |
+  結合 LSM-tree、B+tree，與 TLC、QLC 的物理特性，以下觀念何者錯誤?
+options:
+  - text: "B+tree 雖然查詢時的 disk I/O 次數少，但其 In-place update 產生的隨機寫入對 QLC 不友善。"
+    explanation: |
+      正確敘述。B+tree 的隨機寫入對於 P/E Cycle 極低的 QLC 來說，會嚴重縮短其壽命。
+  - text: "LSM-tree 的 Compaction 會產生大量額外寫入，對 SSD 的 P/E Cycle 消耗較大。"
+    explanation: |
+      正確敘述。LSM-tree 的核心機制會造成資料先被重複寫入之後再來整理，因此 WAF 極高。
+  - text: "LSM-tree 將隨機寫入轉化為順序寫入，因此是目前最適合 QLC SSD 的資料結構。"
+    correct: true
+    explanation: |
+      LSM-tree 順序寫入沒錯，但他的高 WAF 會快速消耗 QLC 的 P/E Cycle，因此不一定最適合 QLC。
+  - text: "在讀取密集且寫入極少的場景下，B+tree 搭配 QLC 是一個兼顧查詢效率與儲存成本的配置。"
+    explanation: |
+      正確敘述。在寫入極少的前提下，避開了 QLC 寫入壽命的短板。
+      

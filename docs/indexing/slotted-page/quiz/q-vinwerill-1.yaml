@@ -15,7 +15,7 @@ options:
 
   - text: "**報表分析資料**，不經常寫入，但需要高效的 sequential scan 存取，通常以連續儲存方式來提升讀取效能。"  
     explanation: |
-      這類 workload 以大量連續讀取為主，重視 cache locality 與資料連續性。Slotted Page 的 indirection（slot → record）會增加額外存取成本，降低掃描效能，因此較適合使用連續儲存。  
+      這類 workload 以大量連續讀取為主，重視 cache locality 與資料連續性。Slotted Page 的 indirection（slot → record）提供的彈性（如 variable-length 支援、record 搬移）在此場景下派不上用場，額外的 slot table 只增加空間開銷而沒有帶來好處。
 
   - text: "**系統操作日誌**，資料以 append-only 方式持續寫入，幾乎不會進行刪除或更新，例如使用者行為紀錄。"  
     explanation: |

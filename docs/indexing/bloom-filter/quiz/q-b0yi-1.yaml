@@ -1,0 +1,35 @@
+author: b0yi
+date: 2026-04-02
+question: |
+  某個 LSM-Tree based 的 key-value store 需要頻繁刪除過期資料。
+  工程師甲提議把每個 SSTable 上的標準 Bloom filter（每個位置 1 bit）換成 counting Bloom filter
+  （每個位置改用 4-bit 計數器），以便安全地支援刪除操作。
+
+  工程師乙針對這個提議提出了兩個觀察：
+
+  - 觀察 A：「Counting Bloom filter 的記憶體用量是標準版的 4 倍。」
+  - 觀察 B：「換成 counting Bloom filter 之後，就完全不會有 false positive 了。」
+
+  下列哪個選項對兩個觀察的判斷都正確？
+
+options:
+  - text: "觀察 A 正確，觀察 B 正確。Counting Bloom filter 把每個 bit 換成 4-bit 計數器，記憶體變 4 倍；計數器讓插入與刪除精確配對，所以消除了 false positive。"
+    explanation: |
+      觀察 A 正確，但觀察 B 錯誤。False positive 來自不同元素的 hash 位置重疊，
+      與計數器無關。只要 bit array 夠滿，未插入的元素仍可能碰巧讓所有對應位置的計數器都大於 0，
+      回答「可能存在」。Counting Bloom filter 解決的是「能否安全刪除」，不是「能否消除 false positive」。
+  - text: "觀察 A 正確，觀察 B 錯誤。每個位置從 1 bit 換成 4 bits，記憶體確實變 4 倍；但 counting Bloom filter 只是允許安全刪除，false positive 仍然存在。"
+    correct: true
+    explanation: |
+      計數器讓刪除操作可以精確 undo：插入時計數器加 1，刪除時減 1，
+      不會誤清其他元素共享的計數器，因此不會產生 false negative。
+      但 false positive 的根本原因是 hash collision，計數器改變不了這一點。
+  - text: "觀察 A 錯誤，觀察 B 錯誤。4-bit 計數器讓每個位置能表示 0～15，記憶體不只變 4 倍；且 false positive 依然無法消除。"
+    explanation: |
+      記憶體用量的計算是正確的：1 bit → 4 bits，剛好變 4 倍，觀察 A 正確。
+      4-bit 計數器的表示範圍（0～15）是設計細節，不影響總記憶體倍率的計算方式。
+  - text: "觀察 A 錯誤，觀察 B 正確。4-bit 計數器只有在計數器值有限時才會多用記憶體，大多數位置計數器是 0，實際用量幾乎不變；而刪除操作精確，所以 false positive 確實消除了。"
+    explanation: |
+      Counting Bloom filter 無論計數器值是否為 0，每個位置都固定佔用 4 bits，
+      不會像壓縮結構那樣省掉空閒位置的空間。記憶體用量確實是標準版的 4 倍。
+      且 false positive 仍然存在，此選項兩個判斷都錯誤。

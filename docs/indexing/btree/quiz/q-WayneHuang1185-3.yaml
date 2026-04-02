@@ -4,7 +4,7 @@ question: |
   在某大型購物資料庫中，為了讓使用者按下「查看訂單」時能立即獲得結果，系統採用了 B+Tree 索引。
   對於 B+Tree 物理結構與磁碟 I/O 的分析，下列哪一個敘述最正確？
 options:
-  - text: 在 inner node 執行 prefix truncation，主因是為了讓單個 Page 塞入更多 entry，進而降低樹的高度並減少磁碟讀取次數。
+  - text: 在 inner node 執行 prefix truncation，主因是為了讓單個 page 塞入更多 entry，進而降低樹的高度並減少磁碟讀取次數。
     correct: true
     explanation: |
       prefix truncation 可以有效地降低 inner node 中 routing key 的大小，

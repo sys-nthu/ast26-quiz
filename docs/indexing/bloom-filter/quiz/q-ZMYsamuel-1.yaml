@@ -1,0 +1,18 @@
+author: ZMYsamuel
+date: 2026-03-31
+question: |
+  在一座使用 LSM-Tree 架構的儲存系統中，工程師發現現有的 Bloom filter（設定 $m/n = 10, k = 7, FPR \approx 0.82\%$）在處理特定 workload 時，仍產生過多不必要的 disk read。為了優化效能，團隊計畫將 $m/n$ 提升至 15（並配合調整最佳 $k$ 值），同時有成員提議為了支援過期資料的清理，應直接將對應的 bit 設為 0 以實現刪除功能。根據 Bloom filter 的設計邏輯，下列敘述何者最精確？
+options:
+  - text: "記憶體空間將增加 1.5 倍，FPR 會大幅下降至約 0.03%（約 27 倍），但手動將 bit 設為 0 會導致系統產生 false negative。"
+    correct: true
+    explanation: |
+      根據大抄，$m/n$ 從 10 增加到 15 會使記憶體用量增加 50%，而 FPR 會從 0.82% 顯著降至 0.03%，展現極佳的過濾效率提升。然而，標準 Bloom filter 不支援刪除操作，因為多個元素的 hash 位置可能重疊。若強制將 bit 設為 0，可能會清掉其他元素共享的 bit，導致本來存在的元素被誤判為不存在，即產生 false negative，這在儲存系統中等同於資料遺失。
+  - text: "記憶體空間將增加 6 倍，且雖然 FPR 會降至 0.03%，但標準 Bloom filter 在執行刪除操作後會導致 FPR 逐漸惡化。"
+    explanation: |
+      記憶體增加 6 倍是升級為 counting Bloom filter（每個位置 4 bits）後的計算結果，僅提升 $m/n$ 比例至 15 只會帶來 1.5 倍的空間增長。此外，標準 Bloom filter 刪除 bit 的核心風險是導致 false negative，而非僅是 FPR 的惡化。
+  - text: "記憶體空間將增加 1.5 倍，但根據 diminishing return 原則，FPR 從 $m/n = 10$ 提升至 15 的改善幅度微乎其微，不建議此更動。"
+    explanation: |
+      這是對 diminishing return 的誤解。大抄指出從 $m/n = 10$ 增加到 15 時，FPR 會大幅下降約 27 倍，這仍屬於高效益的優化區間。真正的 diminishing return 是在 $m/n$ 超過 15（例如從 15 增加到 20）之後，FPR 的降幅才會顯著變小，不再具備明顯的記憶體投資報酬率。
+  - text: "記憶體空間將增加 1.5 倍，且若將 bit 設為 0 來執行刪除，會因為 hash 碰撞導致本來不存在的元素被誤判為存在，產生嚴重的 false positive。"
+    explanation: |
+      將 bit 設為 0 會讓原本為 1 的位置變成 0。根據查詢邏輯，只要有一個位置為 0 就會判定為「絕對不存在」。因此，刪除操作會導致原本存在的資料被判定為不存在（false negative），而非增加誤判存在的機率（false positive）。

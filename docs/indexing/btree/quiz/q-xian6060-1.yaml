@@ -1,0 +1,20 @@
+author: xian6060
+date: 2026-04-02
+question: |
+  B+Tree 的每個 Node 大小通常設計成等於一個 disk page（常見 4 KB 或 8 KB），為什麼不將 Node Size 預設為 1 MB 或更大以換取極大的 Fan-out？
+options:
+  - text: "因為要避免寫入放大和提高快取命中率"
+    correct: true
+    explanation: |
+      資料庫寫入是以 Page 為單位，若 Page 設為 1 MB，即使只修改 100 bytes 的資料也必須重寫整個 1 MB 區塊，會造成嚴重的 WA。
+      同時，記憶體快取空間有限，page size 過大，會導致能容納的 page 數量減少，降低 hit rate。
+  - text: "因為 Node 越大， disk I/O 次數也會越多"
+    explanation: |
+      Node 越大， Fan-out 越高， B+Tree 會越矮，這反而會減少單次查詢所需的 Disk I/O 次數。
+  - text: "因為 B+Tree 的 leaf node 以 linked list 串接，node 越大會增加跨節點讀取的次數"
+    explanation: |
+      node 越大，裝的資料越多，進行 Range query 時，反而能減少跨節點讀取的次數。
+      但是在 node 內部的搜尋成本會更高，因為裡面存的 key 太多了，要定位某一筆資料就需要花更長時間。
+  - text: "因為更大的 node 會增加樹高"
+    explanation: |
+      更大的 Node 能容納的 pointers 越多，樹反而會比較矮。

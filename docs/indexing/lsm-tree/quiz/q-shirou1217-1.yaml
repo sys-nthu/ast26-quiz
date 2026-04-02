@@ -1,0 +1,38 @@
+author: shirou1217
+date: 2026-04-02
+question: |
+  你正在實作一個 LSM-Tree storage engine，並觀察到系統在 crash 後，
+  某些「尚未 flush 成 SSTable 的最新資料」仍然可以被成功恢復。
+
+  請問以下哪一個機制最直接負責確保這些資料在系統 crash 後仍然存在？
+
+options:
+  - text: "memtable 本身是 in-memory sorted structure，因此可以在重啟後重建資料"
+    explanation: |
+      這是常見誤解。memtable 是存在記憶體中的資料結構，系統 crash 後會完全消失。
+      它本身不具備任何持久化能力，因此無法用來恢復資料。
+
+  - text: "SSTable 是 immutable 且已排序，因此可以回推未 flush 的資料"
+    explanation: |
+      SSTable 只包含「已經 flush 到 disk 的資料」。
+      尚未 flush 的資料根本不會存在於任何 SSTable 中，因此無法從中恢復。
+
+  - text: "compaction 會將多個 SSTable 合併，因此可以在 crash 後還原最新狀態"
+    explanation: |
+      compaction 的作用是合併與清理舊資料（例如舊版本與 tombstone），
+      並不負責 crash recovery。
+      它發生在 background，也不保證包含最新尚未 flush 的資料。
+
+  - text: "Write-Ahead Log（WAL）透過 append-only 的 sequential write，確保在 crash 後可以重建 memtable"
+    correct: true
+    explanation: |
+      WAL 是 LSM-Tree 中負責 durability 的核心機制。
+
+      每一筆寫入在進入 memtable 的同時，也會被 append 到 WAL（disk 上的 sequential log）。
+      即使系統在 memtable 尚未 flush 前 crash，這些操作仍然存在於 WAL 中。
+
+      系統重啟後，可以透過 replay WAL：
+      - 重新執行所有尚未 flush 的操作
+      - 重建 memtable 的狀態
+
+      因此 WAL 才是確保 crash recovery 的關鍵機制，而不是 memtable 或 SSTable。

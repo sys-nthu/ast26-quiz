@@ -1,0 +1,30 @@
+author: elfnt
+date: 2026-04-01
+question: |
+  一個電商平台的訂單資料庫有 1000 萬筆資料，在 `order_id`（依訂單時間遞增的整數）上建了一棵 B+Tree（fan-out 500，樹高 3 層，上層 inner node 常駐 cache。
+
+  以下四種查詢操作同時存在於這個系統中，選出它們在此 B+Tree 架構下能**發揮的效益**最高與最低的選項。
+
+  - $P$：將某一筆被取消的訂單的 `order_id` 從 B+Tree 中刪除。
+  - $Q$：客服系統查詢過去一小時的所有訂單，範圍約 100 筆。
+  - $R$：財務部門每月底跑一次全表報表，掃描所有 1000 萬筆訂單計算營收。
+  - $S$：反詐騙系統每秒隨機抽查數千筆分散在全域的訂單，每筆 `order_id` 都不同。
+options:
+  - text: "$Q$ 最高、$R$ 最低"
+    correct: true
+    explanation: |
+      - $Q$：小範圍連續 range query 剛好是 B+Tree 的強項，B+Tree 先定位到起點 leaf node（上層在 cache，只需 1 次 disk I/O），再沿 linked list 掃幾個 leaf node 就結束，disk I/O 極少，效益很高。
+      - $R$：幾乎掃過全部 1000 萬筆資料，B+Tree 定位起點的優勢完全被稀釋，和 full table scan 成本相當，index 的存在幾乎沒有幫助，反而多了 inner node traversal 的 overhead。
+  - text: "$P$ 最高、$S$ 最低"
+    explanation: |
+      - $P$：B+Tree 本身有支援刪除功能，但並非其強項，效益普通。
+      - $S$：每次 `order_id` 都不同且分散，上層 inner node 在 cache，但目標 leaf node 每次都不同，cache hit rate 極低，幾乎每次都需要 1 次 disk I/O。B+Tree 相比 BST 等結構仍然有效，但幫助不顯著（仍優於 $R$）。
+  - text: "$R$ 最高、$S$ 最低"
+    explanation: |
+      - $R$：幾乎掃過全部 1000 萬筆資料，B+Tree 定位起點的優勢完全被稀釋，和 full table scan 成本相當，index 的存在幾乎沒有幫助，反而多了 inner node traversal 的 overhead。
+      - $S$：每次 `order_id` 都不同且分散，上層 inner node 在 cache，但目標 leaf node 每次都不同，cache hit rate 極低，幾乎每次都需要 1 次 disk I/O。B+Tree 相比 BST 等結構仍然有效，但幫助不顯著（仍優於 $R$）。
+  - text: "$Q$ 最高、$P$ 最低"
+    explanation: |
+      - $Q$：小範圍連續 range query 剛好是 B+Tree 的強項，B+Tree 先定位到起點 leaf node（上層在 cache，只需 1 次 disk I/O），再沿 linked list 掃幾個 leaf node 就結束，disk I/O 極少，效益很高。
+      - $P$：B+Tree 本身有支援刪除功能，但並非其強項，效益普通。
+      

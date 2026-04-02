@@ -1,0 +1,22 @@
+author: vinwerill  
+date: 2026-04-01  
+question: |
+  在設計資料庫的 page layout 時，工程師需要根據資料特性選擇合適的儲存結構。Slotted Page 是一種常見的頁面內資料管理方式。請問在以下情境中，哪一種最適合使用 Slotted Page？  
+options:  
+  - text: "**商品描述 或 使用者備註**，通常是可變長文字欄位。"  
+    correct: true  
+    explanation: |
+      Slotted Page 透過 slot table 管理每個記錄的起始位置與長度，非常適合這類變長欄位資料。它能有效利用頁面空間，避免 fixed-length layout 為每筆 record 預留最大空間造成的空間浪費，並方便在頁面內進行插入、刪除或更新操作。  
+
+  - text: "**訂單編號 或 會員 ID**，固定長度整數欄位。"  
+    explanation: |
+      這類固定長度欄位資料的每筆記錄大小相同，因此可以直接以連續陣列的方式儲存，透過 index 計算即可快速定位資料位置，不需要額外的 slot table 來記錄 offset。
+      Slotted Page 需要額外維護 slot table，並在存取時多一層 indirection（slot → record），反而會增加空間開銷與存取成本。在沒有變長欄位或記錄搬移需求的情況下，這些機制無法帶來實質好處，因此使用 Slotted Page 的效益不大。
+
+  - text: "**報表分析資料**，不經常寫入，但需要高效的 sequential scan 存取，通常以連續儲存方式來提升讀取效能。"  
+    explanation: |
+      這類 workload 以大量連續讀取為主，重視 cache locality 與資料連續性。Slotted Page 的 indirection（slot → record）提供的彈性（如 variable-length 支援、record 搬移）在此場景下派不上用場，額外的 slot table 只增加空間開銷而沒有帶來好處。
+
+  - text: "**系統操作日誌**，資料以 append-only 方式持續寫入，幾乎不會進行刪除或更新，例如使用者行為紀錄。"  
+    explanation: |
+      這類資料主要為連續新增，幾乎沒有刪除或更新操作。Slotted Page 提供的彈性（如 record relocation）無法發揮，反而增加 slot table 與 indirection 的額外負擔， LSM-tree 更適合此種情境。

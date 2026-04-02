@@ -10,7 +10,8 @@ options:
 
   - text: "**訂單編號 或 會員 ID**，固定長度整數欄位。"  
     explanation: |
-      這類固定長度欄位資料可直接用連續陣列儲存，因此使用 Slotted Page 的效益不大。  
+      這類固定長度欄位資料的每筆記錄大小相同，因此可以直接以連續陣列的方式儲存，透過 index 計算即可快速定位資料位置，不需要額外的 slot table 來記錄 offset。
+      Slotted Page 需要額外維護 slot table，並在存取時多一層 indirection（slot → record），反而會增加空間開銷與存取成本。在沒有變長欄位或記錄搬移需求的情況下，這些機制無法帶來實質好處，因此使用 Slotted Page 的效益不大。
 
   - text: "**報表分析資料**，不經常寫入，但需要高效的 sequential scan 存取，通常以連續儲存方式來提升讀取效能。"  
     explanation: |

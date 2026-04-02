@@ -8,7 +8,7 @@ options:
     correct: true
     explanation: |
       prefix truncation 可以有效地降低 inner node 中 routing key 的大小，
-      使得可以塞入更多的 child pointer，提升 fan-out，從而低樹的高度，提升查詢效率。
+      使得可以塞入更多的 child pointer，提升 fan-out，從而降低樹的高度，提升查詢效率。
   - text: B+Tree 的 leaf node 之間使用 doubly linked list 串接，其主要目的是為了加快點查詢（point lookup）的速度，避免每次都必須從 root 節點開始搜尋。
     explanation: |
       使用 doubly linked list 串接 leaf node 的主要目的是為了加快 range query 的速度，

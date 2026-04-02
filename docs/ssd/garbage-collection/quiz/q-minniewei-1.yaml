@@ -12,7 +12,7 @@ options:
       TRIM 的作用是告訴 SSD 哪些 LBA 上的資料已經被刪除，對應的 physical page 可以被標記為 invalid，這確實有助於降低 write amplification。但 Hot/Cold separation 的機制主要是為了在 GC 時減少需要搬移的 valid data 數量，TRIM 並不能完全取代這種機制。
   - text: "控制器主要透過 Read Count 來定義 Hot Page，因為讀取次數越多的資料越容易發生錯誤，需要優先回收"
     explanation: |
-      在 GC 的情境下，Hot/Cold是指**「更新（寫入）頻率」**。
+      在 GC 的情境下，Hot/Cold **是指**「更新（寫入）頻率」**。
   - text: "將不同冷熱程度的資料混合存放在同一個 Block 中，可以平衡磨損並降低 WAF"
     explanation: |
       將 Hot Data 與 Cold Data 混在同一個 block 中，Hot Data 可能很快被覆寫而變成 invalid，但 Cold Data 仍然保持 valid。當 GC 回收該 block 時，controller 必須複製這些仍然有效的 Cold Pages，增加資料搬移量，導致 write amplification 上升。

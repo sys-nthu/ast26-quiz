@@ -1,0 +1,20 @@
+author: Jia-Sheng-Yang
+date: 2026-04-02
+question: |
+ 一個現代檔案系統利用 Copy-on-Write (CoW) 架構的 B+ tree 來管理其 Metadata。在這種架構中，物理 Blocks 永遠不會做就地修改（in-place modified）；
+ 相反地，任何變動都會導致資料被寫入到一個新的位置。當一個 Leaf node 中的單一 record 被更新時，系統會為該 Leaf node 分配一個新的 Page。
+ 在一個高度為 H 的 CoW B+ tree 中，為什麼僅僅更新一個微小的 record，有可能會導致 Write Amplification，進而需要在儲存裝置上寫入 H 個不同的 Pages？
+options:
+  - text: "因為從被修改的 Leaf node 到 Root 路徑上的每個 ancestor node 都必須重新寫入新的物理位址，以反映其子節點位置的變動。"
+    correct: true
+    explanation: |
+      這描述了 Path Shadowing。在 CoW 系統中，如果子節點移動到了新的物理 Block，父節點原有的指標就會失效。因此，父節點也必須更新並移至新的 Block，這種效應會一路向上傳遞到 Root。這是為什麼隨機寫入在 CoW 系統中成本較高的根本原因。
+  - text: "因為 B+ tree 必須在每一層執行 Re-balancing Rotation，以確保新的 Leaf node 與 Root 之間的距離在數學上保持恆定。"
+    explanation: |
+      這是借用了 AVL 或 Red-Black tree 的觀念。考驗大家有沒有將標準的樹狀結構維護與 CoW 機制造成的特定開銷混淆。
+  - text: "因為檔案系統必須更新每一層所有節點的 Sibling Pointers，以確保舊版本的 B+ tree 能夠被物理刪除。"
+    explanation: |
+      雖然 B+ tree 確實可能有 sibling pointers，但更新它們並非造成 H 次寫入的主因。許多 CoW B+ tree（如 Btrfs）為了避免「循環更新」問題，會刻意省略或修改 sibling pointers 的實作。
+  - text: "因為對 Leaf node 的任何更新都會自動觸發其父節點及路徑上所有內部節點的 Node Split，以維持 B+ tree 規範中要求的最小 Fill factor。"
+    explanation: |
+      這是 B+ tree 的真實操作，但它是受「容量（Capacity）」驅動而非「更新（Update）」驅動。只有當節點滿了才會觸發分割。在 CoW 系統中，即使節點還有大量剩餘空間，路徑上的所有節點仍然必須全部重新寫入。

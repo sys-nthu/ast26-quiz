@@ -10,8 +10,8 @@ question: |
     - 每個 child pointer 佔 6 bytes
     - 每個 leaf node 可存 100 筆資料
 
-  註1 :每個 inner node 的 fan-out 是 $\lfloor {8192 \over (40 + 6)} \rfloor = 178$。
-  註2 :$\lceil \log_{178}(10^7) \rceil = 4$。
+  註 1 : 每個 inner node 的 fan-out 是 $\lfloor {8192 \over (40 + 6)} \rfloor = 178$。
+  註 2 : $\lceil \log_{178}(10^7) \rceil = 4$。
 options:
   - text: "BST 的搜尋次數為 30 次 I/O，而 B+Tree 的搜尋次數為 5 次 I/O，因此 B+Tree 較快，時間差異約為 250 ms。"
     correct: true

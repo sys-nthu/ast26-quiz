@@ -23,8 +23,9 @@ options:
       作業系統並未限制單次 I/O 必須小於一個 page，實務上可以一次讀取多個 page。
       node size 限制主要是為了降低 I/O 次數與跨 page 存取的複雜性，而不是作業系統限制。
 
-  - text: "node 應該盡量大（例如 1 MB），因為 fan-out 越多樹越矮，disk I/O 次數越少，整體查詢一定更快。"
+  - text: "node 應該盡量大（例如 1 MB），因為子節點數量越多樹越矮，disk I/O 次數越少，整體查詢一定更快。"
     explanation: |
-      雖然增大 node 可以提高 fan-out 、降低樹高，但若 node 超過 page，存取單個 node 時會涉及多次 I/O，
-      disk I/O 次數可能反而變多。因此過大的 node 反而可能降低查詢效能，
-      限制 node 在 page 內仍然是為了 I/O 效率，而不是單純追求 fan-out 。
+      雖然增大 node 可以提高子節點數量、降低樹高，但若 node 超過 page，存取單個 node 時會涉及多次 I/O，
+      disk I/O 次數可能反而變多，因此過大的 node 反而可能降低查詢效能。
+      另外，資料庫寫入通常以 page 為單位，node 越大代表即使只修改少量資料，也可能需要重寫整個 node，
+      增加寫入成本。因此實務上會將 node size 限制在一個 page 內，以平衡查詢效能與寫入成本。

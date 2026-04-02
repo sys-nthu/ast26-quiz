@@ -1,16 +1,7 @@
 author: Liu-yen-fu
 date: 2026-03-30
 question: |
-  一個基於 LSM Tree 的 key-value store ，對每個 SSTable 量身打造標準版 Bloom Filter（ FPR = 1% ）。  
-  查詢時會從最新到最舊依序檢查 SSTable ：  
-  
-  - 若 Bloom Filter 判定「不存在」則跳過該 SSTable
-  - 若判定「可能存在」則讀取該 SSTable
-  
-  某次分析發現：  
-  對於某些實際**從未寫入過系統的** key ，查詢過程中卻會觸發對舊 SSTable 的實際讀取，因為 Bloom Filter 判定可能存在。
-  
-  以下哪一個解釋最合理？
+  某 LSM-Tree key-value store 對每個 SSTable 配置標準 Bloom filter（FPR = 1%）。分析發現，查詢某些從未寫入過系統的 key 時，仍會觸發對部分 SSTable 的實際讀取。以下哪一個解釋最合理？
 options:
   - text: "每個 SSTable 的 Bloom Filter 是獨立建立的，即使 key 不存在於任何 SSTable，也可能各自發生 false positive，導致查詢路徑中出現多次不必要的 SSTable 存取"
     correct: true
@@ -22,7 +13,7 @@ options:
       相同的 hash functions 只是保證對同一個 key 會去查詢相同的 bit 位置，除非所有 SSTable 都剛好在那些位置被其他無關的 Key 填滿了 1，否則不會有「命中所有」的必然性。
   - text: "因為 Bloom Filter 會保留歷史資訊，所以仍然會命中舊的 SSTable  "
     explanation: |
-      雖然 Bloom Filter 會保留歷史資訊，但查詢的 key 從未被寫入過，所以這不是命中舊的 SSTable 的原因。
+      這個 key 從未被寫入，所以沒有任何 Bloom filter 曾經為它設過 bit。舊 SSTable 的 Bloom filter 命中是因為其他 key 恰好把相同位置設成了 1，即 false positive。
   - text: "當 Bloom Filter 的 FPR 為 1% 時，系統應保證每次查詢最多只會發生一次 false positive ；若出現多次，代表 Bloom Filter 已經過度飽和"
     explanation: |
       False Positive Rate 是機率期望值，而非硬性硬體限制。每次查詢都是獨立事件。  

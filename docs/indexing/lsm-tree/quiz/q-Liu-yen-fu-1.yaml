@@ -8,7 +8,7 @@ question: |
   - 若判定「可能存在」則讀取該 SSTable
   
   某次分析發現：  
-  對於某些實際**只有寫入過最新** SSTable 但**現已不存在於任何** SSTable 的 key ，查詢過程中卻會觸發對**舊** SSTable 的實際讀取，因為 Bloom Filter 判定可能存在。
+  對於某些實際**從未寫入過系統的** key ，查詢過程中卻會觸發對舊 SSTable 的實際讀取，因為 Bloom Filter 判定可能存在。
   
   以下哪一個解釋最合理？
 options:
@@ -20,9 +20,9 @@ options:
     explanation: |
       雖然系統通常對所有 SSTable 使用相同的 Hash 算法，但 Bit Array 內容是由該 SSTable 內實際存在的資料決定的。  
       相同的 hash functions 只是保證對同一個 key 會去查詢相同的 bit 位置，除非所有 SSTable 都剛好在那些位置被其他無關的 Key 填滿了 1，否則不會有「命中所有」的必然性。
-  - text: "因為雖然最新 SSTable 刪除了該 key ，但 Bloom Filter 會保留歷史資訊，所以仍然會命中舊的 SSTable  "
+  - text: "因為 Bloom Filter 會保留歷史資訊，所以仍然會命中舊的 SSTable  "
     explanation: |
-      即使最新層級寫入一個「刪除標記」（ Tombstone ），舊層級的 Bloom Filter 是否命中，完全取決於舊層級當初建立時裡面放了什麼，跟「現在最新層級刪除了它」毫無因果關係。
+      雖然 Bloom Filter 會保留歷史資訊，但查詢的 key 從未被寫入過，所以這不是命中舊的 SSTable 的原因。
   - text: "當 Bloom Filter 的 FPR 為 1% 時，系統應保證每次查詢最多只會發生一次 false positive ；若出現多次，代表 Bloom Filter 已經過度飽和"
     explanation: |
       False Positive Rate 是機率期望值，而非硬性硬體限制。每次查詢都是獨立事件。  

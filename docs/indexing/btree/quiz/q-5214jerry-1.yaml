@@ -1,0 +1,20 @@
+author: 5214jerry
+date: 2026-04-02
+question: |
+  在分析 B+Tree 的搜尋效能時，我們通常會將焦點放在節點存取的 disk I/O 次數（亦即樹的高度），
+  而大多會忽略在 inner node 中對數百個 routing key 執行 binary search 所帶來的 CPU 運算成本。
+  導致這個現象最主要的架構與硬體原因是什麼？
+options:
+  - text: "內部節點中的 routing key 會透過資料庫引擎內建的 hash table 進行 O(1) 的直接定址，實際上引擎在 inner node 根本不需要執行 binary search。"
+    explanation: |
+      Routing Key 通常是經過排序的 array，以便支援 range query。在節點內部建立 hash table 既降低 fan-out，也無法支援 B+Tree 依賴的 range comparison。
+  - text: "prefix truncation 技術將 key 壓縮得極小，使得單一 inner node 的資料量可以直接載入 CPU 的 L1 快取，將 binary search 的 time complexity 降為零。"
+    explanation: |
+      prefix truncation 的確會縮小 Key 的大小並幫助 cache hit rate，但它絕對不可能將 binary search 的 time complexity 降為零。
+  - text: " CPU 在記憶體內執行運算的速度遠快於存取 disk 的延遲，兩者的時間成本差距高達數個數量級，因此減少 disk I/O 次數的效益遠大於節省記憶體內的搜尋計算。"
+    correct: true
+    explanation: |
+      I/O 延遲通常落在微秒至毫秒級別（µs ~ ms)，而 CPU 在 buffer pool 中對幾百個 array elements 進行 binary search 則是奈秒級 (ns)。兩者的時間差距高達千倍甚至萬倍以上。
+  - text: "資料庫引擎在遍歷 B+Tree 時，會以 asynchronous 的背景執行緒處理 inner node 的 binary search，藉此將 CPU 的延遲完全隱藏在前景的網路傳輸中。"
+    explanation: |
+      必須先在 root node 搜尋出下一個 pointer，才能讀取下一個 child node。這無法透過 asynchronous 來隱藏延遲。

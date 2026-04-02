@@ -6,24 +6,24 @@ question: |
   - **方案 X : SLC (Single-Level Cell)**
   - **方案 Y : QLC (Quad-Level Cell)**
   **假設兩款 SSD 的總容量相同**，且使用相同的 controller 設計。
-  若考慮長期「可寫入總量(Total Bytes Written, TBW)」，以下哪一項推論最合理？
+  若考慮長期「可寫入總量 (Total Bytes Written, TBW)」，以下哪一項推論最合理？
 options:
-  - text: "方案 Y(QLC)通常具有較高 TBW,因為其容量較大，可以分散更多寫入。"
+  - text: "方案 Y (QLC) 通常具有較高 TBW，因為其容量較大，可以分散更多寫入。"
     explanation: |
       容量較大確實可能讓資料分散在更多 block 上，但 TBW 的關鍵限制來自單一 cell 可承受的 P/E cycle 上限。
-      QLC 每個 cell 儲存 4 bits,電壓區間更窄,對電壓漂移更敏感，可承受的 erase 次數遠低於 SLC。
+      QLC 每個 cell 儲存 4 bits，電壓區間更窄，對電壓漂移更敏感，可承受的 erase 次數遠低於 SLC。
       因此僅以容量較大推論 TBW 較高是不正確的。
-  - text: "方案 X(SLC)通常具有較高 TBW,因為每個 cell 儲存的位元較少。"
+  - text: "方案 X (SLC) 通常具有較高 TBW，因為每個 cell 儲存的位元較少。"
     correct: true
     explanation: |
-      SLC 每個 cell 只儲存 1 bit,電壓區間較寬,對電壓漂移與干擾的容忍度較高，因此可承受較多的 P/E (Program/Erase) cycle。
-      QLC 每 cell 儲存 4 bits,需要更精細的電壓區分,導致 P/E cycle 上限顯著下降。
-      在高寫入 workload 下,endurance 成為決定 TBW 的主要因素，因此 SLC 通常具有較高 TBW。
+      SLC 每個 cell 只儲存 1 bit，電壓區間較寬，對電壓漂移與干擾的容忍度較高，因此可承受較多的 P/E (Program/Erase) cycle。
+      QLC 每 cell 儲存 4 bits，需要更精細的電壓區分，導致 P/E cycle 上限顯著下降。
+      在高寫入 workload 下，endurance 成為決定 TBW 的主要因素，因此 SLC 通常具有較高 TBW。
   - text: "兩者 TBW 應相同，因為 controller 設計相同。"
     explanation: |
       Controller 設計會影響資料映射與管理方式，但無法改變 NAND cell 本身的物理限制。
-      SLC 與 QLC 的 P/E cycle 上限差距顯著，即使 controller 相同,TBW 仍會因 cell 技術不同而不同。
-  - text: "方案 Y(QLC)TBW 較高，因為每次 erase 可以寫入更多位元。"
+      SLC 與 QLC 的 P/E cycle 上限差距顯著，即使 controller 相同，TBW 仍會因 cell 技術不同而不同。
+  - text: "方案 Y (QLC) TBW 較高，因為每次 erase 可以寫入更多位元。"
     explanation: |
       QLC 每次 erase 後確實能寫入更多資料，但其可承受的 erase 次數遠少於 SLC。
-      雖然 QLC 容量較大，但 P/E cycle 的下降幅度通常更顯著，因此整體 TBW 仍低於 SLC,忽略 endurance 與容量之間的 trade-off。
+      雖然 QLC 容量較大，但 P/E cycle 的下降幅度通常更顯著，因此整體 TBW 仍低於 SLC，忽略 endurance 與容量之間的 trade-off。

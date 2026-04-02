@@ -1,14 +1,14 @@
 author: Jia-Sheng-Yang
 date: 2026-03-12
 question: |
-  假設有一個已經使用90%容量的 SSD，Host OS 想要寫入一個 8KB 檔案，
-  與容量幾乎未使用的 SSD 相比，已使用90%的在寫入過程有突然的 latency spike，
+  假設有一個已經使用 90%容量的 SSD，Host OS 想要寫入一個 8KB 檔案，
+  與容量幾乎未使用的 SSD 相比，已使用 90%的在寫入過程有突然的 latency spike，
   以下哪個選項最能解釋這個 latency spike。
 options:
   - text: "GC 必須從包含大量 valid page 的 block 中讀取資料並寫到新的 block，以釋放 free space"
     correct: true
     explanation: |
-      當 SSD 使用率高達90%時，GC 通常只能選到 valid page 比例較高的 block 作為 victim，這會導致需要搬移大量的 valid data，
+      當 SSD 使用率高達 90%時，GC 通常只能選到 valid page 比例較高的 block 作為 victim，這會導致需要搬移大量的 valid data，
       造成較高的 write amplification 與 latency spike。
   - text: "FTL 必須對 file system 做 defragmentation，以確保寫入的檔案資料放在連續的位置"
     explanation: |
@@ -16,7 +16,7 @@ options:
       不需要像 HDD 做 defragmentation。
   - text: "SSD 控制器被迫等待來自作業系統的同步 TRIM 指令，以確認哪些特定的 block 可以安全地覆寫"
     explanation: |
-      TRIM 雖然能告知 SSD 哪些資料已無效以加速GC，但它通常是非同步的，SSD 控制器並不會在每次寫入新資料前都停下來等待 TRIM 的確認。
+      TRIM 雖然能告知 SSD 哪些資料已無效以加速 GC，但它通常是非同步的，SSD 控制器並不會在每次寫入新資料前都停下來等待 TRIM 的確認。
   - text: "由於 free space 的 block 可能有較高 P/E cycle，Dynamic Wear Leveling 將 cold data 先移入目前 free space 然後才執行寫入"
     explanation: |
       Static Wear Leveling 才會執行這種動作，Dynamic Wear Leveling 只是優先使用目前 free block 中較少 P/E cycle 的 block。

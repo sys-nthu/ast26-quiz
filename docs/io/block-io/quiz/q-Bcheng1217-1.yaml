@@ -1,0 +1,18 @@
+author: Bcheng1217
+date: '2026-03-31'
+question: |
+  一位遊戲開發者正在優化遊戲關卡的載入速度。初始版本中，遊戲引擎使用單一執行緒與 Synchronous I/O，逐一讀取一萬個散落的 4KB 小檔案，導致載入極慢。在第一次改版中，開發者改用 Asynchronous I/O 一次性提交所有讀取請求，雖然載入時間大幅縮短，但硬體觸發了上萬次 Interrupt，導致 CPU 負載瞬間飆高。在第二次改版中，開發者將這一萬個小檔案預先打包成一個連續的 40MB 資源檔，並改回使用單次 Synchronous I/O 讀取整個大檔案。關於這三次迭代背後的 Block I/O 原理與效能指標變化，下列敘述何者最精確？
+options:
+  - text: "初始版本因為同步逐一讀取，無法產生足夠的並發 I/O 來發揮硬體的 IOPS 能力；第一次改版成功填滿了 IOPS 佇列，卻引發了中斷風暴（Interrupt Storm）；第二次改版將工作負載從 Random Small I/O 轉換為 Sequential Large I/O，使得效能瓶頸轉移至 Bandwidth，並透過單次大檔案讀取大幅減少了作業系統的介入與中斷開銷。"
+    correct: true
+    explanation: |
+      初始的單一執行緒與 Synchronous I/O 模式因為一次只能有一個執行中（In-flight）的請求，無法產生足夠的並發 I/O 來發揮硬體的 IOPS 能力；第一次改版利用 Asynchronous I/O 解決了阻塞問題並提升了並發度，但大量的小型 I/O 完成通知引發了中斷風暴；第二次改版透過打包檔案，巧妙地將受限於 IOPS 的隨機讀取轉化為受限於 Bandwidth 的連續讀取，僅需極少數的 I/O 請求與中斷即可完成相同資料量的傳輸。
+  - text: "第一次改版中的 CPU 負載飆高，是因為 Asynchronous I/O 強制作業系統繞過 Block Device Abstraction 機制，導致 CPU 必須親自介入每一次的位元組（Byte）定址與資料搬運。"
+    explanation: |
+      無論是 Synchronous 或 Asynchronous I/O，作業系統與硬體溝通時始終遵循 Block Device Abstraction 的規範，以固定大小的區塊（Block）為單位進行操作，絕不會直接以位元組（Byte）為單位存取。第一次改版的 CPU 飆高是因為處理大量 Interrupt 的上下文切換開銷。
+  - text: "第二次改版讀取 40MB 的連續檔案時，為了最大化硬體的 IOPS 表現，作業系統的驅動程式會自動將其切碎為一萬個 4KB 的獨立請求，並強制使用 Polling 模式與裝置溝通。"
+    explanation: |
+      讀取連續的 40MB 大檔案屬於 Sequential Large I/O，其效能指標在於 Bandwidth 而非 IOPS。雖然作業系統或硬體底層可能會依照最大傳輸單元分割大請求，但其目的是最大化連續傳輸的頻寬，而非追求高 IOPS，也不會強制綁定 Polling 模式。
+  - text: "初始版本載入緩慢的主因是儲存裝置的 Bandwidth 不足以應付 4KB 小檔案；而第二次改版改回 Synchronous I/O 則證明了只要檔案夠大，執行緒就不會被 Block 。"
+    explanation: |
+      讀取散落的 4KB 小檔案（Random Small I/O）的瓶頸在於 IOPS，而非 Bandwidth。此外，使用 Synchronous I/O 時，無論讀取的檔案多大，發出系統呼叫的執行緒都一定會被 Block ，直到資料完全載入記憶體為止。

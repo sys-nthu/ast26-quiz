@@ -1,4 +1,4 @@
-author: chiajungchang
+author: chiajungchang2003
 date: 2026-04-03
 question: |
   在 DuckDB 的整合中，為什麼「執行緒擁有的 NVMe 佇列」策略能成功恢復最初被基本非同步 I/O 實作所破壞的正確性保證？

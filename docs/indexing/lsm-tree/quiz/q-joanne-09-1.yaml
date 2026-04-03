@@ -14,6 +14,7 @@ options:
       Bloom filter 的用途是讓讀取時跳過不包含該 key 的 SSTable，藉此減少不必要的 disk I/O。它無法用來通知 SSD 哪些實體 page 是舊版本，更無法觸發 FTL 提早回收特定 block。
   - text: |
       Tiered compaction 具有高 space amplification。無用的舊版本與 tombstone 不被清除，對 FTL 而言這些資料對應的 physical page 仍然是 valid，GC 在回收 block 時必須搬移更多 valid page 才能騰出空間，導致硬體層的 write amplification 升高，可能抵銷軟體層省下的寫入量。
+    correct: true
     explanation: |
       Tiered compaction 的 space amplification 很嚴重，對 SSD 的 FTL 來說，這些資料對應的 physical page 仍然是 valid 而無法被 GC 回收，進而引發巨大的硬體 WAF，可能徹底抵銷軟體層省下的寫入量。
   - text: |

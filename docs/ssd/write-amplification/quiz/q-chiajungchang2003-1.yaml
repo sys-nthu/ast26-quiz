@@ -1,0 +1,18 @@
+author: chiajungchang2003
+date: 2026-04-03
+question: |
+  在 ZKV 的設計中，**自適應增量緩衝區 (Adaptive Delta Buffer, ADB)** 如何與 **ZFlusher** 協作，以解決 4KB 葉子節點與 ZNS SSD 性能特性之間的不匹配？
+options:
+  - text: "ADB 將屬於同一個葉子節點的分散鍵值對 (kv-pairs) 進行分組，並根據數量自動調整其結構大小（64B 到 256B），以最大化每次寫入數據量。"
+    correct: true
+    explanation: |
+      ZKV 識別出從 Merged Filter 逐出的 kv-pairs 會分散在多個葉子節點。ADB 作為二級緩衝區，在節點層級對這些分散配對進行分組，並透過三種尺寸（64B, 128B, 256B）優化記憶體使用。當累積超過 16 對 kv-pairs 時，ADB 會被合併並透過 ZFlusher 進行大區塊追加寫入，顯著降低寫入放大 [2, 4]。
+  - text: "ADB 使用全局 LRU 策略將最舊的 4KB 頁面逐出到 ZFlusher，由其執行隨機寫入以維持樹狀順序。"
+    explanation: |
+      ZNS SSD 接口要求順序追加，不支持隨機寫入。ZKV 特別指出 LRU 策略無法保證分區寫入指針所需的嚴格順序，因此在 ZFlusher 中採用了 FIFO 序列器。
+  - text: "ZFlusher 完全取代了 ADB，它使用環形合併器攔截就地更新 (in-place updates) 並將其重定向。"
+    explanation: |
+      這是對架構層級的誤解。ZFlusher 位於分區管理層級，而 ADB 位於葉子節點層級，兩者是協作關係而非替代關係。
+  - text: "ADB 對葉子節點執行影子刪除 (shadow deletions)，允許 ZFlusher 跳過寫入無效數據。"
+    explanation: |
+      影子刪除是 Merged Filter 中用於快速逐出節點並避免連鎖修改的技術，並非 ADB 處理順序寫入限制的手段。

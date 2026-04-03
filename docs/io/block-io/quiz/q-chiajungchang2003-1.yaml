@@ -1,0 +1,23 @@
+author: chiajungchang2003
+date: 2026-04-03
+question: |
+  傳統 JBD2 必須為每次實體提交（physical commit）發出昂貴的磁碟快取刷新（cache flush），而FastCommit 通常僅需
+  使用單個 「強制單元存取（Forced Unit Access, FUA）」 指令即可完成提交。請問在下列哪種特定條件下，此優化才能生效？
+
+options:
+  - text: "當邏輯日誌條目（FCLog）能容納在單個 4KB 區塊內，且該交易（transaction）沒有其他待刷新的使用者資料時"
+    correct: true
+    explanation: |
+       FUA 是一種硬體指令，可告知驅動器將特定區塊直接寫入非揮發性媒體並跳過磁碟快取，但 FUA 通常僅能針對單個區塊寫入發出。
+       FastCommit 的設計重點在於「緊湊日誌」，實驗顯示超過 80% 的提交能容納於單一 4KB 區塊中。若該次 fsync 交易中
+       沒有其他需要同步的資料區塊（即僅有元數據變更），則單次 FUA 寫入即可確保原子性與持久性，從而跳過昂貴的全域快取刷新指令
+
+  - text: "僅當檔案系統掛載為「writeback」模式，且資料區塊（data blocks）不進行日誌記錄時。"
+    explanation: |
+      「writeback」模式是檔案系統處理一般資料一致性的策略，與 FastCommit 內部日誌提交是否能使用 FUA 優化無直接邏輯關聯。
+  - text: "當提交是由專用的 JBD2 核心執行緒執行，而非發起 fsync 的使用者執行緒執行時。"
+    explanation: |
+      FastCommit 實際上使用了「內聯日誌（inline journaling）」，意即由發起 fsync 的使用者執行緒直接執行提交作業，以避免喚醒 JBD2 執行緒所帶來的上下文切換開銷。
+  - text: "僅當底層儲存裝置為 QLC SSD，且該裝置本身沒有揮發性內部快取時。"
+    explanation: |
+      FUA 是協定級別（NVMe/SATA）的功能，並非針對特定 NAND 類型（如 QLC）的限制。

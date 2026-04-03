@@ -15,4 +15,4 @@ options:
       只將無效 record 清除，不會整合 page
   - text: "執行 CLUSTER 指令"
     explanation: |
-      CLUSTER 指令會將整個 table 依照需求進行物理排序(不是邏輯上的)，加速對於該需求的循序讀取
+      CLUSTER 指令會將整個 table 依照需求進行物理排序(不是邏輯上的排序)，加速對於該需求的循序讀取

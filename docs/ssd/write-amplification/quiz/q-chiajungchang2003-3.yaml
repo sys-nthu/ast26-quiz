@@ -1,0 +1,18 @@
+author: chiajungchang2003
+date: 2026-04-03
+question: |
+  WiscKey 將鍵與值分離，導致數值存儲於無序的 **vLog** 中。它如何解決範圍查詢 (Range Query) 時產生的隨機讀取效能問題？
+options:
+  - text: "利用 SSD 的內部並行性 (Internal Parallelism)，透過預取位址並使用多個背景執行緒進行並發讀取。"
+    correct: true
+    explanation: |
+      SSD 的並發隨機讀取吞吐量可接近順序讀取。WiscKey 在 Scan 時先從 LSM-tree 獲取一連串數值位址，再透過 32 個背景執行緒並行抓取數據，從而克服無序存儲的開銷。
+  - text: "透過背景執行緒不斷對 vLog 進行重排排序，確保其與 LSM-tree 的鍵順序完全一致。"
+    explanation: |
+      錯誤。WiscKey 的 vLog 是僅限追加的 (append-only)。雖然論文提到日誌重組是可能的優化方向，但核心設計是依賴並行讀取而非物理排序。
+  - text: "將所有小於 4KB 的數值直接嵌入 LSM-tree，以確保 90% 的範圍掃描都是順序的。"
+    explanation: |
+      雖然這是針對小數值的常見優化，但 WiscKey 的主要機制是鍵值分離。即便是大於 4KB 的數值，只要能利用並行讀取，依然能達到高效掃描。
+  - text: "利用檔案系統的「打洞 (hole-punching)」功能動態重組物理塊。"
+    explanation: |
+      「打洞」功能在 WiscKey 中是用於 **垃圾回收** (GC) 以釋放物理空間，而非用於 Scan 的性能優化。

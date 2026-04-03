@@ -1,7 +1,7 @@
 author: vinwerill
 date: 2026-04-02
 question: |
-  有一篇論文在 IEEE INFOCOM 會議中提出 Bloom Paradox：
+  Rottenstreich et al. 提出了 Bloom Paradox 的觀察：
   Bloom Filter 的效果取決於查詢中「不存在的 key」比例。
   如果大部分查詢的 key 都存在（hit rate 很高），
   Bloom Filter 幾乎無法過濾查詢，反而可能降低效能。

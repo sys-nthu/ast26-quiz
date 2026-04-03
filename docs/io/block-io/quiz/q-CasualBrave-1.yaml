@@ -1,0 +1,26 @@
+author: CasualBrave
+date: 2026-04-03
+question: |
+  為何在 HDD 時代常見 synchronous I/O，而到了 NVMe 時代更強調 asynchronous I/O？
+  已知 HDD random I/O 約 10 ms（10000 us），NVMe random read 約 100 us，
+  而一次 context switch 約 1-5 us。下列哪個解釋最精確？
+options:
+  - text: "HDD 時代也需要 async，但在 HDD 上裝置等待時間遠大於 thread 管理成本，random read 是主要瓶頸
+      ；到 NVMe 時代後，排程與 context switch 的相對成本變高成為瓶頸。"
+    correct: true
+    explanation: |
+      核心是成本占比。HDD 下 random I/O 約 10000 us，context switch 約 1-5 us，
+      系統主要時間花在等裝置；NVMe 下 random read 降到約 100 us 後，
+      同樣的排程與切換成本占比上升，在高 IOPS 與大量 blocking threads 下會更明顯。
+  - text: "HDD 時代不需要 async，因為 CPU 在同步 I/O 期間會完全停止，不能執行其他 thread。"
+    explanation: |
+      這是錯的。同步 I/O 會 block 發出呼叫的 thread，不代表整顆 CPU 停止。
+      排程器仍可切去執行其他 runnable threads。
+  - text: "NVMe 已經很快，所以應該全面改用 synchronous I/O，context switch 成本可以忽略。"
+    explanation: |
+      這與實務相反。NVMe 延遲下降後，1-5 us 的切換成本相對更顯著，
+      在高併發情境會累積成可觀 CPU 開銷。
+  - text: "HDD 會直接把資料放進 CPU cache，因此幾乎沒有排程與切換成本。"
+    explanation: |
+      這是錯誤解讀。HDD 場景中雖然主要瓶頸是裝置等待時間，
+      但這不代表 thread 管理成本或 context switch cost 不存在。

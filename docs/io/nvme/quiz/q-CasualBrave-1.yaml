@@ -1,7 +1,7 @@
 author: CasualBrave
 date: 2026-04-03
 question: |
-  關於 NVMe 與 AHCI 的效能模型與架構設計，下列何者「不正確」？
+  關於 NVMe 與 AHCI 的效能模型與架構設計，下列何者包含「計算或推論錯誤」？
 options:
   - text: "在理想近似下，若 random I/O latency 為 50 ms、目標為 5000 IOPS，所需 queue depth 約為 250。"
     explanation: |
@@ -11,7 +11,8 @@ options:
     correct: true
     explanation: |
       這個說法是錯的。正確應為 20 / 0.02 = 1000 IOPS。若算成 400 IOPS，通常是把
-      單位或換算步驟弄錯。這一項是在測試 latency 與 queue depth 的基本關係。
+      單位或換算步驟弄錯。這一項是在測試 latency 與 queue depth 的基本關係，
+      也是本題的正確答案選項。
   - text: "NVMe 在多核心場景常有較好的 IOPS scaling，
       重要原因之一是 per-core queue pair 可降低 lock contention。"
     explanation: |

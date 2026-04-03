@@ -16,7 +16,7 @@ options:
   - text: "B+Tree 採用了與 B-Tree 相同的設計，讓內部節點也能儲存部分實際資料，以此減少查詢特定資料時必須走到葉節點的延遲。"
     explanation: |
       這是 B-Tree 的特性而非 B+Tree。
-      特別強調 B+Tree 刻意讓內部節點不存資料，是為了換取更高的 fan-out。若內部節點存了資料，每個節點能指向的子節點就會變少，導致樹變高、disk I/O 次數增加。
+      B+ Tree 刻意讓內部節點不存資料，是為了換取更高的 fan-out。若內部節點存了資料，每個節點能指向的子節點就會變少，導致樹變高、disk I/O 次數增加。
   - text: "B+Tree 引入了 Prefix Truncation 技術，雖然會導致內部節點能塞入的路由鍵數量減少，但能確保查詢路徑始終保持在 1 次真正的 disk I/O。"
     explanation: |
       Prefix Truncation 是為了縮短 routing key 長度，其目的是為了增加一個 page 能塞入的鍵數，進而提高 fan-out 並讓樹更矮，而非減少數量。

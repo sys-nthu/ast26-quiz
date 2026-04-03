@@ -1,0 +1,24 @@
+author: CasualBrave
+date: 2026-04-03
+question: |
+  關於 NVMe 與 AHCI 的效能模型與架構設計，下列何者「不正確」？
+options:
+  - text: "在理想近似下，若 random I/O latency 為 50 ms、目標為 5000 IOPS，所需 queue depth 約為 250。"
+    explanation: |
+      這個敘述在近似模型下成立。可用 IOPS ≈ queue depth / latency 反推，
+      queue depth ≈ 5000 × 0.05 = 250。雖然實務上還有硬體限制，但算式本身正確。
+  - text: "若 random I/O latency 為 20 ms 且 queue depth 為 20，理想上約可達 400 IOPS。"
+    correct: true
+    explanation: |
+      這個說法是錯的。正確應為 20 / 0.02 = 1000 IOPS。若算成 400 IOPS，通常是把
+      單位或換算步驟弄錯。這一項是在測試 latency 與 queue depth 的基本關係。
+  - text: "NVMe 在多核心場景常有較好的 IOPS scaling，
+      重要原因之一是 per-core queue pair 可降低 lock contention。"
+    explanation: |
+      這是 NVMe 的核心優勢之一。多組 SQ/CQ 讓不同核心可操作不同 queue，
+      減少共享結構與鎖競爭，通常比單一 queue 更容易在高併發下擴展吞吐量。
+  - text: "NVMe 把 submission queue 與 completion queue 分離後，
+      host 端仍需要 doorbell register 與 completion handling。"
+    explanation: |
+      這是正確的。NVMe 仍需要 host 寫 doorbell 通知 controller 有新 command，
+      也需要處理 completion 並回報消費進度。分離 SQ/CQ 不代表控制流程被移除。

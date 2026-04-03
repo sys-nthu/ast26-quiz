@@ -1,0 +1,20 @@
+author: fffelix-huang
+date: 2026-04-03
+question: |
+  某天，系統上線了一個新功能，業務邏輯會頻繁地「寫入一筆資料，幾分鐘後又將其刪除」。
+  幾天後工程師發現，雖然資料總量沒有顯著增加（因為寫完就刪了），但是系統的「查詢（Point Query）」延遲卻變得異常的高。
+  明明已經設定了 Bloom Filter，為什麼還會發生這種事？
+options:
+  - text: 因為頻繁的 Delete 操作會讓 SSTable 內的 Bloom Filter 產生雜湊碰撞，導致誤判率飆升至 100%。
+    explanation: |
+      Bloom Filter 的誤判率與 Hash function 和陣列大小有關，並不會因為單純的 Delete 操作就直接失效或飆升至 100%。
+  - text: 因為 Delete 會立刻觸發 Compaction，大量背後的磁碟 I/O 佔用了系統頻寬，拖慢了前端的讀取效能。
+    explanation: |
+      LSM-Tree 的 Delete 只是寫入一個 Tombstone 標記，並不會「立刻」觸發物理刪除或 Compaction。
+  - text: 因為短時間內的頻繁修改，會觸發 Memtable 的 In-place update 鎖定衝突，導致讀取被阻塞。
+    explanation: |
+      LSM-Tree 的核心哲學就是 Out-of-place write，Memtable 通常也不會做 In-place update，而是新增版本。
+  - text: 因為 Bloom Filter 無法幫你過濾 Tombstone（墓碑）。查詢被刪除的 key 時，Bloom Filter 會回答「存在」，導致系統仍必須去讀取硬碟，才知道原來是一座墓碑。
+    correct: true
+    explanation: |
+      Delete 只是寫入一個 Tombstone，這個 Tombstone 也是一筆 record。當你查詢這個 key 時，Bloom Filter 會正確地告訴你「這個 key 在這個檔案裡」，於是系統發動 Disk I/O 去讀取，讀出來才發現是 Tombstone。大量的 Tombstone 累積在觸發 Compaction 被清掉之前，會讓 Bloom Filter 失去阻擋這類無效查詢的作用。

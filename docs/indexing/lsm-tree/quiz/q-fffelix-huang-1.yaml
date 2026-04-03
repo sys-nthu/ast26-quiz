@@ -14,7 +14,7 @@ options:
   - text: 因為短時間內的頻繁修改，會觸發 Memtable 的 In-place update 鎖定衝突，導致讀取被阻塞。
     explanation: |
       LSM-Tree 的核心哲學就是 Out-of-place write，Memtable 通常也不會做 In-place update，而是新增版本。
-  - text: 因為 Bloom Filter 無法幫你過濾 Tombstone（墓碑）。查詢被刪除的 key 時，Bloom Filter 會回答「存在」，導致系統仍必須去讀取硬碟，才知道原來是一座墓碑。
+  - text: 因為 Bloom Filter 無法幫你過濾 Tombstone。查詢被刪除的 key 時，Bloom Filter 會回答「存在」，導致系統仍必須去讀取硬碟，才知道原來是 Tombstone。
     correct: true
     explanation: |
       Delete 只是寫入一個 Tombstone，這個 Tombstone 也是一筆 record。當你查詢這個 key 時，Bloom Filter 會正確地告訴你「這個 key 在這個檔案裡」，於是系統發動 Disk I/O 去讀取，讀出來才發現是 Tombstone。大量的 Tombstone 累積在觸發 Compaction 被清掉之前，會讓 Bloom Filter 失去阻擋這類無效查詢的作用。

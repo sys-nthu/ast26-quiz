@@ -1,0 +1,26 @@
+author: EpicHedgehog04
+date: 2026-04-02
+question: |
+  某學生主張：
+  「 DMA 是 interrupt 的進階版本，兩者只是減少 CPU 負擔的程度不同。」
+  以下哪個回應最精準？
+options:
+  - text: DMA 是資料傳輸方式，interrupt 是通知機制，兩者沒有前後版本的關係
+    correct: true
+    explanation: |
+      DMA 是允許資料在外部設備與記憶體之間直接傳輸、不需要通過 CPU 的方法；
+      interrupt 則是通知 CPU 的方法。
+  - text: DMA 仍需透過 CPU 執行 load/store 指令來完成資料搬移，不算一種進階
+    explanation: |
+      DMA 的重點就在於可以不需要透過 CPU load/store 搬資料，
+      而 CPU 在這個機制當中只負責設定、不參與實際傳輸
+  - text: 沒錯， interrupt 主要讓裝置與 CPU 間的資料同步， DMA 用於提升同步效率
+    explanation: |
+      interrupt 主要用於通知 CPU 裝置狀態，而非資料同步；
+      而 DMA 的目的是資料搬移
+  - text: 兩者皆用於減少 CPU 與裝置之間的資料傳輸時間，但沒有前後版本的關係
+    explanation: |
+      DMA 是一種讓裝置不經過 CPU 直接對記憶體進行讀寫的傳輸機制，
+      不需 CPU 逐筆執行 load/store 指令，因此減少的是 CPU 的負擔與介入程度；
+      interrupt 則是一種通知機制，它的目的在於避免 CPU 持續 polling，
+      而不是用來加速資料傳輸

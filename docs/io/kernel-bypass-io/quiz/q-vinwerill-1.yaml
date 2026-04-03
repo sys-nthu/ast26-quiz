@@ -1,0 +1,48 @@
+author: vinwerill
+date: 2026-04-03
+question: |
+  你正在設計一個基於 CSAL 的儲存系統，
+  目標是透過暫存層（staging layer）將上層應用產生的 random write
+  重新組織為對 QLC SSD 較友善的 sequential write。
+
+  該暫存層需要長時間承受高頻率的小量寫入，
+  並即時吸收 bursty 的 write workload，以避免成為整體 I/O path 的瓶頸。
+
+  在此情境下，作為 CSAL 暫存層的 SSD，
+  應優先具備下列哪一種特質最為關鍵？
+options:
+  - text: "**採用高 over-provisioning與多通道 NAND 的 SSD 設計，可支援 low-latency、高 IOPS small random write 並具高耐久度**"
+    correct: true
+    explanation: |
+      CSAL 的 staging layer 主要工作是**即時吸收大量 small random write**並重組成 sequential write。
+      這類負載要求 SSD 在 small I/O 下仍能提供低 latency 與高 IOPS。
+      透過：
+      - **高 over-provisioning**：降低 GC 造成的阻塞  
+      - **多通道 / 多 planes 並行 NAND**：增加寫入並行度，提高 IOPS  
+      - **高耐久度設計**：支撐長時間高頻寫入  
+      SSD 能穩定處理 high-frequency random write，確保暫存層不成為 bottleneck。
+
+  - text: |
+      **提供大容量（例如數 TB 等級），以容納更多暫存資料並降低資料溢出風險的 SSD 設計**，
+      適合長時間累積 write 並減少頻繁 flush 的需求。
+    explanation: |
+      CSAL 的暫存層主要角色是**快速吸收 small random write 並立即重組 I/O**，
+      而非長期儲存大量資料。
+      因此，即使 SSD 容量大，也無法改善 random write 的 latency 或 IOPS，
+      對暫存層的核心效能幫助有限。
+      SSD 容量大只是增加暫存空間，並非提升寫入效率的關鍵特性。
+
+  - text: "**專為 large sequential write 最佳化的 SSD，追求高吞吐量**"
+    explanation: |
+      CSAL staging layer 的主要工作是**即時吸收大量 small random write**，並將它們重組成 sequential write 再 flush。
+      因此瓶頸在於 **如何快速接收和處理 small random write**，而不是最終的 sequential flush throughput。  
+      如果 SSD 對 random write 的 latency 高、IOPS 低：
+      - 暫存層在吸收上層 write 時會阻塞  
+      - 轉換為 sequential write 的速度再快也無法彌補這個瓶頸  
+      相反地，**sequential write 的吞吐能力**雖然重要，但它影響的是 flush 階段的效率，而不是暫存層的核心任務。因此在設計 staging layer 時，**random write 性能比 sequential write 更關鍵**。
+
+  - text: "**高 read IOPS 與低 read latency**，可加速資料存取效率。"
+    explanation: |
+      CSAL staging layer 的主要負載在於 write path，
+      特別是 small random write。
+      read 效能對此場景幫助有限，無法解決 write bottleneck。

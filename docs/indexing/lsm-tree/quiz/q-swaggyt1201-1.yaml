@@ -19,5 +19,5 @@ options:
     correct: true
     explanation: |
       當 SSTable 變多時，一次 point lookup 可能需要檢查更多檔案。
-      為了避免對每個 SSTable 都做不必要的磁碟讀取，系統通常會在記憶體中保存各 SSTable 的 Bloom Filter，以及部分索引 metadata，先快速判斷某個 key 是否「不可能」在該檔案中。
+      為了避免對每個 SSTable 都做不必要的磁碟讀取，系統通常會在記憶體中保存各 SSTable 的 Bloom filter，以及部分索引 metadata，先快速判斷某個 key 是否「不可能」在該檔案中。
       SSTable 越多，這類記憶體開銷通常也會增加。

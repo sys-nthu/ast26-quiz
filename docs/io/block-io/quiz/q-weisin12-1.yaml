@@ -1,0 +1,21 @@
+author: weisin12
+date: 2026-04-04
+question: |
+  當系統使用 NVMe SSD 處理每秒數十萬次的隨機讀取 (Random Read) 時，工程師發現 CPU 資源大量消耗在核心 (Kernel) 中，導致效能無法提升。
+  將 I/O 完成的通知機制從「中斷 (Interrupt)」改為「輪詢 (Polling)」後，效能反而大幅改善。
+  
+  請問在這種高 I/O 密度的情境下，為何看似浪費 CPU 資源的輪詢機制比中斷機制更有效率？
+options:
+  - text: "頻繁的中斷會引發中斷風暴 (Interrupt storm)，產生極大的上下文切換 (Context switch) 開銷。輪詢省去這些開銷，在微秒級的延遲下整體效率更高。"
+    correct: true
+    explanation: |
+      正確。當 I/O 延遲極低且密度極高時，處理硬體中斷的額外開銷會遠大於讓 CPU 空轉輪詢的成本。輪詢透過不斷檢查狀態，避免了昂貴的中斷切換流程。
+  - text: "輪詢機制將底層的非同步 (Asynchronous) I/O 強制轉為同步 (Synchronous) I/O，讓執行緒在等待時能徹底休眠，減少排程消耗。"
+    explanation: |
+      錯誤。輪詢與非同步 I/O 通常是搭配使用的。若轉為同步 I/O，在數十萬次併發下反而會因為建立海量執行緒而導致系統崩潰。
+  - text: "輪詢機制繞過了作業系統的區塊裝置抽象層 (Block device abstraction)，直接存取 NAND flash，將瓶頸從 IOPS 轉移至頻寬 (Bandwidth)。"
+    explanation: |
+      錯誤。無論是中斷還是輪詢，都無法繞過區塊裝置抽象層，CPU 也不可能直接讀取 NAND flash。此外，隨機讀取小檔案的瓶頸始終是 IOPS。
+  - text: "中斷機制需要為每次 I/O 動態分配記憶體來建立專屬的處理程序，而輪詢重複使用同一個函式，避免了記憶體耗盡的問題。"
+    explanation: |
+      錯誤。中斷處理程序是預先註冊好的，CPU 只是跳轉執行，並不會動態消耗記憶體來「建立」程序。真正的效能殺手是「時間開銷」而非「記憶體開銷」。

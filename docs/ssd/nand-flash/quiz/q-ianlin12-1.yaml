@@ -1,7 +1,7 @@
 author: ianlin12
 date: 2026-04-04
 question: |
-  在 NAND Flash 中，會降低 Data Retention 的主要原因是什麼？
+  在 NAND Flash 中，會降低 Data Retention 的最主要的原因是什麼？
 options:
   - text: "長期只讀取資料而不寫入"
     explanation: |

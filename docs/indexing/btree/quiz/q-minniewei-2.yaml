@@ -1,23 +1,32 @@
 author: minniewei
 date: 2026-04-03
 question: |
-  假設我們要從一億 ($10^8$) 筆資料中搜尋特定資料。現有兩個 B-Tree 方案：
-  方案甲：Fan-out $M=10$，每層磁碟讀取需 10ms，節點內二元搜尋需 $(\log_2 M)$ ms。
-  方案乙：Fan-out $M=1000$，每層磁碟讀取需 10ms，節點內二元搜尋需 $(\log_2 M)$ ms。
-  請問哪一個方案的「總搜尋時間」較短，且其主導因素為何？
-
-  註: 每個 leaf node 可存 100 筆資料
+  假設我們要從一億 ($10^8$) 筆資料中搜尋特定資料。現有兩個 B+Tree 方案：
+  已知條件:
+    - 每個 leaf node 可存 100 筆資料
+    - 每次 I/O 需 10 ms
+    - 節點內部二元搜尋每步需 1 us
+  現有兩種不同的方案:
+    - 方案甲：Fan-out $M=10$
+    - 方案乙：Fan-out $M=1000$
+  請問哪一個方案的「總搜尋時間」較短，其主導因素為何？
 
 options:
   - text: "方案乙較短，主導原因是 I/O 次數大幅下降。"
     correct: true
     explanation: |
-      在方案甲當中，樹高約為 $\lceil \log_{10}(10^6) \rceil = 6$，總搜尋時間約為 $(6_{\text{inner}} +1_{\text{leaf}}) \times 10 \text{ ms} + (6_{\text{inner}} +1_{\text{leaf}}) \times \log_2(10) \text{ ms} \approx 70 \text{ ms} + 23.24 \text{ ms} = 93.24 \text{ ms}$。
-      在方案乙當中，樹高約為 $\lceil \log_{1000}(10^6) \rceil = 2$，總搜尋時間約為 $(2_{\text{inner}} +1_{\text{leaf}}) \times 10 \text{ ms} + (2_{\text{inner}} +1_{\text{leaf}}) \times \log_2(1000) \text{ ms} \approx 30 \text{ ms} + 29.89 \text{ ms} = 59.89 \text{ ms}$。
-      雖然方案乙的每層搜尋時間略高，但 I/O 次數從 7 次降到 3 次，對總搜尋時間的影響更大，因此方案乙較短，主導原因是 I/O 次數大幅下降。
+      甲方案時間計算:
+        - I/O 次數計算: $\lceil \log_{10}(10^6)_{\text{inner}} \rceil + 1_{\text{leaf}} = 7$ 
+        - 二元數搜尋時間計算: $(6 \times \log_2 10 + 1 \times \log_2 100) \times 1\mu\text{s} \approx 18.42 \text{ us}$
+        - 總時間計算:  $(7 \times 10 \text{ ms}) + 18.42 \text{ us} \approx 70.01842 \text{ ms}$
+      乙方案時間計算:
+        - I/O 次數計算: $\lceil \log_{1000}(10^6)_{\text{inner}} \rceil + 1_{\text{leaf}} = 3$ 
+        - 二元數搜尋時間計算: $(2 \times \log_2 1000 + 1 \times \log_2 100) \times 1\mu\text{s} \approx 18.42 \text{ us}$
+        - 總時間計算:  $(3 \times 10 \text{ ms}) + 18.42 \text{ us} \approx 30.01842 \text{ ms}$
+      從此分析可見，方案乙的總搜尋時間較短，主導因素是 I/O 次數大幅下降。
   - text: "方案甲較短，主因是二元搜尋所需要的時間較短"
     explanation: |
-      雖方案甲較乙在二元搜尋上節省了一些時間，但 I/O 次數從 3 次升到 7 次，對總搜尋時間的影響更大，因此方案乙較短。
+      兩者在二元搜尋時間相差不大。
   - text: "兩者所需要的時間相近，因為 I/O 次數與二元搜尋時間的變化剛好抵銷。"
     explanation: |
       I/O 所需要的時間會大過於二元搜尋的時間，因此 I/O 次數的變化對總搜尋時間的影響更大，兩者所需要的時間不會相近。

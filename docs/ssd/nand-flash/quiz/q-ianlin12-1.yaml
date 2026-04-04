@@ -3,7 +3,7 @@ date: 2026-04-04
 question: |
   對 NAND Flash 來說，會降低 Data Retention 的最主要的原因是什麼？
 options:
-  - text: "NAND Flash表面沾到灰塵"
+  - text: "NAND Flash 表面沾到灰塵"
     explanation: |
       表面有灰塵只要清理掉就好，並不會影響到內部的電子儲存
   - text: "使用了能夠減少 P/E cycle 消耗的設計方式"

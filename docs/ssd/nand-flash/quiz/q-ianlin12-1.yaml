@@ -1,0 +1,19 @@
+author: ianlin12
+date: 2026-04-04
+question: |
+  在 NAND Flash 中，會降低 Data Retention 的主要原因是什麼？
+options:
+  - text: "長期只讀取資料而不寫入"
+    explanation: |
+      讀取資料可能會有讀取干擾（Read Disturb），但它不會像 erase 操作那樣劇烈破壞氧化層，因此不是降低 Data Retention 的主要原因
+  - text: "使用了能夠減少 P/E cycle 消耗的設計方式"
+    explanation: |
+      減少 P/E cycle 消耗可以增加 Data Retention
+  - text: "電荷經由隧穿氧化層（tunnel oxide）洩漏"
+    correct: true
+    explanation: |
+      每次 erase 操作都會對 cell 的隧穿氧化層（tunnel oxide）造成微小但不可逆的損傷。隨著 P/E cycle 累積，氧化層變薄，
+      其保留電子的能力下降，使 Data Retention 變差
+  - text: "使用 in-place write"
+    explanation: |
+      NAND Flash 只能 out-of-place write

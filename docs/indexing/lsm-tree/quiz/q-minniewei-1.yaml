@@ -1,25 +1,20 @@
 author: minniewei
 date: 2026-04-03
 question: |
-  Major Compaction 代表所有 SSTable 進行合併，合併後的 SSTable 會有一個新的 Bloom Filter。
-  PS : 假設合併後 Bloom Filter 仍配置足夠記憶體。
-
-  在一個 LSM-Tree 系統中，現有 50 個 SSTable，每個 Bloom Filter 的誤判率為 $2\%$。
-  為了優化效能，管理員決定執行 Major Compaction，將這 50 個檔案合併為 1 個巨大的 SSTable。
-  請分析此舉對系統效能的影響，下列哪一個敘述最為準確？
+  管理員決定將所有 50 個 SSTable 合併為 1 個 SSTable，並為合併後的 SSTable 配置足夠記憶體的 Bloom filter（FPR 維持 2%）。請分析此舉對系統效能的影響。
 
 options:
-  - text: "搜尋「不存在的 Key」時，預期磁碟 I/O 次數會從 1 次降至 0.02 次，讀取效能提升，但會產生嚴重的寫入放大。"
+  - text: "搜尋「不存在的 key」時，預期磁碟 I/O 次數會從 1 次降至 0.02 次，讀取效能提升，但會產生嚴重的寫入放大。"
     correct: true
     explanation: |
-      原本 50 個檔案，不必要讀取的期望值為 $50 \times 0.02 = 1$ 次；合併為 1 個檔案後，期望值降為 $1 \times 0.02 = 0.02$ 次。降低了 Read Amplification。
-      但 Major Compaction 需要重寫所有資料，Write Amplification 極高，且合併過程中系統資源消耗大，可能影響整體效能。
-  - text: "合併後搜尋「不存在的 Key」時，磁碟 I/O 次數會降至 0，因為 Bloom Filter 會因為檔案變大而變得絕對精準。"
+      原本 50 個檔案，不必要讀取的期望值為 $50 \times 0.02 = 1$ 次；合併為 1 個檔案後，期望值降為 $1 \times 0.02 = 0.02$ 次。降低了 read amplification。
+      但合併 SSTable 時需要重寫所有資料，write amplification 極高，且合併過程中系統資源消耗大，可能影響整體效能。
+  - text: "合併後搜尋「不存在的 key」時，磁碟 I/O 次數會降至 0，因為 Bloom filter 會因為檔案變大而變得絕對精準。"
     explanation: |
       即便合併成一個大檔，只要維持 $2\%$ 的誤判率，仍有機率發生誤判，I/O 次數不會降至 0。
-  - text: "為了追求極致的讀取效能，系統應頻繁執行 Major Compaction 以確保 SSTable 數量永遠維持在 1，因為 SSTable 數目越少，讀取與寫入效能都會達到最優化。"
+  - text: "為了追求極致的讀取效能，系統應頻繁合併 SSTable 以確保 SSTable 數量永遠維持在 1，因為 SSTable 數目越少，讀取與寫入效能都會達到最優化。"
     explanation: |
-      雖然 SSTable 數量減少可以降低 Read Amplification，但頻繁執行 Major Compaction 會導致 Write Amplification 極高。
-  - text: "合併後由於檔案變大，Bloom Filter 需要處理更多的 Keys，這會導致其誤判率自動上升，抵銷了檔案變少的好處"
+      雖然 SSTable 數量減少可以降低 read amplification，但頻繁執行 SSTable 合併會導致 write amplification 極高。
+  - text: "合併後由於檔案變大，Bloom filter 需要處理更多的 keys，這會導致其誤判率自動上升，抵銷了檔案變少的好處。"
     explanation: |
-      錯誤。誤判率是由 Bloom Filter 的參數決定的，與檔案大小無關。只要維持足夠的記憶體配置，誤判率可以保持穩定。
+      誤判率是由 Bloom filter 的參數決定的，與檔案大小無關。只要維持足夠的記憶體配置，誤判率可以保持穩定。

@@ -1,0 +1,18 @@
+author: ianlin12
+date: 2026-04-03
+question: |
+  在 PostgreSQL 中，下列哪種操作「不會」導致一筆還活著的資料的 CTID (Current Tuple ID) 發生改變？
+options:
+  - text: "執行 VACUUM FULL 指令"
+    explanation: |
+      VACUUM FULL 指令除了進行原本的 VACCUUM ，還會整合 page ，使能夠空出更多空間
+  - text: "執行 UPDATE 指令，但沒有觸發HOT機制(Heap-Only Tuples update)"
+    explanation: |
+      在沒有觸發HOT機制時，會建立新的slot
+  - text: "執行 VACUUM 指令"
+    correct: true
+    explanation: |
+      只將無效record清除，不會整合page
+  - text: "執行 CLUSTER 指令"
+    explanation: |
+      CLUSTER 指令會將整個 table 依照需求進行物理排序(不是邏輯上的)，加速對於該需求的循序讀取

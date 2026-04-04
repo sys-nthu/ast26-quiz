@@ -7,10 +7,10 @@ options:
     explanation: |
       作業系統的 page cache 是根據實際存取情況快取資料頁，而不是因為 LSM-Tree 有多層結構，就替每一層建立一份完整副本。
       read amplification 可能會讓 cache 壓力變大，但不代表系統會對每層資料做完整重複快取。
-  - text: "為避免讀取失敗而替每筆 WAL (write-ahead log) 建立記憶體鏡像"
+  - text: "將 WAL (write-ahead log) 的內容完整保留在記憶體中，以便讀取時直接查詢而不必存取磁碟"
     explanation: |
-      WAL 主要是用來保證寫入持久性，讓系統在當機後可以進行恢復，屬於寫入路徑的機制。
-      它的設計目的不是解決 point lookup 的 read amplification，因此不會因為 SSTable 增加、讀取放大變嚴重，就需要為每筆 WAL 額外建立記憶體鏡像。
+      WAL (write-ahead log) 的核心功能是確保資料的持久性，讓系統在當機重啟後能進行災難恢復，這屬於寫入路徑（Write Path）的機制。
+      Read Amplification 的瓶頸在於單次查詢需要掃描多個位於磁碟上的 SSTables。因此，系統並不會因為磁碟上的 SSTable 數量增加導致讀取放大變嚴重，就改由在記憶體中完整保留 WAL 的內容來應對磁碟 I/O 的查詢效能問題。
   - text: "讓 memtable 擴大到足以容納所有既有磁碟資料"
     explanation: |
       memtable 是用來暫存新寫入資料的記憶體結構，容量通常只佔整體資料的一小部分。

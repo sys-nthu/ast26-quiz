@@ -2,7 +2,7 @@ author: ianlin12
 date: 2026-04-05
 question: |
   在論文《Write-Aware Timestamp Tracking: Effective and Efficient Page Replacement》中，針對 page replacement，
-  WATT不但會針對每一次的存取順序 (order i) 計算「子頻率」當作價值
+  WATT 不但會針對每一次的存取順序 (order i) 計算「子頻率」當作價值
   (公式是將「存取次數 (i)」除以「目前時間與該次存取時間的差距(t_now - t_i)」)，
   並依照 page 價值來選擇要被替換的 page (價值越低，被替換的機率越高)
   對於 dirty page，他們還添加了 write_weight 變數來增加 dirty page 的價值，使 dirty page 更不容易被寫回 SSD。

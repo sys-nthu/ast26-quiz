@@ -1,0 +1,20 @@
+author: SJieNg123
+date: 2026-04-05
+question: |
+  在高性能 NVMe SSD 的環境下，開發者試圖將一個原本使用大量 Thread 搭配 Synchronous I/O (如 pread/pwrite) 的資料庫引擎，改造成使用 Asynchronous I/O (如 Linux io_uring) 的架構。
+  
+  根據 Block I/O 的特性，下列關於這項改造的敘述中，何者「錯誤」？
+options:
+  - text: "改用 Asynchronous I/O 後，單個 Thread 可以同時發出多個 I/O 請求而不必等待前一個完成，這能有效提高硬體隊列深度 (Queue Depth) 的利用率。"
+    explanation: |
+      這是 Asynchronous I/O 的核心優勢。Sync I/O 下，一個 Thread 一次只能負責一個 Pending I/O；Async 允許單一 Thread 透過提交佇列 (Submission Queue) 批次發送大量請求，從而填滿 NVMe 的硬體吞吐能力。
+  - text: "在 Synchronous I/O 模式下，即便增加 Thread 數量到成千上萬個，效能仍受限於大量的 Context Switch 開銷以及核心內部的鎖競爭 (Lock Contention)。"
+    explanation: |
+      正確。Sync I/O 導致 Thread 頻繁在 Running 與 Blocked 狀態切換，這會消耗大量 CPU 週期在 Context Switch 上，且多執行緒存取同一個檔案描述符時會引發核心內部的同步鎖瓶頸。
+  - text: "io_uring 引入了 Submission Queue (SQ) 與 Completion Queue (CQ) 的設計，這讓 User space 與 Kernel space 共享記憶體環狀緩衝區，減少了傳統系統呼叫的拷貝與進入核心的次數。"
+    explanation: |
+      正確。這是 io_uring 優於 AIO 或 Sync I/O 的關鍵設計，透過 Ring Buffer 實現零拷貝的指令傳遞，並支持 Submission Polling 模式來進一步減少 syscall 開銷。
+  - text: "由於 Asynchronous I/O 允許 CPU 在發出請求後繼續執行其他任務，因此在同樣的 Workload 下，改用 io_uring 後的單次 I/O 延遲 (Single-request Latency) 會比 Synchronous I/O 明顯縮短。"
+    correct: true
+    explanation: |
+      錯誤。Asynchronous I/O 的主要目標是提高「吞吐量 (Throughput)」與「併發度」，而非縮短「單次硬體存取的延遲」。實際上，因為 Async 需要額外的隊列管理與中斷/輪詢處理，單次請求的絕對延遲通常與 Sync I/O 持平甚至微幅增加。效能提升來自於 CPU 不再因等待而閒置。

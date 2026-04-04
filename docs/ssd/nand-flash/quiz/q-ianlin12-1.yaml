@@ -5,7 +5,7 @@ question: |
 options:
   - text: "長期只讀取資料而不寫入"
     explanation: |
-      讀取資料可能會有讀取干擾（Read Disturb），但它不會像 erase 操作那樣劇烈破壞氧化層，因此不是降低 Data Retention 的主要原因
+      讀取資料可能會破壞氧化層，但它不會像 erase 操作那樣劇烈破壞氧化層，因此不是降低 Data Retention 的主要原因
   - text: "使用了能夠減少 P/E cycle 消耗的設計方式"
     explanation: |
       減少 P/E cycle 消耗可以增加 Data Retention

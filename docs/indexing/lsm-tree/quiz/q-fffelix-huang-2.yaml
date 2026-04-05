@@ -1,0 +1,19 @@
+author: fffelix-huang
+date: 2026-04-03
+question: |
+  假設某通訊軟體的系統架構採用了 LSM-Tree 作為底層資料庫。在跨年倒數的 10 分鐘內，系統會迎來平常 100 倍以上的爆發性寫入（傳送新年快樂）。
+  如果在跨年夜當下，系統發出了「disk I/O 寫入頻寬滿載（write stall）」的嚴重警報。下列哪一項調整最能緩解當下的 write stall？
+options:
+  - text: 維持原有的 Leveled compaction 不變，因為跨年夜過後大家會頻繁回顧昨晚的訊息，必須犧牲當下的寫入速度，確保後續的讀取體驗。
+    explanation: |
+      如果當下系統已經因為 write stall 而崩潰，訊息根本傳不出去（寫入失敗），那麼後續的讀取體驗再好也沒有意義。保命優先。
+  - text: 調低 memtable flush threshold（例如從 64MB 降到 16MB），讓資料更頻繁地寫成小的 SSTable，以減輕記憶體壓力並加速寫入。
+    explanation: |
+      調低 threshold 會產生大量瑣碎的 SSTable，這反而會更頻繁地觸發 compaction 機制，讓硬碟 I/O 負擔更加惡化，無法解決 write stall。
+  - text: 暫時切換成 Tiered compaction，先讓寫入快速落盤，容忍短暫的空間膨脹，等離峰時間再轉換回 Leveled compaction。
+    correct: true
+    explanation: |
+      Leveled 的 write amplification 很高，這在極限寫入爆發時會成為 I/O 瓶頸。Tiered compaction 的策略是「懶惰合併」，write amplification 很低。在寫入生死存亡的關頭，犧牲空間與後續的讀取效能（space/read amp），換取當下的極高寫入吞吐量，是典型的架構 trade-off。
+  - text: 暫時關閉 WAL 以節省循序寫入的 I/O，只要 memtable 撐住就不會出問題。
+    explanation: |
+      關閉 WAL 意味著只要伺服器一當機或斷電，尚未 flush 的跨年訊息將會永久遺失。對於通訊軟體來說，資料的 durability 通常是不能妥協的底線。

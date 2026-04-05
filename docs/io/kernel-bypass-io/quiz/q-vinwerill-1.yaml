@@ -1,0 +1,26 @@
+author: vinwerill
+date: 2026-04-03
+question: |
+  你正在設計一個基於 CSAL 的儲存系統，
+  目標是透過暫存層將上層應用產生的 random write
+  重新組織為對 QLC SSD 較友善的 sequential write。
+
+  若要選擇作為 CSAL 暫存層的 SSD，其應優先具備哪一種特質？
+options:
+  - text: "採用高 over-provisioning 與多通道 NAND 設計，支援低延遲、高 IOPS small random write 並具高耐久度"
+    correct: true
+    explanation: |
+      暫存層的任務是即時吸收 small random write 並重組成 sequential write，因此 SSD 需要在 small I/O 下提供低延遲和高 IOPS，
+      並具備足夠耐久度支撐長時間高頻寫入。高 over-provisioning 可降低 GC 阻塞，多通道 NAND 增加並行度提高 IOPS，高耐久度則支撐長期負載。
+
+  - text: "提供大容量 SSD（例如數 TB）以容納更多暫存資料"
+    explanation: |
+      大容量可以存放更多資料，但對暫存層吸收 small random write 的效能幫助有限，無法改善延遲或 IOPS，不是首要考量。
+
+  - text: "專為 large sequential write 最佳化，追求高吞吐量"
+    explanation: |
+      暫存層瓶頸在於吸收 random write，而不是 flush 時的 sequential write 吞吐量。若 random write 延遲高或 IOPS 低，仍會造成暫存層阻塞。
+
+  - text: "高 read IOPS 與低 read latency"
+    explanation: |
+      暫存層主要處理 write，讀取效能對這類負載幫助有限，無法解決 write path 的瓶頸。

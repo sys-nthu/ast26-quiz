@@ -11,8 +11,8 @@ options:
       這種延遲等級下 interrupt 更合適，CPU 可以在等待期間做其他事。
   - text: "單核機器上的資料庫，對 NVMe SSD 發出大量 random 4KB read。"
     explanation: |
-      雖然 NVMe 延遲低且 I/O 密度高，但 polling 需要一顆 CPU core
-      持續檢查 completion queue。單核機器上這顆 core 同時要跑應用程式，
+      雖然 NVMe 延遲低且 I/O 密度高，但 polling 會讓 CPU core
+      持續忙於檢查 completion queue。單核機器上這顆 core 同時要跑應用程式，
       如果被 polling 佔住就無法處理其他工作。
   - text: "NVMe SSD 上的監控系統，每隔幾秒寫入一筆 4KB log。"
     explanation: |

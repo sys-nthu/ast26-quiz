@@ -1,0 +1,23 @@
+author: CasualBrave
+date: 2026-04-03
+question: |
+  為何在缺乏 IOMMU 或 DMA access control 時，DMA 可能帶來安全風險，例如：DMA 遊戲外掛？
+options:
+  - text: "因為 DMA device 可直接對 memory 做讀寫；若缺乏 isolation 與 permission control，可能讀到或覆寫不該存取的 memory 區域。"
+    correct: true
+    explanation: |
+      這是核心原因。DMA 直接對 memory 搬運資料，若沒有 IOMMU 或適當的 DMA
+      access control，device 可能越權存取敏感 memory，造成資料外洩、資料毀損，
+      甚至 system stability 問題。
+  - text: "因為 DMA 一定會繞過 CPU 的所有控制邏輯，所以 CPU 完全無法得知任何 DMA 行為。"
+    explanation: |
+      DMA 不是完全脫離 CPU。CPU/driver 仍會參與 setup 與 completion handling。
+      風險重點在於 memory access isolation 不足，而不是 CPU 完全看不到 DMA。
+  - text: "因為 DMA 只能使用 virtual address，導致位址映射混亂，才會產生安全問題。"
+    explanation: |
+      DMA 常見使用的是 physical address（或經 IOMMU 轉換後的 address），不是只能用
+      virtual address。安全風險來源是存取範圍控制不足，不是位址型別本身。
+  - text: "因為 DMA 一定需要 physically contiguous memory，只要 memory 碎片化就會直接造成資安漏洞。"
+    explanation: |
+      memory 是否連續屬於可用性與效能問題，且可透過 scatter-gather 緩解；這不是
+      DMA 安全風險的根本原因。根本仍是是否有正確的 access isolation 與 permission control。

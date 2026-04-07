@@ -1,0 +1,23 @@
+author: joanne-09
+date: 2026-04-03
+question: |
+  假設為了延長 SSD 的物理壽命，將目前的 Leveled compaction 改為 Tiered compaction 以降低 write amplification。
+  綜合 LSM-Tree 的 compaction 特性與 SSD 底層 FTL 的運作原理，判斷下列哪一個論點最能準確指出這項提議的隱藏風險？
+options:
+  - text: |
+      Tiered compaction 為了延遲合併，在執行 Compaction 時會採用 In-place update 覆蓋舊資料，導致本來連續的寫入退化為 random write，抵觸了 LSM-Tree 'never update in place' 的初衷，從而加劇 SSD 磨損。
+    explanation: |
+      LSM-Tree 的 compaction 本質上都是進行 merge sort，並把結果以 sequential write 的方式寫到全新的 SSTable 中，絕對不會對既有 SSTable 進行 In-place update。
+  - text: |
+      Tiered compaction 中雖然有高達近 8x 的 space amplification，但 LSM-Tree 可以透過 Bloom filter 通知 SSD 的 FTL 哪些 Page 是不用的舊版本，提早進行物理抹除。提議的盲點在於 Tiered 產生的 read amplification 會大幅消耗 SSD 頻寬。
+    explanation: |
+      Bloom filter 的用途是讓讀取時跳過不包含該 key 的 SSTable，藉此減少不必要的 disk I/O。它無法用來通知 SSD 哪些實體 page 是舊版本，更無法觸發 FTL 提早回收特定 block。
+  - text: |
+      Tiered compaction 具有高 space amplification。無用的舊版本與 tombstone 不被清除，對 FTL 而言這些資料對應的 physical page 仍然是 valid，GC 在回收 block 時必須搬移更多 valid page 才能騰出空間，導致硬體層的 write amplification 升高，可能抵銷軟體層省下的寫入量。
+    correct: true
+    explanation: |
+      Tiered compaction 的 space amplification 很嚴重，對 SSD 的 FTL 來說，這些資料對應的 physical page 仍然是 valid 而無法被 GC 回收，進而引發巨大的硬體 WAF，可能徹底抵銷軟體層省下的寫入量。
+  - text: |
+      Leveled compaction 的 write amplification 雖然高，但其產生的所有寫入都會繞過 SSD 的 FTL，直接與 flash 晶片溝通。而 Tiered compaction 仍需經過 FTL 的地址轉換，因此最終對 flash 的實體寫入量仍然較高。
+    explanation: |
+      這兩者都在 user-space 透過標準的 file system I/O 與底層溝通，最終都必須經過 SSD 內部的 FTL 轉換實體地址，並不存在 Leveled compaction 能自動繞過 FTL 的機制。

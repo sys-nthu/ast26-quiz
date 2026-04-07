@@ -1,0 +1,19 @@
+author: SJieNg123
+date: 2026-04-05
+question: |
+  假設你正在開發一個類似 RocksDB 的儲存引擎，並打算將原本基於多執行緒的 synchronous I/O 遷移至 `io_uring` 搭配 asynchronous I/O。
+  下列關於這項技術轉換的敘述，下列哪項正確？
+options:
+  - text: "`io_uring` 僅能支援帶有 `O_DIRECT` 標籤的檔案存取，若檔案位於 page cache 中，行為會退化成同步阻塞模式。"
+    explanation: |
+      這是舊版 Linux AIO 的主要限制。`io_uring` 的一大突破就是它能處理包括 buffered I/O 在內的大部分 syscall，且能真正實現非同步執行。
+  - text: "`io_uring` 透過 SQ 與 CQ 實現 user 與 kernel 空間的記憶體共享，能有效減少頻繁 syscall 帶來的 context switch 開銷。"
+    correct: true
+    explanation: |
+      這是 `io_uring` 的核心設計。透過與 kernel 共享 ring buffer，應用程式可以批次提交請求，在開啟 SQPOLL 模式下，不需要執行 syscall 就能讓 kernel 處理 I/O。
+  - text: "改用 `io_uring` 的非同步模式後，由於 CPU 不再需要等待 I/O 完成，因此單一 I/O 請求從發出到完成的 latency 會比同步 I/O 有明顯縮短。"
+    explanation: |
+      Async I/O 的優勢在於提高 throughput 與 CPU 利用率，而非縮短單次硬體存取的時間，由於增加了隊列管理和任務調度的開銷，單次的 latency 通常與同步 I/O 持平。
+  - text: "在 `io_uring` 架構下，系統必須強制使用 interrupt 來得知 I/O 完成，不能使用 polling，避免浪費 CPU 資源。"
+    explanation: |
+      `io_uring` 支持 I/O polling 模式（如 `IORING_SETUP_IOPOLL`），對於 NVMe SSD，使用 polling 繞過 interrupt 的開銷可以獲得更低的 latency 與更高的效能。

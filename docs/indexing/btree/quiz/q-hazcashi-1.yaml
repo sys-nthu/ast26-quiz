@@ -1,0 +1,29 @@
+author: hazcashi
+date: 2026-04-05
+question: |
+  某資料庫使用 B+Tree 作為 secondary index。leaf node 的 entry 儲存 `(key, CTID)`，
+  其中 CTID 指向 heap file 中某個 slotted page 的 tuple 位置。
+
+  系統在同一個 page 內做 compaction，將 record 的實體 byte 位置重新排列，
+  但沒有改變 slot array 的順序。完成後，查詢結果仍正確，且不需要回寫整棵 B+Tree。
+
+  下列哪個解釋最正確？
+options:
+  - text: "因為 CTID 直接記錄 record 的 byte offset，compaction 後 offset 會自動被 CPU cache 修正，所以索引不需更新。"
+    explanation: |
+      CTID 不是直接綁定 record 的 byte offset。
+      在 slotted page 設計中，外部參照通常綁定的是 slot identity；若直接用 byte offset，
+      page 內搬移會讓外部索引大量失效。
+  - text: "因為 B+Tree leaf node 彼此有 linked list，compaction 後只要沿 linked list 重新掃描一次，就能修正所有 CTID。"
+    explanation: |
+      leaf linked list 主要是為了 range scan，不是用來修正 heap tuple 位置。
+      compaction 是否安全，關鍵在於 record locator ，而不是 leaf 間串接。
+  - text: "因為 prefix truncation 會在 inner node 壓縮 routing key，所以 page 內 tuple 搬移不會影響 leaf entry。"
+    explanation: |
+      prefix truncation 影響的是 inner node 的 key 表示與 fan-out，
+      不是 heap page 內 tuple relocation 的位址穩定性機制。
+  - text: "因為 CTID 可視為 `(page_id, slot_id)` 的穩定位址，compaction 時只需更新 slot array 中 slot 對應的 byte offset；只要 slot identity 不變，leaf 裡的 CTID 仍有效。"
+    correct: true
+    explanation: |
+      外部索引持有的是穩定的 slot 身分，page 內實體資料如何搬動由 slot array 轉譯即可。
+      因此單純的 in-page compaction 不需要逐筆回寫 B+Tree leaf entry。

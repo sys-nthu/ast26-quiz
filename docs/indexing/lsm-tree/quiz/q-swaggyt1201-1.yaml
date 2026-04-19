@@ -1,0 +1,22 @@
+author: swaggyt1201
+date: 2026-04-03
+question: |
+  當 LSM-Tree 累積的 SSTable 數量逐漸增加時，point lookup 的 read amplification 也會隨之加劇。為了有效過濾不必要的 I/O，系統在設計上通常會將記憶體資源優先投資在下列哪一項機制？
+options:
+  - text: "為每一層資料建立完整的重複 page cache 副本"
+    explanation: |
+      作業系統的 page cache 是根據實際存取情況快取資料頁，而不是因為 LSM-Tree 有多層結構，就替每一層建立一份完整副本。
+      read amplification 可能會讓 cache 壓力變大，但不代表系統會對每層資料做完整重複快取。
+  - text: "將 WAL 的內容完整保留在記憶體中，以便讀取時直接查詢而不必存取磁碟"
+    explanation: |
+      WAL 是拿來保護寫入資料的，主要用途是當機後可以做資料恢復，屬於寫入路徑的一部分。
+      它不是用來解決 read amplification 的機制，因為 read amplification 主要是查詢時需要檢查太多個 SSTable 所造成的。
+  - text: "讓 memtable 擴大到足以容納所有既有磁碟資料"
+    explanation: |
+      memtable 是用來暫存新寫入資料的記憶體結構，容量通常只佔整體資料的一小部分。
+      即使讀取放大增加，系統也不會透過把 memtable 擴大到能容納全部磁碟資料來解決問題，因為這樣會失去使用磁碟儲存大量資料的意義，也不是 LSM-Tree 的實際做法。
+  - text: "保存多個 SSTable 的 Bloom filters 與索引 metadata 的記憶體開銷"
+    correct: true
+    explanation: |
+      當 SSTable 變多時，一次 point lookup 可能需要檢查更多檔案。
+      為了避免對每個 SSTable 都做不必要的磁碟讀取，系統通常會在記憶體中保存各 SSTable 的 Bloom filter，以及部分索引 metadata，先快速判斷某個 key 是否「不可能」在該檔案中。

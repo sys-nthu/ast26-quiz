@@ -1,0 +1,33 @@
+author: hazcashi
+date: 2026-04-04
+question: |
+  你正在設計一個 high-frequency logging 系統，應用程式每次都產生 512B 的 log record，
+  並且要求 `fsync()` 後才算成功。底層儲存裝置是 SSD，對外提供的 block device abstraction
+  為 4KB logical block。壓力測試時發現：
+
+  1. 改成 muti-threads + asynchronous I/O 後，throughput 有提升，但 tail latency 仍然明顯偏高
+  2. CPU profile 顯示 interrupt handling 佔比很高
+  3. 裝置 bandwidth 還沒滿，但 IOPS 已接近上限
+
+  在不改硬體的前提下，下列哪個調整最能解決問題，原因為何？
+options:
+  - text: "維持 512B 同步寫入，但把通知機制改成 polling；因為 polling 一定比 Interrupt 快，所以可以同時解決 tail latency 與 IOPS 瓶頸。"
+    explanation: |
+      Polling 並不是在所有負載都更快。若核心問題是大量 512B 更新與 4KB block 大小不匹配，
+      單純換通知方式無法消除 read-modify-write 的放大成本，也無法顯著降低每筆 log 的 block 層開銷。
+  - text: "把 log writer 改成先在記憶體聚合到 4KB 再批次提交；搭配 asynchronous I/O 保持 queue depth，並在高 IOPS 區段視情況使用 polling 以降低 interrupt cost。"
+    correct: true
+    explanation: |
+      第一，將 512B 請求對齊到 4KB block，可減少因大小不匹配造成的額外 metadata 與 write amplification。
+      第二，asynchronous I/O 讓系統維持足夠 in-flight requests，不會像 synchronous I/O 那樣頻繁阻塞。
+      第三，在高 IOPS 場景下可用 polling 降低大量 interrupt 的 context switch 成本。
+      由於目前 IOPS 是 bottleneck，優先減少每筆 I/O 的固定成本最有效。
+  - text: "把每筆 512B log 改成每秒一次的 8MB 順序寫入，並回到 synchronous I/O；大 I/O 一定同時提升吞吐與資料即時性。"
+    explanation: |
+      大區塊順序寫入確實有機會提高 bandwidth 利用率，但題目中有要求 `fsync()` 後才算成功，
+      每秒才 fsync 會明顯改變 durability 與即時性要求。這種改動可能不適合 high-frequency logging。
+  - text: "維持目前 asynchronous I/O，改用更高 thread 數即可，因為 block device abstraction 只影響 address 轉換，不影響效能。"
+    explanation: |
+      block abstraction 不只是地址命名，I/O 大小與對齊也會直接影響效能。
+      在 4KB block 裝置上持續送大量 512B durable writes，增加 thread 數通常只會放大排程與中斷成本，
+      不會從根本解決 IOPS 壓力與 tail latency 問題。

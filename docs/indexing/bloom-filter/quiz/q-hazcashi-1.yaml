@@ -1,0 +1,31 @@
+author: hazcashi
+date: 2026-04-05
+question: |
+  某團隊為一個 key-value store 設計 Bloom filter，原本預估會插入 $n=1{,}000{,}000$ 個 key，
+  並希望 false positive rate 約為 $1\%$，因此依公式選了對應的 bit array 大小 $m$ 與 hash 數量 $k$。
+
+  上線三個月後，實際 key 數成長到 $2{,}000{,}000$，但團隊不想重建 filter，提議「把查詢時的 hash 數量從 $k$ 提高到 $2k$，
+  這樣就能把 FPR 壓回來，而且不影響正確性」。
+
+  下列哪個判斷最正確？
+options:
+  - text: "提議可行。因為 Bloom filter 本來就允許 false positive，只要在查詢時多檢查幾個 bit，就不會影響 correctness。"
+    explanation: |
+      這個說法忽略了插入與查詢必須使用同一組 hash 定義。若插入時只設了 k 個位置，
+      查詢卻改成檢查 2k 個位置，對已存在元素也可能因新增檢查位元為 0 而被判定不存在，
+      會導致 false negative，破壞 Bloom filter 的核心保證。
+  - text: "提議不可行。當 n 超出原始估計時，應重建更大的 Bloom filter，而不是只在查詢端單獨增加 hash 數量。"
+    correct: true
+    explanation: |
+      Bloom filter 的參數是整體設計的一部分：m、k、n 彼此耦合。
+      n 增加但 m 不變時，bit array 會更快飽和，FPR 上升是預期結果。
+      正確作法是重建更大 m，並用一致的 k 重新插入；
+      不能只改查詢邏輯，否則會引入 false negative。
+  - text: "提議可行，而且查詢 hash 數量越大，FPR 一定單調下降，不受 m 與 n 影響。"
+    explanation: |
+      FPR 並非只由 k 決定，還受 m 與 n 影響，且在固定 m、n 下存在最佳 k。
+      k 過大反而會讓 bit array 更快趨近全 1，造成 FPR 惡化。
+  - text: "不需要任何調整。Bloom filter 既然保證沒有 false negative，就代表 n 成長只會影響查詢成本，不會影響 FPR。"
+    explanation: |
+      沒有 false negative 不代表 FPR 恆定。
+      在固定 m 下，n 增加會提高位元被設為 1 的機率，進而提升 false positive rate。

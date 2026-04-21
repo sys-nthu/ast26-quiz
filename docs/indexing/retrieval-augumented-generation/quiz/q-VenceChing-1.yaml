@@ -1,0 +1,23 @@
+author: VenceChing
+date: 2026-04-21
+question: |
+  一個包含 1 億張高畫質 (平均每張 4MB) 商品圖的**以圖搜圖系統**，採用 HNSW-PQ 索引，總記憶體佔用極高，近期出現 Recall 表現不佳的問題。
+  一位工程師提出：應該全面導入 LEANN 架構，釋放記憶體中高達 120GB 的 Float32 Embeddings，只保留 1 億張原始圖片與輕量化的 PQ 查表。在搜尋第二階段，透過動態載入候選的**原始圖片**送入 Vision Model 即時計算向量，修復 PQ 帶來的 Recall 下降問題。
+  身為負責人，下列何者為適當的決策？
+options:
+  - text: "接受提案。GPU 算力充足的前提下搭配 Dynamic Batching 技術，能克服 Vision Model 推論較慢的問題，以動態運算換取靜態記憶體，突破硬體的儲存瓶頸。"
+    correct: false
+    explanation: |
+      盲目套用優化策略，只看到「時間」卻忽略了「空間」。影像轉向量是極致的降維壓縮（4MB 變 3KB）。為了套用此架構而強制系統改存龐大的原圖，不僅沒省下空間，反而會讓記憶體負載暴增千倍，徹底違背了該提案「節省記憶體」的初衷。
+  - text: "駁回。LEANN 的 Two-Level Search 機制僅能彌補 IVF-PQ 的群內排名誤差，無法修復 HNSW-PQ 因為導航誤差所導致的 Recall 損失。"
+    correct: false
+    explanation: |
+      LEANN 論文的核心貢獻之一，就是利用第二階段的 exact embedding recomputation，來把 HNSW 因為 PQ 量化誤差而走偏的路徑校正回來。
+  - text: "駁回。文字轉向量資料大小會增加，圖片轉向量則會縮小。為省 3KB 向量而強制系統常駐 4MB 原圖供動態計算，可能引發 OOM。"
+    correct: true
+    explanation: |
+      LEANN 適用的狀況是**原檔體積小於向量**。對於多媒體資料，Embedding 本身已是降維壓縮。為了省小空間反而去處理龐大的原始圖片，是本末倒置的決策。
+  - text: "接受提案，但原圖必須改存 NVMe SSD。查詢時透過非同步 I/O 即時載入 GPU 計算，只要 SSD 的 IOPS 足夠，即可實現以時間換取空間。"
+    correct: false
+    explanation: |
+      在線上檢索時，對 SSD 執行數百次 4MB 的隨機讀取，其產生的物理 I/O 延遲與 PCIe 頻寬佔用，可能癱瘓整個搜尋引擎。

@@ -4,18 +4,16 @@ question: |
   某團隊在做 RAG 檢索系統，文件向量共有 1 億筆、每筆 768 維 float32。
   原本用 full-precision 向量(搭配 HNSW )做 ANN，記憶體壓力太大，因此改用 Product Quantization。
 
-  目前設定是 `m=96` 、 `k*=256`，查詢時先用 PQ code 做 coarse ranking，再對前 200 筆做 full-vector re-rank。
+  目前設定是 $m=96$ 、 $k*=256$，查詢時先用 PQ code 做 coarse ranking，再對前 200 筆做 full-vector re-rank。
 
   近期觀察到 recall@10 下降，團隊提議把 `m` 從 96 降到 48 來減少查詢延遲。
   下列哪個判斷最合理？
 options:
-  - text: "把 m 降到 48 通常會讓每個 sub-vector 維度變大、量化誤差上升，可能進一步傷害 recall；若目標是維持 recall，較穩健的方向通常是保留足夠的 m，並調整 re-rank candidate 數或 re-rank 深度來補 recall。"
+  - text: "把 m 降到 48 通常會讓每個 sub-vector 維度變大、量化誤差上升，可能進一步傷害 recall。"
     correct: true
     explanation: |
       在固定總維度下，m 變小代表每段子向量更長，單一 codebook 更難精細表達分布，
-      常見結果是 quantization error 上升、近鄰排序品質變差。
-      RAG 場景通常更在意 top-k 命中品質，因此會優先透過增加 candidate 數或加深 re-rank 來回補 recall，
-      而不是直接把 m 大幅下調。
+      常見結果是 quantization error 上升、recall 變差。
   - text: "把 m 降到 48 一定能同時提升 recall 和延遲，因為 PQ code 變短後，distance approximation 會更準。"
     explanation: |
       code 變短通常是省空間與加速，不代表近似距離更準。

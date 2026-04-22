@@ -1,0 +1,21 @@
+author: Vincent5201
+date: 2026-04-19
+question: |
+  對於 IVF-PQ 的敘述，以下敘述何者正確?
+options:
+  - text: "IVF-PQ 的 recall 比單純 PQ 更為準確。"
+    explanation: |
+      錯誤，IVF-PQ 好處是大幅縮小查詢範圍來加快速度，但反而會讓 recall 降低。
+  - text: "IVF-PQ 中 coarse cluster 的數量 C 越少，查詢時需要掃描的 cluster 
+          的 inverted list 數一定會越少。"
+    explanation: |
+      查詢時需要掃描的 cluster 的 inverted list 數是 nprobe 個，雖然 C 越少 
+      nprobe 也可能會越小，但兩者之間沒有絕對關係。
+  - text: "ADC 計算很快的原因之一是因為原本的相似度計算被簡化為少量的查表與加法。"
+    correct: true
+    explanation: |
+      正確，還有因為 lookup table 很小，可以全部放進 cache，所以查表會很快。
+  - text: "當切成 M 段 sub-vector 的 M 值越小時會減少切段，因此誤差會降低。"
+    explanation: |
+      錯誤，M 很小時 sub-vector 很長，代表較多數值被壓縮在一起，誤差反而會較高。
+      

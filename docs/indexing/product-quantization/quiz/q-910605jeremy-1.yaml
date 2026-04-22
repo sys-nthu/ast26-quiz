@@ -1,7 +1,7 @@
 author: 910605jeremy
 date: 2026-04-21
 question: |
-  關於 RAG 系統在大規模部署時，針對 HNSW 與 Product Quantization (PQ) 的特性，下列敘述何者「錯誤」？
+  關於 RAG 系統在大規模部署時，針對 HNSW 與 PQ 的特性，下列敘述何者「錯誤」？
 options:
   - text: "為了在 Recall 與儲存空間之間取得平衡，HNSW 索引可以取代 RAG 中的 Chunking 過程，透過其多層級圖結構（Hierarchical Layers）自動捕捉長文本中的局部語義特徵。"
     correct: true
@@ -10,7 +10,7 @@ options:
   - text: "HNSW 的搜尋瓶頸通常出現在 Memory Bandwidth 而非計算單元，因為 Graph Navigation 涉及大量隨機記憶體存取，對 CPU 快取並不友好。"
     explanation: |
       HNSW 在各層節點間跳轉時，記憶體位址不連續，導致 L1/L2 Cache Miss 頻繁，因此效能瓶頸往往在於資料從記憶體搬運到 CPU 的速度。
-  - text: "Product Quantization (PQ) 支援 ADC，在查詢時僅需量化 Query 並查表（Look-up Table），即可在不還原原始向量的情況下完成距離估算。"
+  - text: "PQ 支援 ADC，在查詢時 Query 維持原始精度，僅需查表並計算 Query 與各子空間 Centroids 的距離，即可在不還原原始向量的情況下完成距離估算。"
     explanation: |
       這是 PQ 能夠實現極速檢索的核心原因。透過預先計算 Query 與各個 Centroid 的距離，搜尋時只需進行查表與加法運算，效率極高。
   - text: "在 IVF_PQ 索引中，若 nlist 設定過大，雖能縮小搜尋範圍，但會增加第一階段 Coarse Quantizer 尋找最近 Centroid 的計算開銷。"

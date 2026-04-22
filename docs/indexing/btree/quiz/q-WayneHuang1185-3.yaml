@@ -1,0 +1,24 @@
+author: WayneHuang1185
+date: 2026-04-02
+question: |
+  在某大型購物資料庫中，為了讓使用者按下「查看訂單」時能立即獲得結果，系統採用了 B+Tree 索引。
+  對於 B+Tree 物理結構與磁碟 I/O 的分析，下列哪一個敘述最正確？
+options:
+  - text: 在 inner node 執行 prefix truncation，主因是為了讓單個 page 塞入更多 entry，進而降低樹的高度並減少磁碟讀取次數。
+    correct: true
+    explanation: |
+      prefix truncation 可以有效地降低 inner node 中 routing key 的大小，
+      使得可以塞入更多的 child pointer，提升 fan-out，從而降低樹的高度，提升查詢效率。
+  - text: B+Tree 的 leaf node 之間使用 doubly linked list 串接，其主要目的是為了加快點查詢（point lookup）的速度，避免每次都必須從 root 節點開始搜尋。
+    explanation: |
+      使用 doubly linked list 串接 leaf node 的主要目的是為了加快 range query 的速度，
+      而 point lookup 的速度主要是由 B+Tree 的高度決定的。
+  - text: 為了提升讀取效能，B+Tree 刻意讓 inner node 也儲存部分 data record，這樣在搜尋時就有機會在中間層直接命中，而不必一路走到 leaf node。
+    explanation: |
+      B+Tree 的設計原則是 inner node 只儲存 routing key 和 child pointer，不儲存 data record。
+      而且如果在 inner node 儲存 data record，反而會降低 fan-out，增加樹的高度，進而導致有些查詢需要更多的 disk I/O。
+  - text: 對於 write-heavy 的 workload，增加 B+Tree 的 leaf node 的大小可以顯著地提升系統效能，降低延遲。
+    explanation: |
+      在 write-heavy 的 workload 中，因為資料庫寫入是以 page 為單位的，所以即便只修改一部分的資料，
+      整個 page 也需要重新寫過，造成嚴重的 write amplification。
+      而當碰到 page 被填滿需要 split 時，較大的 leaf node 會導致更多的資料需要被移動，增加寫入的成本和延遲。

@@ -1,0 +1,23 @@
+author: lunnn17
+date: 2026-04-03
+question: |
+  BST、B-Tree、B+Tree 三種樹狀結構都可以作為 external data structure。
+  請問 B+Tree 在處理 range query（如 WHERE order_id BETWEEN 100 AND 500）時，相較於 BST 與 B-Tree 能展現更高效率的主要原因為何？
+options:
+  - text: "B+Tree 的葉節點儲存的是資料在 page 內的直接 byte offset，這使得資料在 page 內部搬移後不需更新索引，提升了更新效能。"
+    explanation: |
+      B+Tree leaf node 在 PostgreSQL 中存的是 CTID (page ID, slot number)，page 內部搬移 record 時只需更新 slot array 裡的 offset，slot number 不變，所以外部索引不會失效。
+      這讓資料在 page 內部搬移（如 compaction）時，外部索引參照不會失效，但它並非絕對物理位址。
+  - text: "B+Tree 的內部節點（inner node）不存放實際資料，僅存放 routing key，這能極大化 fan-out 並降低樹高，且葉節點間的 doubly linked list 支援高效的連續掃描。"
+    correct: true
+    explanation: |
+      這是 B+Tree 的兩大核心優勢。首先，內部節點不存資料可容納更多指標（high fan-out），使千萬筆資料的樹高僅約 3 層，極大化減少 disk I/O。
+      其次，葉節點間的 linked list 讓範圍查詢只需定位起點後進行 sequential scan，無需像 BST 頻繁回到父節點遍歷。
+  - text: "B+Tree 採用了與 B-Tree 相同的設計，讓內部節點也能儲存部分實際資料，以此減少查詢特定資料時必須走到葉節點的延遲。"
+    explanation: |
+      這是 B-Tree 的特性而非 B+Tree。
+      B+ Tree 刻意讓內部節點不存資料，是為了換取更高的 fan-out。若內部節點存了資料，每個節點能指向的子節點就會變少，導致樹變高、disk I/O 次數增加。
+  - text: "B+Tree 引入了 Prefix Truncation 技術，雖然會導致內部節點能塞入的路由鍵數量減少，但能確保查詢路徑始終保持在 1 次真正的 disk I/O。"
+    explanation: |
+      Prefix Truncation 是為了縮短 routing key 長度，其目的是為了增加一個 page 能塞入的鍵數，進而提高 fan-out 並讓樹更矮，而非減少數量。
+      此外，完全命中目標通常仍需 3 次邏輯 I/O，只是前兩層常被快取。

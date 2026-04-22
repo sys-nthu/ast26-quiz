@@ -1,0 +1,36 @@
+author: Windmill10
+date: 2026-04-03
+question: |
+  一張 PostgreSQL 資料表有 800 筆 live rows，workload 是對每筆 row 反覆執行 UPDATE，
+  沒有任何 INSERT 或 DELETE。執行一段時間後，資料表佔用的磁碟空間遠超過 800 筆 row
+  實際所需，但 VACUUM 在這段期間完全沒有執行過。
+
+  從 slotted page layout 的角度，直接原因是什麼？
+
+options:
+  - text: "UPDATE 直接在原位覆寫 record 資料，slot 的 (offset, length) 更新後即完成。
+      不會產生額外的空間消耗，空間膨脹應該是其他因素造成的。"
+    explanation: |
+      對 variable-length record，UPDATE 後新 record 大小可能改變，原位放不下。
+      即使大小不變，PostgreSQL 也不會覆寫舊版本，而是寫入新 tuple
+      並保留舊版本，因為其他 transaction 可能仍需讀取舊版本。
+  - text: "UPDATE 後舊 tuple 的空間會立刻歸還到 `pd_lower` 與 `pd_upper` 之間的 free
+      space，因此 UPDATE 本身不太會造成空間膨脹，問題主要出在 slot array 的成長。"
+    explanation: |
+      DELETE 或 UPDATE 標記舊 tuple 為 dead 時，heap area 裡只會留下 hole，
+      該空間不會自動歸還到 `pd_lower` 與 `pd_upper` 之間的連續 free space。
+      需要 compaction 或 page pruning 才能整併這些 hole。
+  - text: "UPDATE 只修改 slot entry 的 (offset, length) 指向新位置，每個 slot entry
+      只有 4 bytes，即使累積大量 UPDATE 也不太可能造成顯著的空間膨脹。"
+    explanation: |
+      UPDATE 不只是修改 slot entry，它會在 heap area 寫入一筆完整的新 tuple
+      （含 23-byte header + null bitmap + 所有欄位資料）。舊 tuple 仍佔用 heap 空間，
+      主要的空間膨脹來自 heap 裡的 dead tuple 資料，而非 4-byte slot entry。
+  - text: "每次 UPDATE 在 heap 寫入新版本 tuple，舊版本以 dead tuple 留在 heap 裡，
+      兩者共存直到 VACUUM 回收。反覆 UPDATE 累積大量 dead tuple，導致實體空間
+      遠超邏輯資料量。"
+    correct: true
+    explanation: |
+      PostgreSQL 把 UPDATE 實作為 delete + insert：舊 tuple 標記 dead，新版本寫入
+      heap 並分配新 slot。舊版本保留是因為其他 transaction 可能仍需讀取。
+      VACUUM 確認無人需要後才回收，反覆 UPDATE 因此累積 dead tuple 造成 table bloat。

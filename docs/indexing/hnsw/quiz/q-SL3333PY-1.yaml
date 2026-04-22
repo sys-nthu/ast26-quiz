@@ -1,0 +1,26 @@
+author: SL3333PY
+date: 2026-04-18
+question: |
+  如果一推薦系統在建構階段將 `efConstruction` 從 300 調高到 800，但查詢時 `efSearch` 維持不變。這個改動最可能帶來什麼樣的結果？
+options:
+  - text: "查詢延遲降低，但 recall 幾乎不變。"
+    explanation: |
+      `efSearch` 固定時，beam width 不變，查詢時探索的候選點數量一樣，延遲幾乎持平。
+      Graph 品質提升對延遲的影響微乎其微，所以延遲降低的說法並不成立。
+      Recall 不變的推論也不對，graph 邊的品質變好，recall 仍可能小幅提升。
+  - text: "Recall 和查詢延遲都明顯提升，效果等同於同步調高了 `efSearch`。"
+    explanation: |
+      這個說法把 `efConstruction` 和 `efSearch` 的效果混在一起了。
+      查詢延遲由 `efSearch` 控制，只要 beam width 沒變，探索的候選點數量就不會變，所以延遲不會上升。
+      `efConstruction` 只影響建構階段，查詢時完全不參與。
+  - text: "Recall 可能稍微提升，但查詢延遲幾乎不變，且建構速度會變慢。"
+    correct: true
+    explanation: |
+      `efConstruction` 越高，插入時找到的鄰居品質越好，graph 結構越好，recall 確實可能小幅提升。
+      但這是「建得更好」，不是「查得更廣」，graph 品質存在上限，所以繼續調高效果也有限。
+      `efConstruction` 調高的代價是建構時間大幅增加。
+      而查詢延遲由 `efSearch` 決定，不受影響。
+  - text: "Memory 用量增加，因為更高的 `efConstruction` 會讓每個節點儲存更多邊。"
+    explanation: |
+      每個節點的最大連接數由參數 M 控制，M 不變則邊的數量上限不變，
+      memory 用量幾乎不受 `efConstruction` 影響。

@@ -1,0 +1,22 @@
+author: joanne-09
+date: 2026-04-02
+question: |
+  某系統將標準 Bloom filter（bit array 長度 `m`，最佳 hash function 數量 `k`）升級為 Counting Bloom filter（每個位置改為 4-bit counter）。記憶體預算不變，因此可用位置數從 `m` 縮減為 `m/4`。在儲存量 `n` 不變的情況下，`k` 應如何調整以維持最佳 FPR？
+options:
+  - text: |
+      團隊必須 **調低** `k'` 的大小。因為可用長度變成了四分之一，若不調低 `k'` 會讓陣列太快飽和，反而會迅速推升 False Positive Rate。
+    correct: true
+    explanation: |
+      最佳的 `k` 值與可用的格數 `m` 成正比。由於每個空間膨脹為 4-bits，導致總格數 `m'` 縮減為原先的四分之一。在可用欄位變少的情況下，若每個元素還是映射 `k` 次，陣列中大多數位置會迅速變為非零，導致幾乎每次查詢都命中，FPR 極高。因此，為了在新架構下維持相對較佳的表現，必須按比例調低 hash 的次數至 $k' = k/4$。
+  - text: |
+      團隊必須 **調高** `k'` 的大小。因為總格數變少使得 collision 碰撞率大增，必須靠更多次不同的 hash 來提高不同 data 分離度，降低誤判。
+    explanation: |
+      雖然欄位變少了導致碰撞率變大，但進一步調高 hash 次數（`k`），代表每一次插入就會更動更多個計數器，反而加速了陣列中大多數位置變為非零的速度。Bloom Filter 的最佳 `k` 取決於 `m` 的寬裕程度，`m` 越低反而需要降低映射頻率以避免過度擁擠。
+  - text: |
+      維持 $k' = k$ 不變。雖然計數器變大了，但總消耗的 memory bit length 不變，決定命中機率的最佳 `k` 值只跟 bit array 長度和期待容量有關，不隨型別變化。
+    explanation: |
+      最佳 `k` 值取決於可用的格數（`m`），而不是實際消耗的 physical bits 大小。當計數器從 1-bit 擴大為 4-bits 時，可用的位置縮減為原本的四分之一，即 $m' = m/4$，所以維持原先的 `k` 將不再是最優解。
+  - text: |
+      團隊必須 **調低** `k'` 的大小，主要原因是 Counting Bloom Filter 刪除時有可能發生 False Negative，減少 `k'` 會降低每次刪除時誤扣掉其它元素計數的機率。
+    explanation: |
+      在無 overflow 的正常操作下，Counting Bloom Filter 對每個元素的遞減只會影響該元素自己映射到的計數器，不會干擾其它元素，因此不會產生 False Negative。調降 `k'` 的真正目的是降低大多數位置變為非零的速度，從而降低 False Positive Rate，而非防堵此處描述的 False Negative 問題。

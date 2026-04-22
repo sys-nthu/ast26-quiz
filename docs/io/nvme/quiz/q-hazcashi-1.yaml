@@ -1,0 +1,25 @@
+author: hazcashi
+date: 2026-04-04
+question: |
+  某團隊把 OLTP 系統從 SATA AHCI SSD 遷移到 NVMe SSD。測試時採用 single thread、queue depth = 1 的 4KB random read，
+  結果發現 IOPS 沒有暴增，但平均 latency 仍明顯下降。工程師因此主張「NVMe 只有在高併發才有價值，
+  低併發下幾乎沒差」。下列哪個說法最能正確解釋這個現象？
+options:
+  - text: "在 queue depth = 1 時，NVMe 幾乎不會比 AHCI 快，因為多 queue 的優勢完全無法發揮，所以 latency 通常不會有明顯差異。"
+    explanation: |
+      這個說法太絕對了。即使 queue depth 很低，NVMe 仍能因為協定更簡化、路徑更短而降低單筆 I/O 的固定開銷，
+      因此 latency 仍可能比 AHCI 好。
+  - text: "只要 queue depth = 1，NVMe 會自動把單一 I/O 複製到多個 SQ/CQ 平行執行，再由控制器做結果合併，所以 latency 必然等比縮短。"
+    explanation: |
+      NVMe 的多 queue 不是把同一筆 I/O 複製成多份計算。queue depth = 1 代表同時間在途請求很少，
+      無法憑空製造平行工作。latency 改善主要來自路徑開銷變小，而非同一筆請求被多隊列分身處理。
+  - text: "若 IOPS 沒有暴增，就代表 NVMe 沒有任何實質效益；latency 下降多半是量測誤差。"
+    explanation: |
+      IOPS 與 latency 是不同指標。低併發負載下，系統常先受每筆 I/O 固定成本影響，
+      因此可能先看到 latency 改善，而不是吞吐量暴增。這不代表量測有誤。
+  - text: "即使 queue depth = 1，NVMe 仍可能比 AHCI 更低延遲，因為它把較重的傳統儲存協定換成更精簡的 command path，並直接在 PCIe 上運作；只是這種情況下 IOPS 不一定會大幅增加，因為裝置平行的部份沒有被完全利用。"
+    correct: true
+    explanation: |
+      NVMe 的優勢不只存在於高併發，也包括單筆 I/O 的固定開銷較低。
+      AHCI 是較舊、較重的協定，而 NVMe 在 PCIe 上運作，控制路徑更短；所以即使 queue depth = 1，
+      平均 latency 仍可能下降，但 IOPS 不會因為缺乏併發而暴增。

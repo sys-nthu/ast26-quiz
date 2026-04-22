@@ -1,0 +1,24 @@
+author: EpicHedgehog04
+date: 2026-04-02
+question: |  
+  某 SSD 採用 NAND flash，workload 為持續的 random write，但系統完全不實作 garbage collection。請問隨著時間推進，系統最終會出現何種現象？
+options:
+  - text: 因為 invalid pages 會隨寫入操作逐漸累積，最終耗盡可用空間
+    correct: true
+    explanation: |
+      因為採用 out-of-place write ，在寫入過程中舊資料會變成 invalid 。
+      隨著 invalid 的資料越來越多， free pages 也就越來越少，
+      在沒有 garbage collection 處理的狀況下 free pages 總有一天會變成 0 ，最終沒有可以使用的空間。
+  - text: 系統可持續運作，但 write latency 逐漸上升
+    explanation: |
+      在有 garbage collection 的情況下是對的。
+      但因為題目提到沒有 garbage collection ，
+      因此不會出現 erase block 、搬資料或 latency 逐漸變高，而是最後直接寫不進去
+  - text: 因為 mapping table 規模會隨時間膨脹，必須透過 GC 壓縮
+    explanation: |
+      page-level mapping 的 mapping table 大小是固定的，不會隨寫入次數增加而膨脹；
+      GC 的目的是回收 invalid page 的空間，不是壓縮 mapping table。
+  - text: 因為 erase 操作延遲過高，必須透過 GC 分攤成本
+    explanation: |
+      題目的系統沒有 GC，因此不會觸發 block erase 來回收空間；
+      另外， GC 存在的目的是回收 invalid page 佔用的空間，而非分攤 erase 的延遲成本。

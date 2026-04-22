@@ -1,0 +1,20 @@
+author: Jia-Sheng-Yang
+date: 2026-03-18
+question: |
+  一個高度依賴儲存效能的應用程式需要將系統 RAM 中一個 2 MB 的資料 Buffer 寫入 SSD。
+  由於作業系統使用 Paging ，這 2 MB 的資料在記憶體中並非連續儲存，而是分散在 512 個不同的 4 KB Physical Page 中。
+  請問下列哪種方法可以讓儲存控制器以最少的 CPU 指令數且不需經過任何 memory copy（即 Zero-copy） 的情況下，完成這項資料傳輸？
+options:
+  - text: "作業系統準備一份 Scatter-Gather List，其中包含所有 512 個碎片的實體起始位址與長度，並將此清單交給具備 DMA 功能的儲存控制器。"
+    correct: true
+    explanation: |
+      CPU 唯一的工作是建立那份 SGL。隨後儲存控制器會根據清單內容，從 RAM 的各個位置抓取碎片資料。這實現了在最少 CPU 介入且不需額外複製的情況下搬移分散資料的目標。
+  - text: "CPU 使用 Programmed I/O 從這 512 個分散頁面中讀取每個 64 位元的資料，並逐一寫入儲存控制器的資料埠"
+    explanation: |
+      雖然它避免了額外的記憶體複製，但會消耗大量的 CPU 週期，因為 CPU 被困在一個迴圈中處理 2 MB 傳輸的每一個字組。對於高速儲存設備來說，這是效率最低的做法。
+  - text: "作業系統核心執行彈跳暫存區（Bounce Buffer）複製，由 CPU 手動將這 512 個碎片資料先複製到一個連續的 2 MB 實體記憶體區塊中，再啟動標準的 DMA 傳輸。"
+    explanation: |
+      雖然這能讓不支援 SGL 的簡單 DMA 控制器運作，但它要求 CPU 先進行一次「記憶體對記憶體」的複製。
+  - text: "CPU 使用 Zero-copy remapping 修改頁表項目（Page Table Entry, PTE），將儲存控制器的硬體暫存器位址直接映射為與資料頁面相同的實體位址。"
+    explanation: |
+      單純修改 PTE 無法完成 I/O 傳輸。資料仍必須物理性地從 RAM 儲存單元搬移到儲存設備中。Zero-copy remapping 通常用於行程間共享記憶體，而非將資料搬移至硬體。

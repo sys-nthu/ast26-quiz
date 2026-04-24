@@ -1,0 +1,29 @@
+author: ZMYsamuel
+date: 2026-04-24
+question: |
+  你在同一批資料上比較兩組 HNSW 設定：
+  - 設定 A：`M = 16`
+  - 設定 B：`M = 32`
+
+  其他條件相同，且層級採用
+  `l = floor(-ln(uniform(0,1)) * mL)`、`mL = 1 / ln(M)`。
+
+  關於從 A 改到 B 的主要影響，下列何者最合理？
+options:
+  - text: "B 的高層節點會變更多，因為 `M` 越大代表越容易被抽到高層。"
+    explanation: |
+      由 `mL = 1 / ln(M)` 可知 `M` 變大時 `mL` 變小。
+      在同樣的隨機分布下，層級值傾向變小，不是變大。
+  - text: "B 的每個節點可保留更多鄰居，記憶體用量通常上升；同時層級抽樣的尺度變小，高層可能更稀疏。"
+    correct: true
+    explanation: |
+      較大的 `M` 直接增加每層可連接鄰居數，edge list 記憶體會增加。
+      又因 `mL` 隨 `M` 增大而下降，節點被分配到很高層的機率通常降低。
+  - text: "B 與 A 的記憶體幾乎一樣，因為 vector 本體容量遠大於鄰居 id，`M` 的影響可忽略。"
+    explanation: |
+      在大規模資料下，edge list 常是顯著成本，且對 `M` 近似線性成長。
+      即使 vector 本體固定，調大 `M` 仍可能帶來可觀的額外記憶體。
+  - text: "B 一定同時讓 recall 提升且 latency 下降，沒有 trade-off。"
+    explanation: |
+      較高連接度常有助 recall，但查詢與建構成本可能上升。
+      HNSW 仍需在 recall、latency、memory 三者之間做取捨。

@@ -1,0 +1,26 @@
+author: ZMYsamuel
+date: 2026-04-24
+question: |
+  你維運同一套 HNSW index，要同時支援兩種查詢模式：
+  1. 即時推薦模式：`top-10`、p99 latency 目標 < 2 ms、recall 只要約 95%。
+  2. 分析模式：`top-10`、可接受較高 latency，但希望 recall 接近 99%。
+
+  資料集固定，不能每次查詢都重建 index。下列哪種策略最合理？
+options:
+  - text: "維持 `efSearch` 固定，把分析模式的 `efConstruction` 臨時調高到 800。"
+    explanation: |
+      `efConstruction` 只在建構期使用，查詢時不參與路徑探索。
+      不重建圖的前提下，臨時改它不會改善線上 recall。
+  - text: "建構時使用較高 `efConstruction` 取得較好的圖品質；即時模式用較小 `efSearch`，分析模式再把 `efSearch` 拉高，且都滿足 `efSearch >= k`。"
+    correct: true
+    explanation: |
+      這種做法把建構品質和查詢成本分開處理。
+      線上可用 `efSearch` 在 recall 與 latency 之間即時切換，不需要重建 index。
+  - text: "把 `M` 在即時模式設 8、分析模式設 32，讓同一個 index 依請求動態改連接度。"
+    explanation: |
+      `M` 決定建圖時每層的最大連接數，屬於結構參數。
+      已建好的圖無法在單次查詢中動態改變 `M` 而立即生效。
+  - text: "即時模式把 `efSearch` 降到小於 `k`（例如 `k = 10`、`efSearch = 6`），再用 rerank 補回 recall。"
+    explanation: |
+      `efSearch < k` 代表候選池本身就不足以穩定產生 `k` 個高品質鄰居。
+      後段 rerank 只能重排已找到的候選，不會憑空補出漏掉的近鄰。

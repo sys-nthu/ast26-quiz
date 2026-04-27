@@ -1,0 +1,29 @@
+author: ZMYsamuel
+date: 2026-04-24
+question: |
+  某團隊要部署 HNSW，資料規模為 5000 萬筆、每筆是 128 維 `float32` vector。
+  先用粗估模型：
+  - vector 記憶體：`N * 128 * 4 bytes`
+  - edge list：平均每節點 40 個鄰居 id、每個 id 4 bytes，即 `N * 40 * 4 bytes`
+
+  不計額外 metadata 與 allocator overhead，下列哪個估算最接近？
+options:
+  - text: "vector 約 25.6 GB，edge list 約 8 GB，合計約 33.6 GB。"
+    correct: true
+    explanation: |
+      `5000 萬 * 128 * 4 bytes = 25.6 GB`，
+      `5000 萬 * 40 * 4 bytes = 8 GB`，
+      合計約 `33.6 GB`。
+      真實部署通常還要再加上 metadata 與系統開銷。
+  - text: "vector 約 12.8 GB，edge list 約 8 GB，合計約 20.8 GB。"
+    explanation: |
+      12.8 GB 等於把 vector 成本少算了一半。
+      `128 維 * float32` 每筆是 512 bytes，不是 256 bytes。
+  - text: "vector 約 25.6 GB，edge list 約 16 GB，合計約 41.6 GB。"
+    explanation: |
+      16 GB 的 edge list 對應的是 1 億筆規模的同樣公式。
+      本題是 5000 萬筆，edge list 應約為 8 GB。
+  - text: "vector 約 51.2 GB，edge list 約 8 GB，合計約 59.2 GB。"
+    explanation: |
+      51.2 GB 也是把資料量當成 1 億筆時的結果。
+      在 5000 萬筆下，vector 容量應約為 25.6 GB。

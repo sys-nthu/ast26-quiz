@@ -7,10 +7,10 @@ question: |
 options:
   - text: "tail latency 增加, Recall 值增加"
     explanation: |
-      請看正確答案解釋
+      請看正確答案的解釋
   - text: "tail latency 下降, Recall 值增加"
     explanation: |
-      請看正確答案解釋
+      請看正確答案的解釋
   - text: "tail latency 增加, Recall 值下降"
     correct: true
     explanation: |
@@ -18,4 +18,4 @@ options:
       並且這種資料分布產生的圖會因為區域之間隔太遠導致節點主要跟同區域的節點相連，使搜尋時更容易漏掉正確結果
   - text: "tail latency 下降, Recall 值下降"
     explanation: |
-      請看正確答案解釋
+      請看正確答案的解釋

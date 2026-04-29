@@ -1,27 +1,21 @@
 author: ianlin12
-date: 2026-04-05
+date: 2026-04-29
 question: |
-  在論文《Write-Aware Timestamp Tracking: Effective and Efficient Page Replacement》中，針對 page replacement，
-  WATT不但會針對每一次的存取順序 (order i) 計算「子頻率」當作價值
-  (公式是將「存取次數 (i)」除以「目前時間與該次存取時間的差距(t_now - t_i)」)，
-  並依照 page 價值來選擇要被替換的 page (價值越低，被替換的機率越高)
-  對於 dirty page，他們還添加了 write_weight 變數來增加 dirty page 的價值，使 dirty page 更不容易被寫回 SSD。
-  使 WATT 對於 SSD ，比傳統資料庫使用的方式(例如 LRU)更加友善
-  請問:為何 WATT 需要添加 write_weight ?
+  向量空間中，資料點的密度分布會影響 HNSW 的執行速度以及 Recall 值，
+  所以在 HNSW 中，如果向量資料的密度分布極度不均勻(99%向量都在某個區域、剩下的 1% 稀疏散落在其他位置)，搜尋資料時會導致?
+
 options:
-  - text: "改善 GC 本身的效率"
+  - text: "tail latency 增加, Recall 值增加"
     explanation: |
-      該演算法並沒有對 GC 本身做修改，只減少資料寫入量
-  - text: "減少 miss 的機率"
+      請看正確答案解釋
+  - text: "tail latency 下降, Recall 值增加"
     explanation: |
-      這是「子頻率」帶來的好處，並非 write_weight，
-      引入 write_weight 實際上是一種 Trade-off，它會刻意優先替換 clean page，
-      反而會導致稍微增加 miss 的機率，以此來換取大幅減少對 SSD 的物理寫入量
-  - text: "可以大幅減少 SSD 的寫入資料量，降低 dirty page 被寫回硬碟的頻率，延長 SSD 壽命"
+      請看正確答案解釋
+  - text: "tail latency 增加, Recall 值下降"
     correct: true
     explanation: |
-      藉由添加 write_weight，可以使 dirty page 減少被寫回 SSD 的次數(因為價值增加，被替換的機率下降)，
-      使 SSD 省掉不必要的寫回(例如被更新多次)
-  - text: "使硬體實作更加簡單"
+      HNSW 的入口點通常位於密集區，當想要搜尋稀疏區的資料時，需要花更多時間找到前往那邊的路徑，
+      並且這種資料分布產生的圖會因為區域之間隔太遠導致節點主要跟同區域的節點相連，使搜尋時更容易漏掉正確結果
+  - text: "tail latency 下降, Recall 值下降"
     explanation: |
-      該演算法並沒有使硬體實作變得更加簡單
+      請看正確答案解釋

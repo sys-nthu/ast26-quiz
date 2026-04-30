@@ -1,0 +1,22 @@
+author: lin131chen
+date: 2026-04-30
+question: |
+  你在一個向量搜尋系統中使用 HNSW，目前設定：
+  資料量：1,000,000 vectors，k = 10，efSearch = 64
+  平均 latency = 1 ms，recall ≈ 93%
+  為了提升搜尋品質，你將 efSearch 大幅提高到 10000，並觀察系統行為。
+  假設在硬體資源充足，查詢仍採用標準 HNSW beam search的情況下，以下哪個現象最可能發生？
+options:
+  - text: "recall 明顯下降，因為搜尋空間過大容易造成干擾。"
+    explanation: |
+      efSearch 本質是「探索更多候選點」，搜得越多 → 越不容易漏掉真正最近鄰。
+  - text: "搜索行為接近 brute force，導致latency 大幅上升。"
+    correct: true
+    explanation: |
+      efSearch通常設為 k 的 5 到 20 倍。當 efSearch 非常大時，candidate set 幾乎涵蓋大量節點，beam search 幾乎變成「廣泛展開搜尋」，所以latency大幅上升
+  - text: "記憶體需求下降，因為 efSearch 增加後能更有效地聚焦在相關節點，減少不必要的候選資料。"
+    explanation: |
+      efSearch 增加時，搜尋過程會保留並探索更多候選節點，而不是更早地過濾掉節點。因此實際上會維護更多中間資料，使暫時性記憶體與計算成本增加，而非下降。
+  - text: "每個節點的鄰居數量增加，使 graph 更接近完整圖。"
+    explanation: |
+      efSearch 是查詢時的參數，只影響搜尋過程中的候選節點數量，並不會改變 graph 結構。graph 的連線數量由 M 與 efConstruction 決定。

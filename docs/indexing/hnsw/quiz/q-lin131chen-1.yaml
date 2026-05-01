@@ -13,7 +13,7 @@ options:
   - text: "搜尋行為接近 brute-force nearest neighbor，導致 latency 大幅上升。"
     correct: true
     explanation: |
-      efSearch通常設為 k 的 5 到 20 倍。當 efSearch 非常大時，搜尋會探索大量節點，使行為逐漸接近全面掃描，因此 latency 顯著上升。
+      efSearch 通常設為 k 的 5 到 20 倍。當 efSearch 非常大時，搜尋會探索大量節點，使行為逐漸接近全面掃描，因此 latency 顯著上升。
   - text: "記憶體需求下降，因為 efSearch 增加後能更有效地聚焦在相關節點，減少不必要的候選節點"
     explanation: |
       efSearch 增加會讓搜尋保留更多候選節點，而非提早過濾節點。因此實際上會維護更多中間資料，使性記憶體與計算成本增加，而非下降。

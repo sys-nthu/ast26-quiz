@@ -1,0 +1,22 @@
+author: b0yi
+date: 2026-05-02
+question: |
+  某企業準備為內部伺服器選擇合適的底層檔案系統。他們有兩個主要的 workload：
+  1. 備份與版本控制伺服器：需要頻繁地為大量檔案建立時間點快照 (snapshot)，以防禦勒索軟體攻擊。
+  2. 高效能關聯式資料庫 (RDBMS)：資料庫檔案會有極為頻繁的「原地小量更新 (in-place update)」操作。
+
+  架構師正在評估 ext4 (Journaling) 與 Btrfs (Copy-on-Write) 兩種機制。根據你對這兩種機制的理解，下列對其特性比較與架構選擇的描述，何者最正確？
+options:
+  - text: "對於資料庫，應避免使用 Btrfs。因為 CoW 機制的 out-place update 特性會導致嚴重的 fragmentation 以及 Wandering Tree 造成的寫入放大；而備份伺服器則非常適合 Btrfs，因為保留舊的 root pointer 即可瞬間完成 snapshot。"
+    correct: true
+    explanation: |
+      正確。CoW 在寫入時會將修改後的資料與 metadata 沿著 path 一路寫到新的 root，這雖然能天然支援極速的 snapshot，但也意味著原本連續的資料在反覆修改後會散落各處（碎片化），引發嚴重的效能與寫入放大問題，因此並不適合原地修改頻繁的資料庫。
+  - text: "對於備份伺服器，ext4 由於預設的 ordered mode 會將 metadata 與 data 同步記錄進 journal，能確保 snapshot 拍攝當下的一致性，且不需要像 Btrfs 一樣維護龐大的 reference count 結構，因此是更好的選擇。"
+    explanation: |
+      錯誤。ext4 本身並不天然支援快速的 snapshot，且 ordered mode 只保證 data 先於 metadata flush 進入正式位置，並不會將 data 寫入 journal。備份伺服器若需要頻繁的瞬間 snapshot，Btrfs 才是首選。
+  - text: "兩者皆可完美勝任資料庫負載。雖然 ext4 有 journal 寫入的 overhead，但檔案系統的 Btrfs CoW 與作業系統的虛擬記憶體 CoW (ex: fork) 一樣是 Lazy 機制，只有當資料真的被讀寫發生 page fault 時才會複製，因此寫入效能極高。"
+    explanation: |
+      錯誤。這兩者的機制在時機上有本質的差異。檔案系統的 CoW 是 eager 的，每一次 write 呼叫都會立刻寫入新 block 並觸發 pointer cascade；而 OS 記憶體的 CoW 是 Lazy 的。
+  - text: "為了避免資料庫因斷電產生半新半舊的殘局 crash window，必須使用 CoW 機制。因為只有 CoW 透過 atomic root pointer swap 才能解決 crash consistency 問題，而採用 in-place update 的 Journaling 檔案系統在斷電後將無法回復到 valid state。"
+    explanation: |
+      錯誤。Journaling 檔案系統同樣能夠解決 crash consistency 問題。它透過寫入 Write-Ahead Log (WAL) 與 commit record，即便遭遇斷電，重開機時也能藉由 replay journal 將檔案系統復原至 valid state。

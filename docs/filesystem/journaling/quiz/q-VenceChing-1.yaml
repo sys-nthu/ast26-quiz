@@ -1,10 +1,9 @@
 author: VenceChing
 date: 2026-05-04
 question: |
-  某工程師在實作支援 fastcommit 的 recovery 模組時，為最大化硬碟讀取頻寬，將系統設計為平行處理架構：
-  Thread A 負責掃描並 replay JBD2 的 physical slow commit。
-  Thread B 同時掃描並 replay FCLog。
-  此系統架構設計可能造成甚麼問題？
+  某工程師為了縮短 recovery 時間，將兩個步驟改成平行處理：
+  thread A 負責 replay JBD2 slow commit，thread B 同時 replay FCLog。
+  這個設計可能造成什麼問題？
 options:
   - text: "Physical block 的寫入影像覆寫 logical 操作的結果，導致 metadata 狀態退回舊版本。"
     correct: true
@@ -14,11 +13,11 @@ options:
     correct: false
     explanation: |
       預設的 ordered mode 保證實體 data 必定於寫入 journal 之前被 flush 進 disk，因此資安風險已排除。
-  - text: "兩個 thread 交錯發出 i/o 請求，導致單一 sector 寫入之 atomic 特性失效，破壞 commit record 之 atomicity boundary。"
+  - text: "交錯的 i/o 請求破壞 commit record 之 atomicity boundary，使系統無法驗證 transaction 完整性。"
     correct: false
     explanation: |
-      Commit record 的 atomicity boundary 作用於系統正常運行且寫入 journal 的當下。進入 recovery 階段時，journal 並不會被寫入或修改，不影響已存在於 journal 內的 commit record。
-  - text: "兩個 thread 同時寫回正式位置會干擾 journal 寫入指標的重置，導致回收空間時誤將尚未 replay 的區塊標示為可用，引發 checkpoint 衝突。"
+      Commit record 的 atomicity boundary 作用於系統正常運行且寫入 journal 的當下。recovery 階段僅是讀取與掃描，journal 並不會被寫入或修改，不影響已存在於 journal 內的 commit record。
+  - text: "兩個 thread 同時寫回正式位置會讓 journal 空間被提早回收,導致尚未 replay 的內容遺失"
     correct: false
     explanation: |
-      Checkpoint 是將 committed 內容搬回正式位置並重置指標的動作。而在 recovery 階段，系統僅是讀取 journal 內容進行 replay，此時並沒有 journal 空間釋放需求，指標的重置必須等待所有 replay 操作安全完成且系統成功掛載後才會執行。
+      在 recovery 階段，系統僅是讀取 journal 內容進行 replay，此時並沒有 journal 空間釋放需求，指標的重置必須等待所有 replay 操作安全完成且系統成功掛載後才會執行。

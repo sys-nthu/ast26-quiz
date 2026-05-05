@@ -284,12 +284,12 @@ concepts:
 
   # ==== File-system pillar ==================================================
 
-  - slug: inode-and-metadata
-    title: "Inodes & File Metadata"
+  - slug: crash-consistency
+    title: "Crash Consistency"
     description: >
-      檔案系統的核心任務是把使用者看到的檔案與目錄，對應到磁碟上的實際資料區塊。我們透過 inode 這個資料結構來記錄每個檔案的 metadata，包括檔案大小、權限、時間戳記，以及資料區塊的位置。現代檔案系統（如 ext4）使用 extent 來描述連續的區塊範圍，比起早期逐一記錄 block pointer 的方式更加高效。除了 inode 之外，我們還需要理解 directory entry 如何將檔名對應到 inode number，以及 superblock 如何描述整個檔案系統的全域資訊。掌握 on-disk layout 中 metadata 與 data 的區分，是理解後續 journaling、copy-on-write 等進階機制的基礎。
+      一個 write() 看起來只是把 bytes 丟進去，背後其實要同時更新四個獨立的 on-disk 結構：data block 本身、inode 的 size、inode 的 extent list、以及 block bitmap。這四件事不會同時落地，crash 發生時任何一個 subset 已經寫入硬碟都可能對應一種不同的災難：orphan block、資料躲起來、資安漏洞、定時炸彈。這一堂課我們先把 ext2 block pointer 到 ext4 extent 的壓縮、fragmentation 對效能的實際影響、以及 delayed allocation 如何把「何時寫」和「寫到哪」分離講清楚，然後透過 metadata 與 data 不同步的十六種可能，建立 crash consistency 的 mental model，並看看為什麼 fsck 這種事後補救不夠用，motivate 接下來 journaling、copy-on-write、log-structured 三種預先設計的解法。
     tier: basic
-    open: false
+    open: true
     pillar: filesystem
     depends_on: []
     papers: [erofs]
@@ -301,7 +301,7 @@ concepts:
     tier: basic
     open: false
     pillar: filesystem
-    depends_on: [inode-and-metadata]
+    depends_on: [crash-consistency]
     papers: [fastcommit]
 
   - slug: copy-on-write
@@ -311,7 +311,7 @@ concepts:
     tier: basic
     open: false
     pillar: filesystem
-    depends_on: [inode-and-metadata]
+    depends_on: [crash-consistency]
     papers: []
 
   - slug: log-structured-fs
@@ -321,18 +321,8 @@ concepts:
     tier: advanced
     open: false
     pillar: filesystem
-    depends_on: [inode-and-metadata, garbage-collection]
+    depends_on: [crash-consistency, garbage-collection]
     papers: [co-design-btree-zns]
-
-  - slug: ext4-internals
-    title: "Ext4 Internals"
-    description: >
-      在理解了 journaling 的原理之後，我們將深入探討 Linux 上最廣泛使用的檔案系統 ext4 是如何將這些概念實作出來的。Ext4 將磁碟劃分為多個 block group，每個 group 包含各自的 inode table 與 data block，藉此提升資料的 locality。在 metadata 管理上，ext4 使用 extent tree 來高效地描述大型檔案的連續區塊配置，並透過 delayed allocation 策略將 block 分配延後到實際 writeback 時才執行，以獲得更好的連續配置效果。Journaling 的部分由獨立的 JBD2 層負責，它實作了 physical journaling，並支援 ordered mode 來保證 data 在 metadata commit 之前已經寫入磁碟。在這堂課中，我們也會介紹 ext4 superblock 中的 feature flags 機制，以及近年來 fast commit 等優化如何減少 journaling 的延遲開銷。
-    tier: advanced
-    open: false
-    pillar: filesystem
-    depends_on: [journaling]
-    papers: [fastcommit]
 
   # ==== Reliability pillar ==================================================
 
@@ -489,5 +479,5 @@ projects:
     depends_on: [hnsw, product-quantization]
 
   - slug: fs-crash-forensics
-    title: "File System Crash Forensics: ext4 vs F2FS"
-    depends_on: [ext4-internals, log-structured-fs, journaling]
+    title: "File System Crash Forensics: F2FS"
+    depends_on: [log-structured-fs, journaling]

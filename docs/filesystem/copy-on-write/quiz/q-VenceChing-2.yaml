@@ -1,21 +1,21 @@
 author: VenceChing
 date: 2026-05-04
 question: |
-  系統中有一容量為 10GB 的檔案，儲存於 BTRFS 中且佔用 10GB 實體空間。管理者對該檔案系統建立一份 snapshot，隨後應用程式對該檔案中 2GB 的連續邏輯位址區段進行覆寫。待寫入完成後，管理者將先前建立的 snapshot 刪除。在此三個階段中，該檔案與 snapshot 所共同佔用的**總實體磁碟空間**變化為何？
+  BTRFS 上有一個 10GB 檔案。依序執行三個操作：(1) 建立 snapshot；(2) 覆寫該檔案 2GB 的內容；(3) 刪除 snapshot。三個階段後，總實體磁碟空間變化為何？
 options:
-  - text: "建立 snapshot 時維持 10GB；覆寫 2GB 時總空間增為 12GB；刪除 snapshot 後總空間降回 10GB。"
+  - text: "→ 10GB → 12GB → 10GB"
     correct: true
     explanation: |
       建立 snapshot 僅備份 root pointer，block 被共用 (refcount 變為 2)，空間維持 10GB。覆寫時觸發 copy-on-write 產生 2GB 新 block，舊 2GB 歸 snapshot 獨占 (refcount 降為 1)，總空間達 12GB。刪除 snapshot 後，舊 2GB 的 refcount 降為 0 並釋放實體空間，系統降回 10GB。
-  - text: "建立 snapshot 時增為 20GB；覆寫 2GB 時維持 20GB；刪除 snapshot 後降為 10GB。"
+  - text: "→ 20GB → 20GB → 10GB"
     correct: false
     explanation: |
       此為傳統 in-place 檔案備份邏輯。BTRFS 的 snapshot 基於 pointer 參照與 reference count，建立當下不會複製實體資料區塊，空間不會倍增。
-  - text: "建立 snapshot 時維持 10GB；覆寫 2GB 時維持 10GB；刪除 snapshot 後降為 8GB。"
+  - text: "→ 10GB → 10GB → 8GB"
     correct: false
     explanation: |
       此選項違反 copy-on-write 機制。寫入新 block 必定佔用額外實體空間。若覆寫時空間不增加，意味著 snapshot 中的舊資料遭到覆蓋，喪失其功能。
-  - text: "建立 snapshot 時維持 10GB；覆寫 2GB 時總空間增為 12GB；刪除 snapshot 後總空間維持 12GB。"
+  - text: "→ 10GB → 12GB → 12GB"
     correct: false
     explanation: |
       刪除 snapshot 會觸發 tree 遍歷，使該 snapshot 獨佔的舊 block (即被覆寫的 2GB) 其 reference count 歸零。allocator 會回收這些 block，總空間必須隨之下降。

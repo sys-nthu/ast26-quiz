@@ -1,8 +1,7 @@
 author: VenceChing
 date: 2026-05-01
 question: |
-  檔案 append 寫入時，kernel 須完成四個寫入或更新操作: data block, block bitmap, inode extent, inode size。當發生斷電時，根據完成操作的不同，在 file system 中會有不同結果，進而影響到資料的完整性與救援難度。
-  若可以選擇這四個操作的執行順序，請問下列哪一個選項最能確保斷電後資料救援的可行性與系統安全性？
+  Append 資料進一個檔案時，kernel 必須更新四個區域：data block、block bitmap、inode extent、inode size，但 kernel 的 writeback 沒有順序保證。若假設我們可以強制這四個操作的寫入順序，下列哪個順序在斷電時最有利於救援?
 options:
   - text: "data block -> block bitmap -> inode extent -> inode size"
     correct: true

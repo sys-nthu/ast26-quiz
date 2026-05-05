@@ -1,0 +1,20 @@
+author: Gengan811
+date: '2026-05-05'
+question: |
+  某團隊使用 PQ 將 1024 維的浮點數向量壓縮成 128 bytes 的 ID 陣列。當接收到一個未經壓縮的 query 向量 q 時，系統需要計算 q 與資料庫中已壓縮向量 x 的距離。
+  
+  請問 PQ 演算法是如何在「不解壓縮 x」的前提下，極速完成距離計算的？
+options:
+  - text: "PQ 使用 ADC。系統會先預先計算 q 的各個 sub-vector 與 codebook 中所有 centroid 的距離以建立 lookup table。接著只需根據 x 儲存的 ID 查表並相加即可完成計算。"
+    correct: true
+    explanation: |
+      這是正確的。ADC 是 PQ 能同時兼顧高壓縮比與極速搜尋的核心。系統不需將資料庫的 ID 還原成浮點數，而是針對 query 預先建好 lookup table，之後 CPU 只要對數百萬筆資料執行極速的陣列查表與加法即可。
+  - text: "系統會將 q 也進行 PQ 壓縮轉換成 ID 陣列，然後直接計算 q 與 x 兩個 ID 陣列之間的 Hamming distance。這被稱為 SDC，速度最快且精確度完全不流失。"
+    explanation: |
+      這是錯誤的觀念。將 q 壓縮會造成二次量化誤差。且 PQ 輸出的 ID 只是 centroid 的 index，直接對 index 陣列算 Hamming distance 毫無數學與空間意義。
+  - text: "系統依賴 CPU 的 AVX-512 等硬體指令集，直接將 128 個 8-bit 的 ID 丟入暫存器與 q 進行 dot product 運算，完全繞過了查表與解壓縮的步驟。"
+    explanation: |
+      這是錯誤的。演算法本質不可能直接拿 index 與浮點數向量做 dot product。必須要知道 index 對應的 centroid 真實空間座標（或預先建好 lookup table），才能進行有意義的距離計算。
+  - text: "系統只會取 x 的前 4 個 ID 作為整體特徵代表，並計算 q 與這 4 個 centroid 的距離。這種 truncation 雖然會犧牲部分精確度，但能換取 O(1) 的極致運算時間。"
+    explanation: |
+      這是對 sub-vector 切分機制的誤解。計算距離時，必須將這 128 段 sub-vector 的查表距離全部加總才能得到正確的近似值，不可能只取前幾個 ID 來代表整體的超高維向量。

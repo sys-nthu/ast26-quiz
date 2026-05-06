@@ -1,0 +1,23 @@
+author: VenceChing
+date: 2026-05-04
+question: |
+  某工程師為了縮短 recovery 時間，將兩個步驟改成平行處理：
+  thread A 負責 replay JBD2 slow commit，thread B 同時 replay FCLog。
+  這個設計可能造成什麼問題？
+options:
+  - text: "Physical block 的寫入影像覆寫 logical 操作的結果，導致 metadata 狀態退回舊版本。"
+    correct: true
+    explanation: |
+      Fastcommit 之 logical 操作依賴 JBD2 所還原的 block image。平行處理時若 thread B 先完成，thread A 較晚完成的 physical replay 會直接蓋掉 thread B 的 logical 修改。
+  - text: "Logical replay 早於 data block 寫入，導致系統回傳未初始化之區塊，產生資安漏洞。"
+    correct: false
+    explanation: |
+      預設的 ordered mode 保證實體 data 必定於寫入 journal 之前被 flush 進 disk，因此資安風險已排除。
+  - text: "交錯的 i/o 請求破壞 commit record 之 atomicity boundary，使系統無法驗證 transaction 完整性。"
+    correct: false
+    explanation: |
+      Commit record 的 atomicity boundary 作用於系統正常運行且寫入 journal 的當下。recovery 階段僅是讀取與掃描，journal 並不會被寫入或修改，不影響已存在於 journal 內的 commit record。
+  - text: "兩個 thread 同時寫回正式位置會讓 journal 空間被提早回收,導致尚未 replay 的內容遺失"
+    correct: false
+    explanation: |
+      在 recovery 階段，系統僅是讀取 journal 內容進行 replay，此時並沒有 journal 空間釋放需求，指標的重置必須等待所有 replay 操作安全完成且系統成功掛載後才會執行。

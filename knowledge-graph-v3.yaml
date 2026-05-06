@@ -282,6 +282,16 @@ concepts:
     depends_on: []
     papers: [leann]
 
+  - slug: rag
+    title: "Retrieval-Augmented Generation"
+    description: >
+      大型語言模型（LLM）的知識凍結在訓練時的快照，又容易在不會的問題上產生 hallucination。Retrieval-Augmented Generation（RAG）的核心想法是讓 LLM 在生成答案前，先從外部知識庫中檢索與問題最相關的片段，將這些片段作為 context 一起送入 LLM，使生成結果有所依據。在這個單元中，我們會理解 RAG 的 retrieval pipeline：把文件切成 chunk、用 embedding model 轉成高維向量並建立索引；查詢時對使用者問題做相同的 embedding，透過 ANN 搜尋取回 top-k 相似 chunk，再與原始問題拼成 prompt 餵給 LLM。我們會用 recall 指標衡量近似搜尋的品質，並依序介紹三類主流加速結構：用粗粒度 clustering 縮小搜尋範圍的 IVF（Inverted File Index）、以多層 proximity graph 做 greedy + beam search 的 HNSW、以及把 embedding 切片並用 codebook 壓縮的 Product Quantization，並比較 PQ 套在 IVF 與 HNSW 上的取捨差異。最後我們會介紹 LEANN 這篇論文，看它如何透過 graph pruning 與「動態重算 embedding」的設計，把向量索引的儲存量壓到極致。
+    tier: advanced
+    open: true
+    pillar: indexing
+    depends_on: [hnsw, product-quantization]
+    papers: [leann]
+
   # ==== File-system pillar ==================================================
 
   - slug: crash-consistency

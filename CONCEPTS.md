@@ -19,6 +19,7 @@
 - `indexing/lsm-tree` — LSM-Tree
 - `indexing/hnsw` — HNSW
 - `indexing/product-quantization` — Product Quantization
+- `indexing/rag` — Retrieval-Augmented Generation
 ## File Systems
 - `filesystem/crash-consistency` — Crash Consistency
 - `filesystem/journaling` — Journaling

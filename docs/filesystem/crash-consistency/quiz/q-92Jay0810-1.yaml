@@ -1,0 +1,29 @@
+author: 92Jay0810
+date: 2026-05-06
+question: |
+  系統管理員為了追求極致的 I/O 效能，在掛載 Journaling File System 時加上了 `barrier=0` 的參數，強制關閉了 Write Barrier。
+  在一次更新檔案的 Transaction 中，檔案系統依序向硬碟發出了 `TxBegin`、`Metadata` 與 `TxCommit` 的寫入請求。其中，`TxCommit` 是一個特殊的標記區塊，用來向系統宣告該 Transaction 內的所有資料與 Metadata 都已完整且安全地寫入磁碟。
+  然而，硬碟控制器為了極致化存取效率，啟用了 NCQ（Native Command Queuing，一種允許儲存裝置內部自行重新排序讀寫指令，以最佳化實體存取效能的硬體技術）。基於物理磁區的所在位置，硬碟控制器擅自將 `TxCommit` 提早寫入到磁碟中。
+  就在此時，系統瞬間遭遇斷電崩潰，導致該 Transaction 的真實 Metadata 尚未完整寫入磁碟。假設該檔案系統的 Journal 尚未實作 Checksum 驗證機制，在系統重啟並啟動 Journal Replay 程序時，這個提早落地的 `TxCommit` 會引發什麼具體的災難性連鎖反應？
+
+options:
+  - text: "Journal Replay 會偵測到 TxCommit，誤認該 Transaction 已完整寫入，進而將 Journal 區塊中殘留的舊有垃圾資料當作正確的 Metadata，覆寫到檔案系統主結構中，造成嚴重的資料損毀。"
+    correct: true
+    explanation: |
+      這是關閉 Write Barrier 最致命的後果。
+      Journal 系統的正確性極度依賴寫入順序（必須先寫入 Metadata，再寫入 `TxCommit`）。當硬碟硬體（如 NCQ）打破了這個順序，讓 `TxCommit` 提早落地，Journal Replay 程式在重播時會看到代表 Transaction 完成的標記。在缺乏 Checksum 保護的情況下，軟體層會毫不懷疑地把 Journal 區塊內未更新的垃圾資料 Replay 回檔案系統的真實位置，導致主結構被徹底破壞。
+
+  - text: "由於硬碟沒有收到 barrier 指令，TxCommit 只會被暫存在硬碟的 Volatile Cache 中，斷電後即消失。重啟時該 Transaction 會被視為未完成並直接丟棄，修改遺失但結構安全。"
+    explanation: |
+      這不符合題目設定的情境。
+      題目已經明確指出硬碟控制器「將 `TxCommit` 提早寫入到磁碟中」，這代表該區塊已經實體落地，而非僅停留在 Volatile Cache 中。因此，重啟時 Journal Replay 必定會讀取到這個虛假的完成標記，從而引發後續的錯誤重播邏輯。
+
+  - text: "硬碟控制器因為 NCQ 的特性，會自動發覺 Metadata 尚未完整寫入，將該 Journal 區塊標記為 Bad Block。Journal Replay 讀取時會觸發硬體層級的 I/O Error 而中止復原程序。"
+    explanation: |
+      這是對硬體 I/O 機制的嚴重誤解。
+      NCQ 或硬碟控制器只負責根據 LBA（Logical Block Addressing）和物理磁區位置來最佳化寫入排程，它完全不懂檔案系統的高階邏輯（如 Journal 的 Transaction 概念）。硬碟無從判斷哪些資料是 Metadata 或 `TxCommit`，更不會因為檔案系統邏輯順序錯亂而自動介入標記 Bad Block。
+
+  - text: "Journal Replay 會讀取到提早寫入的 TxCommit，但比對 Transaction ID 時會發現與殘缺的 Metadata 不符，因此判定這是一個 Orphan Node 並自動將其安全刪除。"
+    explanation: |
+      這個選項高估了早期或未具備 Checksum 機制的 Journal 系統的除錯能力。
+      在純粹依賴 `TxCommit` 標記作為 Transaction 完成依據的系統中，只要看到對應的 `TxCommit`，系統就會預設前面的 Metadata 區塊已經被正確寫入。磁碟上殘留的垃圾資料通常具有合法的區塊格式，單靠比對 Transaction ID 無法察覺資料內容早已因為硬體的指令重排而被掉包了。

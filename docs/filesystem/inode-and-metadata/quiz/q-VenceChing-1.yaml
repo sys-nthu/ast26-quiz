@@ -1,0 +1,24 @@
+author: VenceChing
+date: 2026-05-01
+question: |
+  Append 資料進一個檔案時，kernel 必須更新四個區域：data block、block bitmap、inode extent、inode size，但 kernel 的 writeback 沒有順序保證。若假設我們可以強制這四個操作的寫入順序，下列哪個順序在斷電時最有利於救援?
+options:
+  - text: "data block -> block bitmap -> inode extent -> inode size"
+    correct: true
+    explanation: |
+      操作一、二後: data block 已寫入，雖然無法透過 fsck 救回資料，但資料修復軟體可能救回。
+      操作三後: inode extent 已更新，斷電後 inode 指向新 block，但 size 尚未更新，fsck 可修正 metadata 以恢復檔案結構。
+  - text: "inode size -> inode extent -> block bitmap -> data block"
+    correct: false
+    explanation: |
+      操作四 data block 寫入之前斷電，新資料皆不存在在 ssd 中，不論甚麼方法都無法救回。且 inode size 和 extent 寫入後，fsck 偵測不出錯誤，會導致該 block 上的舊資料被讀到，產生資安問題。
+  - text: "block bitmap -> inode extent -> inode size -> data block"
+    correct: false
+    explanation: |
+      與選項 "inode size -> inode extent -> block bitmap -> data block" 相似，為=未完整完成全部四個操作前，資料都難以救回，且 fsck 也無法偵測到錯誤，導致資安問題。
+  - text: "inode extent -> block bitmap -> data block -> inode size"
+    correct: false
+    explanation: |
+      操作一後: inode 強行指向某個 block，但 bitmap 仍標記為空，新資料遺失無法救援。且之後 allocator 會將該 block 分配給其他檔案，造成資料覆寫問題。
+      操作二後: extent 與 bitmap 皆已記錄，但新資料仍未寫入無法救援。
+      操作三後: 僅 size 未更新，有機會透過 fsck 修正 metadata 以恢復資料。

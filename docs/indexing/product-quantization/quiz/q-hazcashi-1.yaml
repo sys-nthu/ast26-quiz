@@ -1,0 +1,28 @@
+author: hazcashi
+date: 2026-04-20
+question: |
+  某團隊在做 RAG 檢索系統，文件向量共有 1 億筆、每筆 768 維 float32。
+  原本用 full-precision 向量(搭配 HNSW )做 ANN，記憶體壓力太大，因此改用 Product Quantization。
+
+  目前設定是 $m=96$ 、 $k*=256$，查詢時先用 PQ code 做 coarse ranking，再對前 200 筆做 full-vector re-rank。
+
+  近期觀察到 recall@10 下降，團隊提議把 `m` 從 96 降到 48 來減少查詢延遲。
+  下列哪個判斷最合理？
+options:
+  - text: "把 m 降到 48 通常會讓每個 sub-vector 維度變大、量化誤差上升，可能進一步傷害 recall。"
+    correct: true
+    explanation: |
+      在固定總維度下，m 變小代表每段子向量更長，單一 codebook 更難精細表達分布，
+      常見結果是 quantization error 上升、recall 變差。
+  - text: "把 m 降到 48 一定能同時提升 recall 和延遲，因為 PQ code 變短後，distance approximation 會更準。"
+    explanation: |
+      code 變短通常是省空間與加速，不代表近似距離更準。
+      量化精度是否提升取決於子空間切分與誤差分布，m 下降反而常導致誤差惡化。
+  - text: "PQ 只影響儲存大小，不會影響查詢排序品質；recall 下降一定是 embedding model 的問題，和 m、k 無關。"
+    explanation: |
+      PQ 直接參與近似距離計算，會影響 candidate 排序品質。
+      embedding 可能是原因之一，但不能排除 PQ 參數對 recall 的直接影響。
+  - text: "只要 k 固定 256，m 怎麼改都不影響量化誤差；真正決定 recall 的只有 re-rank 階段。"
+    explanation: |
+      m 與 k 都會影響量化誤差。k 固定不代表 m 無關。
+      re-rank 能改善最終排序，但利用 PQ 篩選時若已篩掉，re-rank 也沒辦法找回。

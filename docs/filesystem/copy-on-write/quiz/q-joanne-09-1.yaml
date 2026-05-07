@@ -1,0 +1,26 @@
+author: joanne-09
+date: 2026-04-27
+question: |
+  在 Btrfs 上對同一份檔案依序拍了 S1、S2、S3 三份 snapshot，每份之間檔案都有被修改過。現在管理員刪除 S2，保留 S1、S3 與 live filesystem。下列敘述何者正確？
+
+options:
+  - text: |
+      S2 獨佔的 block 因 refcount 歸零而被釋放；與 S1 或 S3 共用的 block 因 refcount 只減 1 仍大於 0，不會被釋放。
+    correct: true
+    explanation: |
+      Btrfs 的每個 block 維護一個 reference count。拍 snapshot 時，新舊 tree 共用的 block refcount +1；刪 snapshot 時，沿著被刪 snapshot 的 path 對每個 block refcount -1，只有降到 0 的 block 才真正釋放磁碟空間。
+
+  - text: |
+      Btrfs 必須重新計算 S1 與 S3 之間所有 block 的 refcount，才能確認哪些可以釋放。
+    explanation: |
+      Btrfs 的 refcount 是每個 block 各自維護的即時計數，不依賴 snapshot 之間有沒有連續鏈。刪除 S2 時，Btrfs 只需沿著 S2 的 root-to-leaf path 走一遍，對沿途 block 各做 refcount -1，降到 0 就釋放，不需要碰 S1 或 S3 的 path。
+
+  - text: |
+      與 S1 共用的 block 在 S2 被刪後，refcount 也會減 1，導致 S1 失去部分 block 的存取能力。
+    explanation: |
+      和 S1 共用的 block，在 S1 拍攝當下 refcount 就已經 +1 給 S1 了。S2 的 path 走過這些 block 時，它們的 refcount 又各自 +1。刪 S2 時對這些 block 做 refcount -1，只是撤銷 S2 當時加上去的那一份，S1 加上去的那份 refcount 依然在，block 不會被釋放，S1 的存取完全不受影響。
+
+  - text: |
+      若 refcount 更新到一半時發生 crash，Btrfs 需要靠 journal 回復正確狀態，否則會出現孤立的 block。
+    explanation: |
+      Btrfs 的 crash consistency 是由 CoW 的結構性質本身保證的，不是靠 journal。refcount 的更新本身也是透過 CoW 寫到新的 metadata block，再以 atomic root pointer swap 完成的。Crash 只會讓整個操作看起來完全沒發生或看起來完全完成，不存在更新到一半然後需要 journal 回復的狀態。

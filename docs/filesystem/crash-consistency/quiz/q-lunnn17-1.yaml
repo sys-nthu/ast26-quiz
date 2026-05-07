@@ -1,0 +1,26 @@
+author: lunnn17
+date: 2026-05-07
+question: |
+  假設你對一個既有的 1 MB 檔案 append 10 MB。kernel 在記憶體裡要做四件事：
+
+  1. 把 10 MB 資料寫進 page cache（data block 的 dirty page）
+  2. 把 inode 的檔案大小從 1 MB 改成 11 MB（inode dirty）
+  3. 把新 block 的位址加進 inode 的 extent list（inode dirty）
+  4. 在 block bitmap 裡把分配到的新 block 標成 used（bitmap dirty）
+
+  如果今天電源突然斷電了，重新賭橫嘔我們發現用 `$ df` 指令檢查硬碟空間少了 10MB 但是既有的檔案大小仍為 1MB 且內容 append 前相同，則最可能發生什麼事？
+options:
+  - text: "只有 (1) 寫入 SSD。"
+    explanation: |
+      本題只有 `df` 指令顯示的大小少了 10MB。
+      只有把 page cache 寫入 SSD，但新的 bitmap 也沒有寫入 SSD 在使用 `df` 後輸出的結果也維持不變。
+  - text: "只有 (2) 寫入 SSD。"
+    explanation: |
+      題目的檔案大小仍顯示 1MB 代表更新檔案大小後的 inode 並沒有寫入 SSD，且沒有把新的 bitmap 寫入 SSD 會導致 `df` 的輸出維持不變 。
+  - text: "只有 (3) 寫入 SSD。"
+    explanation: |
+      只有把新的 block 位址加進 inode 中，但新的 bitmap 沒有被寫入 SSD，所以 `df` 的輸出維持不變。
+  - text: "只有 (4) 寫入 SSD。"
+    correct: true
+    explanation: |
+      bitmap 標示了新的 block 的狀態為 used，使用 `df` 指令後的輸出結果就會顯示比原本減少 10MB 的大小。

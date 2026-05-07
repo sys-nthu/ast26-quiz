@@ -1,20 +1,20 @@
 author: Gengan811
-date: '2026-05-05'
+date: '2026-05-07'
 question: |
-  某伺服器使用 ext4 檔案系統，並配置為預設的 Ordered Journaling 模式。工程師正在將一段 4KB 的重要記錄 append 到某個檔案結尾。在底層寫入的過程中，作業系統已經成功將真正的 data block 寫入實體磁碟，但就在準備將 inode 與 bitmap 的變更寫入 journal 備忘錄之前，機房發生了瞬間斷電。
+  某伺服器使用 ext4 檔案系統，並配置為預設的 ordered mode。工程師正在將一段 4KB 的重要記錄 append 到某個檔案結尾。在底層寫入的過程中，作業系統已經成功將 data block 寫入實體磁碟，但就在準備將 inode 與 bitmap 的變更寫入 journal 之前，機房發生了瞬間斷電。
   
   請問當伺服器重新開機並自動執行 journal replay 後，該檔案系統與資料的狀態會是如何？
 options:
-  - text: "Data loss 但 file system 保持一致：這次的 append 操作會對使用者完全遺失，檔案的 inode 未被更新，大小保持不變。剛寫入的 data block 在 bitmap 中仍被視為 free 空間，未來可被安全覆寫，系統處於完美的 consistent 狀態。"
+  - text: "Data loss 但 file system 保持一致：這次的 append 操作對使用者遺失，檔案的 inode 未被更新，大小保持不變。剛寫入的 data block 在 bitmap 中仍被視為 free 空間，未來可被覆寫，系統處於 consistent 狀態。"
     correct: true
     explanation: |
-      這是正確的。Ordered Journaling 的核心精神就是「先寫入 data block，再將 metadata 寫入 journal」。由於斷電發生在 journal commit 之前，重開機的 replay 過程不會看到這筆未完成的交易（transaction）。因此，inode 與 bitmap 都維持在斷電前的舊狀態。雖然使用者流失了這次寫入的資料，但 file system 的結構毫無受損，也不會產生 garbage data 或 space leak。
+      這是正確的。Ordered mode 的核心機制是「先寫入 data block，再將 metadata 寫入 journal」。由於斷電發生在 commit 之前，重開機的 replay 過程不會處理這筆未完成的 transaction。因此，inode 與 bitmap 維持在斷電前的舊狀態。雖然遺失了這次寫入的資料，但 file system 的結構未受損，不會產生 garbage data 或 space leak。
   - text: "Garbage data 產生：因為 data block 已經成功寫入實體硬碟，所以檔案的大小會自動增加 4KB。但由於 inode 尚未寫入 journal 進行對齊，會導致使用者讀取這 4KB 時，讀到上一位使用者留下的隨機亂碼內容。"
     explanation: |
-      這是錯誤的推論。只有當 inode 被成功更新並指向該 block，但 data block 卻沒有被正確寫入時，才會發生 garbage data。在這個情境中，inode 根本還沒被更新，作業系統根本不知道這個新 data block 的存在，檔案大小自然也不會增加。
-  - text: "Space leak 產生：因為真正的 data 已經物理性地佔用了磁碟區塊，但系統重開機後 inode 並沒有指向它。這會導致這個 data block 變成了無主孤魂，永久佔用硬碟的可用空間，最後必須依賴 fsck 才能回收。"
+      只有當 inode 被成功更新並指向該 block，但 data block 卻沒有被正確寫入時，才會發生 garbage data。在這個情境中，inode 尚未被更新，作業系統不知道這個新 data block 的存在，檔案大小不會增加。
+  - text: "Space leak 產生：因為 data 已經物理性地佔用了磁碟區塊，但系統重開機後 inode 並沒有指向它。這會導致這個 data block 變成了無法使用的空間，永久佔用硬碟的可用空間，必須依賴 fsck 才能回收。"
     explanation: |
-      這是對 space leak 機制的誤解。Space leak 發生的前提是「bitmap 被標記為已使用（allocated），但 inode 沒有指向它」。在 Ordered Journaling 中，bitmap 的變更是與 inode 一起寫入 journal 的。既然 journal 還沒 commit，bitmap 就依然是 free 的狀態，不會有空間浪費。
-  - text: "Inconsistency 導致磁碟鎖死：因為只寫了 data block 而沒有寫入 metadata，嚴重破壞了檔案系統的樹狀結構（tree structure）。重開機時 OS 會拒絕掛載（mount），必須強制執行耗時數小時的完整 fsck 掃描修復。"
+      Space leak 發生的前提是「bitmap 被標記為已使用（allocated），但 inode 沒有指向它」。在 ordered mode 中，bitmap 的變更是與 inode 一起寫入 journal 的。既然 journal 還沒 commit，bitmap 依然是 free 的狀態，不會有空間浪費。
+  - text: "雖然 journal 沒 commit，但 data block 已經寫入正式位置，造成 metadata 與 disk 內容不符，開機掛載時必須執行 fsck。"
     explanation: |
-      這完全低估了 journaling 的威力。Journaling 發明的目的就是為了消滅耗時的 fsck。既然斷電發生在 commit 之前，這筆交易形同無效，系統只需花幾秒鐘 replay 其他已 commit 的日誌，就能保證 file system 的結構絕對一致（consistent），可以直接掛載。
+      斷電發生在 commit 之前，這筆 transaction 視為無效。Replay 只需處理已 commit 的 transaction，filesystem 結構維持 consistent，可以正常 mount，不需要 fsck。

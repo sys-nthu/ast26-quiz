@@ -1,0 +1,20 @@
+author: Gengan811
+date: '2026-05-07'
+question: |
+  某工程師為兩台 ext4 伺服器設定了不同的日誌模式：伺服器 X 使用 ordered mode，伺服器 Y 使用 writeback mode。某天機房遭遇瞬間停電，當時兩台伺服器都正好在處理一筆 append 寫入，且 data block 還在 page cache 中，尚未寫入磁碟。
+  
+  請問在重開機並完成 journal replay 後，這兩種模式對檔案狀態與資安的影響為何？
+options:
+  - text: "伺服器 X 會因 data 尚未寫入而阻止 metadata 進入 journal，重開機後遺失本次更新，檔案保持舊貌。伺服器 Y 則可能已將 metadata 成功 commit，重開機 replay 會將 inode 指向未更新的磁碟區塊，導致讀出殘留的 garbage data，產生資安漏洞。"
+    correct: true
+    explanation: |
+      這是正確的。Ordered mode 強制 data 必須先於 metadata 寫入硬碟。既然 data 還在記憶體，metadata 就尚未 commit，因此重開機後僅遺失新資料。Writeback mode 不保證 data 寫入順序，可能已將 metadata 成功 commit，導致重開機後 inode 變大並指向舊有區塊，產生讀到舊資料的資安風險。
+  - text: "伺服器 X 的日誌會強制記錄 data 的寫入意圖，重開機後雖資料遺失，但會自動以零值填滿該區塊以防止洩漏。伺服器 Y 則因缺乏順序保證，其 journal replay 會因找不到對應的 data block 而宣告系統損毀，必須強制執行全盤 fsck 才能順利掛載。"
+    explanation: |
+      Ordered mode 並不會有自動補零的安全機制，它純粹靠寫入順序來防禦。Writeback mode 重開機時會依照 journal 中的 metadata 進行 replay，無法察覺 data 遺失，因此不會報錯或觸發 fsck 掃描。
+  - text: "伺服器 X 與伺服器 Y 都會發生 space leak。因為兩者都是僅記錄 metadata 的模式，當記憶體中的 data 遺失時，日誌中殘留的 inode 變更會讓系統誤以為磁碟區塊已被佔用，導致檔案大小增加且內容為亂碼。"
+    explanation: |
+      伺服器 X 因為寫入順序的限制，metadata 尚未寫入 journal，不會發生檔案變大或 space leak。伺服器 Y 則會因為 metadata 提早 commit 而產生檔案變大與 garbage data 的問題。
+  - text: "伺服器 X 因為嚴格的排序規則，會觸發自動 checkpoint 機制將記憶體資料刷入硬碟，因此能保留新資料。伺服器 Y 則會直接捨棄整筆 transaction，將 inode 與 bitmap 恢復到斷電前的狀態，兩者都不會產生 garbage data 或影響資安。"
+    explanation: |
+      斷電後硬碟無法執行寫入，沒有任何機制能將 RAM 中的資料刷入硬碟。伺服器 X 保障安全的方式是讓這筆 transaction 失效（捨棄 metadata），而不是保留新資料。

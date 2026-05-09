@@ -1,0 +1,18 @@
+author: 910605jeremy
+date: 2026-04-21
+question: |
+  關於 RAG 系統在大規模部署時，針對 HNSW 與 PQ 的特性，下列敘述何者「錯誤」？
+options:
+  - text: "HNSW 索引可以取代 RAG 中的 chunking 過程，透過多層級圖結構自動捕捉長文本中的局部語義特徵。"
+    correct: true
+    explanation: |
+      HNSW 用於加速向量比對；而 chunking 是一種「資料預處理策略」。embedding model 在將文本轉為向量時，若未經 chunking 而直接處理長文本，會導致 information loss。HNSW 無法從已經失去細節的單一向量中「自動找回」局部特徵，兩者屬於不同維度的處理流程。
+  - text: "HNSW 的搜尋瓶頸通常出現在 memory bandwidth 而非計算單元，因為 graph navigation 涉及大量隨機記憶體存取，對 CPU 快取並不友好。"
+    explanation: |
+      HNSW 在各層節點間跳轉時，記憶體位址不連續，導致 L1/L2 cache miss 頻繁，因此效能瓶頸往往在於資料從記憶體搬運到 CPU 的速度。
+  - text: "PQ 支援 ADC，在查詢時 query 維持原始精度，僅需查表並計算 query 與各子空間 centroids 的距離，即可在不還原原始向量的情況下完成距離估算。"
+    explanation: |
+      這是 PQ 能夠實現極速檢索的核心原因。透過預先計算 query 與各個 centroid 的距離，搜尋時只需進行查表與加法運算。
+  - text: "在 IVF_PQ 索引中，若 nlist 設定過大，雖能縮小搜尋範圍，但會增加第一階段 coarse quantizer 尋找最近 centroid 的計算開銷。"
+    explanation: |
+      這是 IVF 索引調優中的典型 trade-off。centroid 過多會導致第一階段的暴力比對變慢，若不搭配 HNSW 作為粗糙量化器，可能會抵銷掉後續縮小搜尋範圍所省下的時間。

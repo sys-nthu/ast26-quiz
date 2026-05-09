@@ -1,0 +1,25 @@
+author: VenceChing
+date: 2026-04-21
+question: |
+  知名電商平台準備上線以圖搜圖功能，將 1000 萬筆商品圖片轉換為 128 維度的 embedding vector 進行 top-10 相似度比對。系統環境與業務要求如下：
+    1. 批次運算叢集資源充裕，允許較長的 index 重建與更新時間。
+    2. 尖峰時段的線上查詢 p99 延遲必須限制 50ms 以內。
+    3. 可接受的 recall 下限為 95%。  
+  工程師 A 提議沿用現有的關聯式資料庫與 B+ Tree 索引，認為系統較穩定；工程師 B 提議導入 HNSW 向量引擎。身為主管，請從底層資料結構的特性進行決策。下列哪一項架構評估最為恰當？
+options:
+  - text: "沿用 B+ Tree。只需對向量實作 Prefix Truncation，減少 routing key 體積以提升 fan-out，就能將樹高降低，達到與 HNSW 相同的 O(log n) 查詢時間複雜度。"
+    correct: false
+    explanation: |
+      Prefix Truncation 適用於字串，因為字串有明確的字典序。但高維度向量代表空間座標，截斷浮點數會直接破壞空間距離的意義。且高維空間缺乏單一的排序方式，就算樹變矮，依然不能解決高維度造成無法有效切分搜尋空間的問題。
+  - text: "沿用 B+ Tree。因為 B+ Tree 的 leaf node 之間有 doubly linked list 串接，適合 range query，能以對 disk I/O 友善的 sequential scan 找出所有相似向量。"
+    correct: false
+    explanation: |
+      B+ Tree 的 linked list 只能針對**單一維度**進行連續掃描。在稀疏空間中，兩個在空間上距離相近的向量，在 B+ Tree 的一維排序中可能距離很遠。
+  - text: "導入 HNSW。為了確保低延遲，應將參數 `efConstruction` 設低 (如 100)，以減輕記憶體與建構負擔；並將 `efSearch` 調至較大值 (如 1000)，依賴伺服器的即時算力提升 recall。"
+    correct: false
+    explanation: |
+      HNSW 的參數權衡邏輯顛倒。`efConstruction` 設太小會導致離線建構出的 graph 品質較差。`efSearch` 過大會導致 CPU 負載與 query latency 上升，導致延遲提升。
+  - text: "導入 HNSW。利用充裕的離線運算資源，將建構期參數 `efConstruction` 調高 (如 400) 以塑造高品質的 graph；並將查詢參數 `efSearch` 控制在較低值 (如 100)。"
+    correct: true
+    explanation: |
+      因離線資源充裕，先用較長的 build time 換取高品質的靜態圖結構；上線後，因為尋路徑已被最佳化，只需適中的 `efSearch` (beam width) 就能快速搜索至目標區域，滿足低延遲與足夠的 recall。

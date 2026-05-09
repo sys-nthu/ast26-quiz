@@ -1,0 +1,20 @@
+author: minniewei
+date: 2026-04-03
+question: |
+  某 LSM-tree 系統目前有 50 個 SSTable，每個 SSTable 都配有 Bloom filter（FPR = 2%）。為了優化讀取效能，團隊決定將所有 SSTable 合併為 1 個，並為合併後的 SSTable 配置足夠記憶體的 Bloom filter（FPR 維持 2%）。請分析此舉對系統效能的影響。
+
+options:
+  - text: "搜尋「不存在的 key」時，預期磁碟 I/O 次數會從 1 次降至 0.02 次，讀取效能提升，但會產生嚴重的寫入放大。"
+    correct: true
+    explanation: |
+      原本 50 個檔案，不必要讀取的期望值為 $50 \times 0.02 = 1$ 次；合併為 1 個檔案後，期望值降為 $1 \times 0.02 = 0.02$ 次。降低了 read amplification。
+      但合併 SSTable 時需要重寫所有資料，write amplification 極高，且合併過程中系統資源消耗大，可能影響整體效能。
+  - text: "合併後搜尋「不存在的 key」時，磁碟 I/O 次數會降至 0，因為 Bloom filter 會因為檔案變大而變得絕對精準。"
+    explanation: |
+      即便合併成一個大檔，只要維持 $2\%$ 的誤判率，仍有機率發生誤判，I/O 次數不會降至 0。
+  - text: "系統應頻繁合併 SSTable 以確保 SSTable 數量永遠維持在 1，因為 SSTable 數目越少，讀取與寫入效能都會達到最優化。"
+    explanation: |
+      雖然 SSTable 數量減少可以降低 read amplification，但頻繁執行 SSTable 合併會導致 write amplification 極高。
+  - text: "合併後由於檔案變大，Bloom filter 需要處理更多的 keys，這會導致其誤判率自動上升，抵銷了檔案變少的好處。"
+    explanation: |
+      誤判率是由 Bloom filter 的參數決定的，與檔案大小無關。只要維持足夠的記憶體配置，誤判率可以保持穩定。

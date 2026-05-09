@@ -1,0 +1,23 @@
+author: VenceChing
+date: 2026-04-21
+question: |
+  系統實作了 IVF-PQ 架構來搜尋十億筆向量，目前參數為：$C=30000$, $M=8, k^*=256$, `nprobe=64`。
+  上線後發現 recall@10 只有 65%，不符合業務要求的 85%。目前的 p99 latency 為 5ms (最低可接受值為 50ms)。但伺服器記憶體已達 90% 占用。
+  在不增加靜態記憶體耗用的前提下，應該採取下列哪一種參數調整策略？
+options:
+  - text: "將 $M$ 從 8 降至 4，省下的記憶體用來增加 $C$ 以提高初步篩選精準度。"
+    correct: false
+    explanation: |
+      降低 $M$ 意味著每個 sub-vector 要代表的維度變多（從 16 維變成 32 維），這會放大 PQ 的量化誤差。即使 coarse cluster 變多，底層比對的資料本質已經失真，最終的 recall 仍會降低。
+  - text: "維持所有靜態參數不變，將 `nprobe` 從 64 增至 500，用 latency 換取搜尋範圍。"
+    correct: true
+    explanation: |
+      正確的動態權衡策略。`nprobe` 是 query-time 的動態參數，調高它只會增加 CPU 掃描 inverted list 的運算時間 (latency 上升)，不影響硬碟或記憶體的靜態 index 大小。由於 latency 還有 45ms 的裕度，可用運算時間換取搜尋範圍。
+  - text: "維持所有參數不變，但將 ADC 改為 SDC。利用省下的運算時間，將 `nprobe` 設為最大值以提升 recall。"
+    correct: false
+    explanation: |
+      IVF 的目的就是避免全表掃描。如果將 `nprobe` 開到最大，IVF 就失去了意義，且 SDC 本身帶有的雙重量化誤差，即便掃描全域，其最終的 recall 也可能比局部掃描的 ADC 來得差。
+  - text: "架構不變，於 inverted list 每筆資料額外儲存 4 bytes 的 residual vector norm，在 ADC 計算時補償誤差以提升 recall。"
+    correct: false
+    explanation: |
+      技術上可能可行，但十億筆資料每筆增加 4 bytes，會導致靜態記憶體額外共增加 4GB。在記憶體緊縮的環境下可能引發 OOM 等問題。

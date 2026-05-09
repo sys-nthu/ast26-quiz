@@ -1,0 +1,29 @@
+author: hazcashi
+date: 2026-04-20
+question: |
+  某團隊在向量檢索系統中使用 HNSW，資料規模約 5000 萬筆。上線後遇到兩個現象：
+
+  1. 離線建索引耗時過長，RAM 佔用很高
+  2. 線上查詢在高峰時段 tail latency 偏高，但產品要求 top-10 recall 不能明顯下降
+
+  團隊目前參數為：`M=48`、`efConstruction=600`、`efSearch=220`。
+  如果想要「降低建造成本與記憶體壓力」，同時「盡量保持 recall 」，下列哪個調整策略最合理？
+options:
+  - text: "把 `efSearch` 從 220 提高到 400，其他不變。"
+    explanation: |
+      `efSearch` 影響的是查詢時候的探索寬度與 latency，不會直接降低離線建圖成本。
+      把 `efSearch` 調更高通常會讓查詢更慢，無法解決建造耗時與記憶體壓力。
+  - text: "把 `M` 降到 24、`efConstruction` 降到 240，再一步一步調整 `efSearch`（例如先降到 160 再量測 recall/latency）。"
+    correct: true
+    explanation: |
+      `M` 與 `efConstruction` 主要決定建圖品質、建造成本與圖的稠密程度。
+      降低兩者可直接減少建造時間與記憶體占用，但可能會降低 recall。
+      因此實務上會再用 `efSearch` 微調，把 latency 與 recall 拉回可接受區間。
+  - text: "把 `M` 提高到 64、`efConstruction` 提高到 900，再把 `efSearch` 降到 40。"
+    explanation: |
+      這組參數會先把建造成本與記憶體壓力推得更高，和題目目標相反。
+      即便降低 `efSearch` 能減少查詢開銷，也可能造成 recall 明顯下降。
+  - text: "只調整 entry point 的選取策略，不動 `M`、`efConstruction`、`efSearch`。"
+    explanation: |
+      entry point 會影響路徑品質，但不是建造成本與查詢延遲的主因。
+      若參數完全不動，通常無法系統性地控制 build time、memory、recall、latency 的 trade-off。

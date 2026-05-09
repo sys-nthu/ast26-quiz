@@ -1,0 +1,18 @@
+author: xian6060
+date: 2026-05-10
+question: |
+  對於 Error 、 Erasure 以及容錯機制的描述，下列哪一項系統設計邏輯存在「謬誤」？
+options:
+  - text: "因為 DRAM 很容易被宇宙射線打到產生 bit flip，可以在記憶體架構中加入 Hamming code 來實現 Correction"
+    explanation: |
+     宇宙射線導致的 bit flip 是典型的 Error 。使用 Hamming code 進行單位元糾錯是現代 ECC 記憶體的標準做法。
+  - text: "為了達到高儲存空間利用率，可以設計一組 Code rate R = 0.99 的演算法，用來自動修復外太空探測器傳回來的嚴重且大量的雜訊干擾"
+    correct: true
+    explanation: |
+      要修復嚴重且大量的雜訊干擾，系統必須加入大量的冗餘資訊來提供足夠的糾錯能力。在極高 Code rate 的情況下，容錯能力微乎其微，不可能應對外太空嚴重的干擾。
+  - text: "在網路傳輸封包加上了 CRC ，當 Receiver 抓到錯時，直接把封包丟掉並要求重傳，是一種 Detection 的應用"
+    explanation: |
+      CRC 主要功能是 Detection 。當接收端發現 CRC 不符時，代表資料損毀，將其捨棄並要求重傳是網路通訊的邏輯。
+  - text: "硬碟壞掉雖然可怕，但如果我們明確知道哪裡缺損，只要有足夠的 Parity 就能用 Reed-Solomon 重建出來"
+    explanation: |
+      硬碟損壞被視為 Erasure 。在已知位置的情況下， Reed-Solomon 演算法能以極高的效率利用 Parity 復原缺失的數據。

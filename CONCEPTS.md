@@ -27,7 +27,6 @@
 - `filesystem/log-structured-fs` — Log-Structured File System
 ## Reliability & Coding
 - `reliability/error-coding-basics` — Error Coding Basics
-- `reliability/galois-field-arithmetic` — Galois Field Arithmetic
 - `reliability/raid` — RAID
 - `reliability/erasure-coding` — Erasure Coding
 - `reliability/ldpc` — LDPC Codes

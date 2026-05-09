@@ -346,16 +346,6 @@ concepts:
     depends_on: []
     papers: [flash-coded-storage]
 
-  - slug: galois-field-arithmetic
-    title: "Galois Field Arithmetic"
-    description: >
-      在 error-coding-basics 中我們學到了 XOR 和 Hamming distance 等基礎概念，但要建構更強大的編碼技術（如 Reed-Solomon），我們需要一套能在有限元素上做四則運算的數學工具，這就是 Galois field。我們會聚焦在 GF(2^w) 這類 finite field：它的加法就是 XOR，而乘法則透過 primitive polynomial 定義，實務上可以用 log/antilog table 來加速計算。理解 GF(2^w) 的運算規則後，我們就能在這個 field 上建構矩陣運算，這是 Reed-Solomon 編碼與解碼的核心。同時 LDPC code 中的 sparse parity-check matrix 也建立在 finite field 的代數結構之上。掌握 Galois field arithmetic 讓我們能把 error coding 從簡單的 bit-level XOR 推展到 symbol-level 的強大糾錯能力，是連結基礎理論與實際儲存系統編碼方案的關鍵橋梁。
-    tier: basic
-    open: false
-    pillar: reliability
-    depends_on: [error-coding-basics]
-    papers: [flash-coded-storage]
-
   - slug: raid
     title: "RAID"
     description: >
@@ -373,7 +363,7 @@ concepts:
     tier: advanced
     open: false
     pillar: reliability
-    depends_on: [galois-field-arithmetic, raid]
+    depends_on: [error-coding-basics, raid]
     papers: [flash-coded-storage]
 
   - slug: ldpc

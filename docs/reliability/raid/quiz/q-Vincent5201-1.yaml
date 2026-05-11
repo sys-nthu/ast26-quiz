@@ -7,7 +7,8 @@ question: |
 options:
   - text: "1 : 2 : 2 : 2"
     explanation: |
-      完整解釋見選項 B
+      RAID 0：只需 1 次寫入 I/O。RAID 1：需要 2 次寫入 I/O（主數據與鏡像數據）。
+      RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
   - text: "1 : 2 : 4 : 4"
     correct: true
     explanation: |
@@ -15,8 +16,10 @@ options:
       RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
   - text: "1 : 4 : 4 : 4"
     explanation: |
-      完整解釋見選項 B
+      RAID 0：只需 1 次寫入 I/O。RAID 1：需要 2 次寫入 I/O（主數據與鏡像數據）。
+      RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
   - text: "1 : 2 : 2 : 4"
     explanation: |
-      完整解釋見選項 B
+      RAID 0：只需 1 次寫入 I/O。RAID 1：需要 2 次寫入 I/O（主數據與鏡像數據）。
+      RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
       

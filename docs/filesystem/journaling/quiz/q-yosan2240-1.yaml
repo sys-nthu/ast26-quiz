@@ -1,0 +1,27 @@
+author: yosan2240
+date: 2026-04-30
+question: |
+  系統使用 logical journaling，crash 後 journal 裡有以下兩筆已 committed 的操作待 replay：
+
+  ```
+  1. 在 /dir 下新增 entry: foo → inode 42
+  2. 將 inode 42 的 size 設為 4096
+  ```
+
+  Recovery 時第一筆 replay 失敗，原因是 /dir 的 directory block 在 crash 前有一筆未完成的 in-place write，導致 block 結構損毀，無法解析現有的 entry 列表。
+
+  下列哪個選項最精確地描述了這個情境，以及 physical journaling 為什麼不會有同樣的問題？
+options:
+  - text: "這是 logical journaling 的已知限制。第一筆失敗導致第二筆的前提不成立，兩筆都無法完成。Physical journaling 把操作描述合併成單一 transaction，所以不會有操作之間相依的問題"
+    explanation: |
+      操作間有相依關係的觀察雖然正確，但 physical journaling 的優勢並不是把操作合併成單一 transaction。Physical journaling 記錄的是 block 層級的完整內容，replay 時直接覆蓋整個 block，不需要解析現有結構。將操作「合併」並不是物理日誌的設計，也不是它能避免此問題的原因。
+  - text: "這是 logical journaling 的已知限制。Replay 需要解析 /dir 現有的結構才能找到插入位置，但 /dir 的 block 已損毀無法解析。Physical journaling 記錄的是 /dir block 的完整新內容，replay 時直接覆蓋損毀的 block，不需要解析現有結構"
+    correct: true
+    explanation: |
+      Logical journaling 記錄的是高階操作（「在 /dir 新增 entry」），replay 時必須對現有 directory block 做 read-modify-write：讀取現有 entry 列表、找到插入位置、再寫入新 entry。當 block 已損毀無法解析時，replay 就無法完成。Physical journaling 記錄的是 block 層級的完整 before/after bytes，replay 就是把 journal 裡的新版 block 整塊寫回磁碟，完全不需要讀取或解析現有 block 的結構，因此能繞過損毀問題。
+  - text: "這不是 logical journaling 的問題，而是 /dir 本身應該也進 journal 保護，設計上的疏漏導致 /dir 的 block 沒有被保護到"
+    explanation: |
+      /dir 本身就在 journal 的保護範圍內，journal 裡的第一筆操作正是針對 /dir 的 entry 新增。問題不是「/dir 沒被 journal 保護」，而是 logical journaling 在 replay 時假設現有磁碟狀態可解析，但 crash 前的 in-place write 破壞了這個前提，這是 logical journaling 的根本限制，而非設計疏漏。
+  - text: "這是 logical journaling 和 physical journaling 共同的問題，兩者都依賴 filesystem 在 crash 後的狀態是健康的"
+    explanation: |
+      Physical journaling 正是設計來處理這種情況的。它記錄的是完整的 block 內容，replay 時直接寫入，不依賴現有 block 是否健康。只有 logical journaling 因為需要解析現有結構才能執行高階操作，才會受到 block 損毀的影響。

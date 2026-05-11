@@ -1,0 +1,21 @@
+author: VenceChing
+date: 2026-05-04
+question: |
+  在 BTRFS 系統中，應用程式發出 100 個 4KB 的資料寫入請求。系統將 dirty page 暫存於記憶體，隨後觸發 flush。若硬碟已將全新 data block、對應的新 leaf block 與 parent block 皆寫入 SSD，但在執行 8-byte atomic root pointer swap 前發生斷電。系統重啟後，這 100 筆寫入佔用的實體磁碟空間與系統狀態為何？
+options:
+  - text: "新寫入的 block 成為 orphan blocks。因 root pointer 仍指向舊樹，檔案系統掛載為舊狀態，未受指標替換的影響。"
+    correct: true
+    explanation: |
+      在 root pointer swap 發生前，整棵 b-tree 的進入點仍為舊版 root。新寫入的資料與 metadata 雖然實體存在於 SSD 上，但無法經由 active tree 存取，雖然形成 orphan blocks，但維持了 crash consistency。
+  - text: "觸發 journal replay。系統讀取已寫入的 block 狀態，自動重構未完成的 root-to-leaf path，完成 root pointer swap 以恢復新資料。"
+    correct: false
+    explanation: |
+      BTRFS 依賴 out-place update 與 atomic swap 確保 consistency，不使用 write-ahead logging (journal) 來重構未生效的 tree path。若 pointer 未替換，系統即視為寫入未發生。
+  - text: "發生資料部分覆寫。由於 delayed allocation 批次寫入，部分舊資料可能與新 metadata 不匹配，導致 checksum 驗證失敗。"
+    correct: false
+    explanation: |
+      copy-on-write 機制強制所有寫入皆配置全新 block，實體空間上不會有原地覆寫舊資料的情況，舊資料與其 checksum 必定維持一致，不會產生半新半舊的損壞。
+  - text: "新寫入的 block 之 reference count 變為 -1，引發 allocator 空間重複分配，導致不同檔案間互相覆蓋。"
+    correct: false
+    explanation: |
+      在 root pointer 未切換前，新 block 尚未被檔案系統的 reference count 機制管理，對系統而言等同於未分配之 free space，不會引發負數狀態或邏輯錯亂。

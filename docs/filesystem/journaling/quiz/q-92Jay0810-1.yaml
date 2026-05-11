@@ -1,0 +1,29 @@
+author: 92Jay0810
+date: 2026-04-27
+question: |
+  在採用 ordered journaling 模式的 ext4 中，transaction 包含兩個操作：
+  (1) 建立檔案 A（配置新的 inode 與 data block）
+  (2) 刪除檔案 B（釋放其 inode 與 data block）。
+  系統將該 transaction 寫入 journal 時發生斷電：transaction 的 metadata 已寫入 journal，但 commit block 尚未完整寫入硬碟。重啟並執行 journal replay 後，檔案 A 與 B 的最終狀態為何？
+
+options:
+  - text: "檔案 A 已經建立，但檔案 B 尚未被刪除。"
+    explanation: |
+      這誤解了批次處理的機制。
+      journal 系統並不會部分恢復一個未完成的交易。即使檔案 A 的 metadata 已經提早寫入 journal，缺少 commit block 作為 transaction 完成的標記，系統重播時就會忽略這整段紀錄。
+
+  - text: "檔案 A 不存在，檔案 B 依然存在。"
+    correct: true
+    explanation: |
+      transaction 在 journal 系統中具有不可分割的 atomicity。
+      只要最後的 commit block 沒有完整寫入硬碟，整個 transaction 都會被視為無效並被直接丟棄。因此，包含在該交易中的所有操作都不會生效，系統狀態會回退到該交易發生前。
+
+  - text: "檔案 A 已經建立，且檔案 B 已經被刪除。"
+    explanation: |
+      檔案系統無法預測未完成的 commit block 之後是否還有遺漏的資料。
+      基於 crash consistency 的安全原則，對於 uncommitted 的交易，系統只能選擇 abort，絕不會 force commit，否則極可能導致更嚴重的結構損壞。
+
+  - text: "由於是 ordered journaling 模式，檔案 A 會存在但內容為空，檔案 B 則維持原狀。"
+    explanation: |
+      雖然 ordered journaling 模式會強制先將 data 寫入硬碟再寫入 metadata，但這只保證了若交易成功提交，檔案內不會讀到舊的垃圾資料。
+      對於整個交易的 atomicity 判斷，所有 journal 模式都嚴格依賴 commit block 的完整性；若未成功提交，整個交易就是全盤作廢。

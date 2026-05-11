@@ -1,0 +1,27 @@
+author: 92Jay0810
+date: 2026-05-08
+question: |
+  某資料中心建置了一個容量達 100TB 且包含數千萬個 inode 的儲存系統。在一次無預警的斷電後，伺服器重新啟動並嘗試進行檔案系統復原。
+  若分別評估採用 fsck 與採用 journaling 機制的復原過程，兩者在系統掛載所需時間上的關鍵差異與根本原因為何？
+
+options:
+  - text: "fsck 的執行時間與檔案系統的總容量及 inode 數量成正比，因為它必須完整掃描整個目錄樹與區塊配置表；而 journal replay 的執行時間僅取決於 journal 的大小與未 commit 的 transaction 數量，使得大容量硬碟的復原時間能維持在穩定範圍。"
+    correct: true
+    explanation: |
+      這反映了 journaling 機制被引入的核心效能優勢。
+      fsck 需要建立並比對所有 inode、data block 以及 free block bitmap 的狀態，當儲存空間越大，執行完整掃描的 I/O 耗時就越長。相對地，journaling 將復原時間從「與硬碟總容量成正比」降到「只取決於 journal 大小與未 commit 的 transaction 數量」，重啟時只需針對未完成 checkpoint 的少量紀錄進行 replay，縮減了復原時間。
+
+  - text: "fsck 僅需掃描系統斷電當下處於開啟狀態的檔案，復原速度較快；而 journaling 必須從檔案系統建立初始狀態逐一比對所有的 transaction，導致在長時間運行的伺服器上復原較為緩慢。"
+    explanation: |
+      系統發生斷電後，主記憶體中的資料會遺失，作業系統無法單憑磁碟狀態準確得知斷電瞬間有哪些檔案正處於開啟狀態，因此 fsck 無法僅針對部分檔案進行掃描。
+      同時，journaling 系統在運行過程中會持續進行 checkpoint 操作，將已確認完成的 transaction 資料寫入主結構並釋放 journal 空間。因此，journal replay 只需要處理近期未完成的 transaction，不需要從頭重播。
+
+  - text: "雖然 fsck 需要完整掃描檔案系統，但 journal replay 的 I/O 負載更高，因為 journal 的容量必須依照 100TB 的總容量按固定比例配置，讀取大量 journal 資料會造成效能瓶頸。"
+    explanation: |
+      journal 的作用是暫存尚未寫入主結構的近期 transaction，其容量通常維持在一個固定且相對較小的數值。
+      journal 只需要容納同時處理中的 transaction 即可，不需要隨檔案系統總容量依比例等比擴張，因此讀取 journal 的負載並不會隨硬碟容量增加而成為瓶頸。
+
+  - text: "fsck 會透過讀取硬碟控制器的 error log 直接定位不一致的磁區進行修復；而 journal replay 則依賴軟體層級的 metadata 比對，因此在大容量環境下 fsck 比 journal replay 更快復原。"
+    explanation: |
+      fsck 是一個純軟體層級的工具，其運作邏輯是檢查 inode、目錄結構與區塊對應關係等高階 filesystem 資料結構的邏輯一致性。
+      硬碟控制器不具備識別檔案系統結構的功能，因此 fsck 無法依賴 error log 來略過目錄樹的掃描過程，在復原速度上並不具備優勢。

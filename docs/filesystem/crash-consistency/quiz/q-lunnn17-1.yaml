@@ -1,0 +1,26 @@
+author: lunnn17
+date: 2026-05-07
+question: |
+  對 1MB 檔案 append 10MB 時，kernel 需要完成四個寫入：
+
+  data block：把 10MB 資料寫入新分配的 block
+  inode size：從 1MB 改成 11MB
+  inode extent：在 inode 的 extent list 加入新 block 位址
+  block bitmap：把新 block 標為 used
+
+  如果今天電源突然斷電了，重新開機後我們發現用 `$ df` 指令檢查硬碟空間少了 10MB 但是既有的檔案大小仍為 1MB 且內容 append 前相同，則最可能發生什麼事？
+options:
+  - text: "只有 data block 寫入 SSD。"
+    explanation: |
+      本題只有 `df` 指令顯示的大小少了 10MB。
+      只有把 page cache 寫入 SSD，但新的 bitmap 也沒有寫入 SSD 在使用 `df` 後輸出的結果也維持不變。
+  - text: "只有 inode size 寫入 SSD。"
+    explanation: |
+      題目的檔案大小仍顯示 1MB 代表更新檔案大小後的 inode 並沒有寫入 SSD，且沒有把新的 bitmap 寫入 SSD 會導致 `df` 的輸出維持不變 。
+  - text: "只有 inode extent 寫入 SSD。"
+    explanation: |
+      只有把新的 block 位址加進 inode 中，但新的 bitmap 沒有被寫入 SSD，所以 `df` 的輸出維持不變。
+  - text: "只有 block bitmap 寫入 SSD。"
+    correct: true
+    explanation: |
+      bitmap 標示了新的 block 的狀態為 used，使用 `df` 指令後的輸出結果就會顯示比原本減少 10MB 的大小。

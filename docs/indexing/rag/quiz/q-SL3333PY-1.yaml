@@ -1,0 +1,27 @@
+author: SL3333PY
+date: 2026-04-27
+question: |
+  一個文字 RAG 系統打算全面從使用 HNSW+PQ 改成 LEANN。對於這個改變造成的影響，下列描述何者正確？
+options:
+  - text: "查詢延遲提升，因為系統不再使用近似距離計算，而是改成只靠動態生成的 embedding 進行精確比對。"
+    explanation: |
+      LEANN 的 two-level search 仍然保留了 ADC 近似距離計算作為第一層篩選，
+      並沒有完全取代 PQ 查表。只有排名最前面的少數 candidate 才會被送去動態生成精確 embedding。
+  - text: "查詢延遲提升，因為 two-level search 的做法導致查詢效率下降與更多節點被探索。"
+    explanation: |
+      Two-level search 先用 ADC 粗篩所有鄰居，只對少數 top candidate 做精確 embedding 計算，而非擴大探索範圍。
+      探索的節點數不會因此增加，查詢效率下降的說法不成立。
+      延遲提升的真正原因是動態生成 embedding 本身的計算成本，而非探索更多節點。
+  - text: "Recall 明顯降低，因為 graph 的平均 degree 下降導致 connectivity 下降。"
+    explanation: |
+      LEANN 的 pruning 策略是 high degree preserving，degree 最高的 2% hub node 完全不修剪，
+      只剪掉低 degree node 的邊，同時保留每個 node 到 hub 的連結。
+      搜尋路徑幾乎必經這些 hub，所以整體 connectivity 的實質影響遠小於平均 degree 減半所暗示的。
+      Recall 不會因此明顯降低。
+  - text: "Recall 提升，因為系統先使用壓縮的向量進行近似篩選，再對少量候選點進行 embedding 的精確計算。"
+    correct: true
+    explanation: |
+      LEANN 的 two-level search 機制是第一層用 ADC 對鄰居做近似篩選，
+      第二層只對 top candidate 動態生成精確 embedding 再比對。
+      相較於 HNSW+PQ 全程依賴 ADC 做導航決策，LEANN 的精確 embedding 可以確保搜尋方向不被 PQ 誤差帶偏，
+      recall 因此回升至接近原始 HNSW 的水準。

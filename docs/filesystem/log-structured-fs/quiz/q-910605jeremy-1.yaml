@@ -1,0 +1,18 @@
+author: 910605jeremy
+date: 2026-05-03
+question: |
+  下列有關 F2FS + ZNS 的 co-design 敘述，何者正確?
+options:
+  - text: "F2FS 將其內部的 section 大小與 ZNS 的 zone 大小進行對齊，並接手管理 write pointer，從而繞過底層 FTL。"
+    correct: true
+    explanation: |
+      SSD 內部不再維持 L2P 映射與 GC 機制。F2FS 透過將 section 與 zone 對齊，可以確保當檔案系統要回收空間時，直接對該 zone 下達 reset 指令即可。由 host 端直接管理 write pointer 確保了 sequential write，徹底消除了 log-on-log 導致的兩層重複 GC 問題，使 device WA 趨近於 1.0。
+  - text: "為了追求速度，F2FS 將原本在 host 端執行的 GC 任務完全給 ZNS SSD 內部的 FTL 處理。"
+    explanation: |
+      是把責任從 device 端拿回來到 host 端，這樣檔案系統才能全局優化 GC 策略。
+  - text: "在此設計下棄用了 append-only 特性，改回傳統的 in-place update 以符合 zone 的寫入限制。"
+    explanation: |
+      ZNS 限制只能 sequential write，這與 F2FS 的 append-only 特性是天作之合，不能改回 in-place Update。
+  - text: "在 ZNS 模式下，F2FS 必須增加更多的 checkpoint 頻率來應對 ZNS 不支援隨機讀取的限制。"
+    explanation: |
+      ZNS 限制的是 sequential write，但仍然支援 random read，所以不需要因此增加 checkpoint 頻率。

@@ -1,0 +1,22 @@
+author: Vincent5201
+date: 2026-05-11
+question: |
+  使用 4 顆硬碟組成 RAID 陣列，當我們進行一次隨機小量寫入 (partial-stripe write)，
+  使用 Subtractive parity 策略，系統總共需要幾次實體 I/O 操作 (Physical I/Os)？
+  請選出（RAID 0 : RAID 1 : RAID 4 : RAID 5）對應的次數組合。（包含讀取與寫入）
+options:
+  - text: "1 : 2 : 2 : 2"
+    explanation: |
+      請見選項 B
+  - text: "1 : 2 : 4 : 4"
+    correct: true
+    explanation: |
+      RAID 0：只需 1 次寫入 I/O。RAID 1：需要 2 次寫入 I/O（主數據與鏡像數據）。
+      RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
+  - text: "1 : 4 : 4 : 4"
+    explanation: |
+      請見選項 B
+  - text: "1 : 2 : 2 : 4"
+    explanation: |
+      請見選項 B
+      

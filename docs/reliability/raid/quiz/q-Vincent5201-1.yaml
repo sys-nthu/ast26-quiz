@@ -7,7 +7,7 @@ question: |
 options:
   - text: "1 : 2 : 2 : 2"
     explanation: |
-      請見選項 B
+      完整解釋見選項 B
   - text: "1 : 2 : 4 : 4"
     correct: true
     explanation: |
@@ -15,8 +15,8 @@ options:
       RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
   - text: "1 : 4 : 4 : 4"
     explanation: |
-      請見選項 B
+      完整解釋見選項 B
   - text: "1 : 2 : 2 : 4"
     explanation: |
-      請見選項 B
+      完整解釋見選項 B
       

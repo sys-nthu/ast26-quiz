@@ -7,10 +7,10 @@ question: |
 options:
   - text: "tail latency 增加, Recall 值增加"
     explanation: |
-      請看第三個選項的解釋
+      雖然 tail latency 確實會增加，但 recall 不會增加反而會下降，因為同區域的節點容易連在一起，連不到其他的向量資料，使搜尋時更容易漏掉正確結果
   - text: "tail latency 下降, Recall 值增加"
     explanation: |
-      請看第三個選項的解釋
+      tail latency 會增加，因為在當想要搜尋稀疏區的資料時，經常會卡在某個區域內，導致需要花更多時間找到前往那邊的路徑，而 recall 也會因為沒什麼向量連到，使正確結果被遺漏掉，導致下降
   - text: "tail latency 增加, Recall 值下降"
     correct: true
     explanation: |
@@ -18,4 +18,4 @@ options:
       並且這種資料分布產生的圖會因為區域之間隔太遠導致節點主要跟同區域的節點相連，使搜尋時更容易漏掉正確結果
   - text: "tail latency 下降, Recall 值下降"
     explanation: |
-      請看第三個選項的解釋
+      tail latency 會增加，因為在當想要搜尋稀疏區的資料時，經常會卡在某個區域內，導致需要花更多時間找到前往那邊的路徑

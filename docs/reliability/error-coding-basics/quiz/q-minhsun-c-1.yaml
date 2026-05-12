@@ -1,0 +1,24 @@
+author: minhsun-c
+date: 2026-05-12
+question: |
+  Backblaze 使用 $RS(20, 17)$ erasure code 來保護雲端備份資料，將每筆檔案切成 17 個 data shard 和 3 個 parity shard，分散到 20 台 storage pod。
+
+  某天凌晨，機房空調故障導致溫度過高，目前已知有 3 台 pod 無法使用、17 台可用。請問此時檔案的狀態為何？
+
+options:
+  - text: "所有檔案都能完整還原，因為 $RS(20, 17)$ 只需要任意 17 台 pod 即可重建資料"
+    correct: true
+    explanation: |
+      $RS(20, 17)$ 是 MDS code，能容許任意 $n - k = 3$ 個 erasure。 實際不可用的只有 3 台，剛好在保護範圍內。MDS code 的性質保證：不管剩下的 17 台是哪 17 台，都足以重建所有檔案。
+
+  - text: "只有部分檔案能還原，取決於壞掉的 3 台 pod 上存的是 data shard 還是 parity shard"
+    explanation: |
+      RS code 的 MDS 性質保證任意 $k$ 個倖存的 symbol 都能還原，不區分 data shard 和 parity shard。因為兩者在數學上都是同一條多項式曲線上的點，地位完全相同。不管壞掉的 pod 的用途為何，只要剩下 17 台就一定能還原。
+
+  - text: "需要對每台 pod 的資料逐一執行 CRC 驗證，確認沒有錯誤後才能開始 RS 還原"
+    explanation: |
+      CRC 和 RS code 所解決的問題不同：前者偵測錯誤是否存在，後者根據已知的錯誤位置進行修正，兩者獨立運作。整台 pod 壞掉屬於 erasure （位置已知），可以直接透過 RS code 進行修正，無需透過 CRC 先行檢查。
+
+  - text: "需要等全部 20 台 pod 都恢復才能確認資料完整性"
+    explanation: |
+      RS code 的還原不需要等所有 pod 恢復。根據 MDS 的性質，不正常運作的 pod 只有 3 台，仍在保護範圍內，可以透過正常運作的 17 台 pod 將資料完整還原。Erasure coding 的設計目的就是讓系統在部分節點不可用時仍能正常運作。

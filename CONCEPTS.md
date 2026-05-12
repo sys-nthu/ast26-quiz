@@ -6,14 +6,12 @@
 - `ssd/garbage-collection` — SSD Garbage Collection
 - `ssd/write-amplification` — Write Amplification
 - `ssd/ssd-steady-state` — SSD Steady-State Behavior
-
 ## I/O Interfaces & NVMe
 - `io/block-io` — Block I/O Fundamentals
 - `io/dma` — Direct Memory Access
 - `io/nvme` — NVMe Protocol
 - `io/io-uring` — io_uring
 - `io/kernel-bypass-io` — Kernel-Bypass I/O
-
 ## Indexing & Data Structures
 - `indexing/btree` — B+Tree
 - `indexing/slotted-page` — Slotted Page Layout
@@ -21,21 +19,17 @@
 - `indexing/lsm-tree` — LSM-Tree
 - `indexing/hnsw` — HNSW
 - `indexing/product-quantization` — Product Quantization
-
+- `indexing/rag` — Retrieval-Augmented Generation
 ## File Systems
-- `filesystem/inode-and-metadata` — Inodes & File Metadata
+- `filesystem/crash-consistency` — Crash Consistency
 - `filesystem/journaling` — Journaling
 - `filesystem/copy-on-write` — Copy-on-Write
 - `filesystem/log-structured-fs` — Log-Structured File System
-- `filesystem/ext4-internals` — Ext4 Internals
-
 ## Reliability & Coding
 - `reliability/error-coding-basics` — Error Coding Basics
-- `reliability/galois-field-arithmetic` — Galois Field Arithmetic
 - `reliability/raid` — RAID
 - `reliability/erasure-coding` — Erasure Coding
 - `reliability/ldpc` — LDPC Codes
-
 ## Data Systems
 - `system/kv-store-api` — Key-Value Store API
 - `system/buffer-pool` — Buffer Pool

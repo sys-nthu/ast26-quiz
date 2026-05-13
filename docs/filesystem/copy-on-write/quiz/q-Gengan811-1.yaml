@@ -1,20 +1,20 @@
 author: Gengan811
-date: '2026-05-05'
+date: '2026-05-13'
 question: |
-  某 IT 管理員在 Btrfs 上為高達 1TB 的關聯式資料庫建立了一個 snapshot。他發現建立 snapshot 的瞬間，硬碟可用空間幾乎沒有減少。然而，在一週的高頻率資料庫更新（大量覆寫舊記錄）後，系統整體的硬碟使用量卻出現了顯著的暴增。
+  某系統管理員在 Btrfs（CoW 檔案系統）上為 1TB 的資料庫建立 snapshot。建立瞬間，硬碟可用空間幾乎沒有減少。在一週的高頻率資料庫更新後，系統整體的硬碟使用量明顯增加。
   
-  請問在 CoW 架構下，造成這種「先零消耗、後暴增」現象的核心機制為何？
+  請問在 CoW 架構下，造成此現象的核心機制為何？
 options:
-  - text: "建立 snapshot 時，系統僅保留了當下 B-tree 的 root node 指標，此時 snapshot 與活躍系統完全共用那 1TB 的底層 data blocks，因此初始空間消耗極低。當活躍系統後續覆寫舊資料時，CoW 會將新資料寫入全新區塊，而 snapshot 仍緊緊鎖定那些舊區塊，這些無法被回收的舊區塊導致了整體容量的顯著成長。"
+  - text: "Snapshot 透過共用 root pointer 與 refcount +1 達到零初始消耗。後續覆寫時 CoW 寫入新 block，舊 block 因被 snapshot 引用而無法回收，導致使用量增加。"
     correct: true
     explanation: |
-      這是正確的。CoW 的 snapshot 本質上就是一個「不會被刪除的舊指標」。在建立瞬間，它與活躍系統 100% 共用實體空間。只有當活躍系統去修改資料時，因為 CoW 永遠不覆寫的特性，新資料會被分配到新的 block，而舊的 block 因為還被 snapshot 的指標指著，所以無法被系統視為 free space 進行回收，這才真正開始消耗額外的硬碟容量。
-  - text: "建立 snapshot 的瞬間之所以零消耗，是因為系統啟動了非同步的 background copy。為了不影響活躍資料庫的 I/O 效能，Btrfs 會利用系統閒置時間默默將 1TB 資料拷貝到隱藏的備份磁區。一週後觀察到的容量暴增，正是因為這個龐大的背景資料複製作業逐漸完成並佔用實體空間所導致的。"
+      這是正確的。CoW 的 snapshot 保留了建立時的 root pointer。在建立瞬間，它與活躍系統共用實體空間。當活躍系統更新資料時，CoW 不在原位覆寫，而是將新資料分配到新的 block。舊 block 因為還被 snapshot 引用，無法被視為 free space 進行回收，進而佔用額外的硬碟容量。
+  - text: "Snapshot 在背景非同步 copy 1TB 資料到備份磁區，一週後容量增加是因為背景複製作業完成。"
     explanation: |
-      這完全誤解了 CoW 快照的原理。將整塊 1TB 資料在背景進行 physical copy 是傳統 storage array 或是 LVM mirror 的笨做法。CoW 最強大的優勢就在於它「永遠不需要拷貝完整的資料區塊」，而是依靠 node 指標的共用來達成瞬間且極低成本的備份。
-  - text: "這是因為 snapshot 預設啟用了 delta compression 。建立初始 snapshot 僅是一組空白查表，當資料庫變更時，檔案系統會利用 CPU 計算新舊資料的 binary diffs 並儲存起來。容量暴增是因為這一週內累積了過多未經最佳化與合併的差異日誌。"
+      CoW 建立 snapshot 時不執行資料 block 的物理拷貝，而是依靠指標（pointer）共用與 reference count 機制來達到狀態備份。背景複製是傳統 LVM mirror 或 storage array 的做法。
+  - text: "Snapshot 使用 delta compression，記錄新舊資料的 binary diff；容量增加是因為累積過多未合併的差異紀錄。"
     explanation: |
-      這混淆了 git 等版本控制系統的做法與 block-level 檔案系統的做法。CoW 檔案系統並不是在計算資料的「二進位差異」，它是直接以 block（例如 4KB）為單位進行整塊的重新分配。只要該 block 內有任何 1 byte 被修改，CoW 就會寫入一個完整的全新 4KB block，而不是只儲存那 1 byte 的 delta 紀錄。
-  - text: "建立 snapshot 相當於建立一個 hardlink，因此瞬間不佔空間。但為了確保快照絕對安全，Btrfs 會在 snapshot 存在期間自動將系統降級為最嚴格的 data journaling 模式。這導致接下來一週內所有更新都必須寫入日誌與實體區塊兩次，寫入放大造成了容量的快速消耗。"
+      CoW 檔案系統直接以 block 為單位進行重新分配，並非計算資料的二進位差異（diffs）。只要該 block 內有資料被修改，CoW 就會分配並寫入一個完整的全新 block，而不是僅儲存 delta 紀錄。
+  - text: "Snapshot 等同 hardlink 不佔空間，但 Btrfs 會在 snapshot 存在期間切換到 data journaling 模式，所有寫入都寫兩次造成容量增加。"
     explanation: |
-      這把不同的檔案系統機制胡亂拼湊在一起。首先，CoW 架構本身就天然具備完美的 crash consistency，根本不需要依賴 journal（更不用說最慢的 data journaling 模式）。其次，硬碟空間暴增是因為「保留了舊 block 加上寫入了新 block」，而不是因為系統突然改變了寫入模式。
+      CoW 架構透過 root pointer 切換即可維持 crash consistency，不依賴 journal。硬碟空間增加是因為保留舊 block 加上寫入了新 block，而非系統切換至 data journaling 模式導致寫入兩次。

@@ -1,7 +1,7 @@
 author: xian6060
 date: 2026-05-13
 question: |
-  對於 Error、Erasure 以及容錯機制的描述，下列哪一項描述錯誤？
+  對於 Error、Erasure 以及容錯機制的描述，下列哪一項描述「錯誤」？
 options:
   - text: "因為 DRAM 很容易被宇宙射線打到產生 bit flip，可以在記憶體架構中加入 Hamming code 來實現 Correction"
     explanation: |

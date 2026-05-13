@@ -1,21 +1,21 @@
 author: ianlin12
 date: 2026-04-29
 question: |
-  向量空間中，資料點的密度分布會影響 HNSW 的執行速度以及 Recall 值，
-  所以在 HNSW 中，如果向量資料的密度分布極度不均勻(99%向量都在某個區域、剩下的 1% 稀疏散落在其他位置)，搜尋資料時會導致?
+  向量空間中，資料點的密度分布會影響 HNSW 的執行速度以及 recall 值，
+  所以在 HNSW 中，如果向量資料的密度分布極度不均勻(99%向量都在某個區域、剩下的 1% 稀疏散落在其他位置)，搜尋稀疏區的資料時會導致?
 
 options:
-  - text: "tail latency 增加, Recall 值增加"
+  - text: "tail latency 增加, recall 值增加"
     explanation: |
       雖然 tail latency 確實會增加，但 recall 不會增加反而會下降，因為同區域的節點容易連在一起，連不到其他的向量資料，使搜尋時更容易漏掉正確結果
-  - text: "tail latency 下降, Recall 值增加"
+  - text: "tail latency 下降, recall 值增加"
     explanation: |
       tail latency 會增加，因為在當想要搜尋稀疏區的資料時，經常會卡在某個區域內，導致需要花更多時間找到前往那邊的路徑，而 recall 也會因為沒什麼向量連到，使正確結果被遺漏掉，導致下降
-  - text: "tail latency 增加, Recall 值下降"
+  - text: "tail latency 增加, recall 值下降"
     correct: true
     explanation: |
       HNSW 的入口點通常位於密集區，當想要搜尋稀疏區的資料時，需要花更多時間找到前往那邊的路徑，
       並且這種資料分布產生的圖會因為區域之間隔太遠導致節點主要跟同區域的節點相連，使搜尋時更容易漏掉正確結果
-  - text: "tail latency 下降, Recall 值下降"
+  - text: "tail latency 下降, recall 值下降"
     explanation: |
       tail latency 會增加，因為在當想要搜尋稀疏區的資料時，經常會卡在某個區域內，導致需要花更多時間找到前往那邊的路徑

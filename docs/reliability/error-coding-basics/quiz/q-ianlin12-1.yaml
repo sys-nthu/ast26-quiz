@@ -1,0 +1,26 @@
+author: ianlin12
+date: 2026-05-14
+question: |
+  Hamming code 有 (7,4)、(15,11)、(31,26)、(63,57)... 等一系列通常規格，
+  其規律(n,k) = (2^m - 1,2^m - m - 1)，試問如果隨著 m 增加，以下選項何者錯誤?
+
+options:
+  - text: "Code rate 會單調遞增並趨近於 1"
+    explanation: |
+      正確。Code rate = k/n = (2^m − m − 1)/(2^m − 1)。
+      當 m → ∞ 時 m/2^m → 0，因此 rate → 1。
+      m=3: 4/7 ≈ 57%；m=4: 11/15 ≈ 73%；m=8: 247/255 ≈ 97%。
+  - text: "minimum distance 隨著 m 增長"
+    correct: true
+    explanation: |
+      錯誤。所有標準 Hamming code 的 minimum distance 都固定為 3，
+      不會因為 m 增加而改變。
+  - text: "只能更正單一 bit 錯誤"
+    explanation: |
+      正確。由於 minimum distance 固定為 3，
+      根據能力公式 d ≥ 2t + 1，最多 t = 1，
+      也就是只能更正 1 個 bit 錯誤。
+  - text: "儲存 overhead 越來越低"
+    explanation: |
+      正確。Overhead = r/n = m/(2^m − 1)，隨 m 指數衰減。
+      m=3: 3/7 ≈ 43%；m=5: 5/31 ≈ 16%；m=8: 8/255 ≈ 3.1%。

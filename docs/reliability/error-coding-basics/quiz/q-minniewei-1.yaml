@@ -1,0 +1,21 @@
+author: minniewei
+date: 2026-05-14
+question: |
+  根據常見的系統架構，下列關於「應用場景」與其對應「Error Coding」的描述，哪一項是正確的？
+options:
+  - text: "在分散式儲存系統，針對整個 node 跟 rack 損毀的情況，最適合使用 XOR parity 來達成高效率的 correction。"
+    explanation: |
+      分散式系統為了應對多點 erasure ，通常會使用更強大的 RS code。
+
+  - text: "在 NAND Flash (on-die) 上，主要利用 CRC 來 correct 因寫入磨損而產生的 bit error。"
+    explanation: |
+      CRC 主要用於 detect error，而非 correct error。
+
+  - text: "在現代檔案系統（如 ZFS 或 Btrfs）中，通常使用 SHA 或 Fletcher 演算法來 detect 檔案的 silent corruption。"
+    correct: true
+    explanation: |
+      這些 file system 透過 Checksum 機制來 detect 底層硬體錯誤導致的 silent corruption，主要功能是 detection。
+
+  - text: "SATA 或 NVMe 傳輸介面通常使用 SHA 加密演算法來 correct 傳輸過程中的位元錯誤。"
+    explanation: |
+      SHA 主要用於資料完整性驗證，而非 correct error。

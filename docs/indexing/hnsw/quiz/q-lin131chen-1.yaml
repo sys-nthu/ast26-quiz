@@ -1,5 +1,5 @@
 author: lin131chen
-date: 2026-05-11
+date: 2026-05-15
 question: |
   你在一個向量搜尋系統中使用 HNSW：
   資料量：1,000,000 vectors，k = 10，efSearch = 64  

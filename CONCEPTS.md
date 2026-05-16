@@ -28,8 +28,7 @@
 ## Reliability & Coding
 - `reliability/error-coding-basics` — Error Coding Basics
 - `reliability/raid` — RAID
-- `reliability/erasure-coding` — Erasure Coding
-- `reliability/ldpc` — LDPC Codes
+- `reliability/ssd-reliability` — SSD Reliability and Protection
 ## Data Systems
 - `system/kv-store-api` — Key-Value Store API
 - `system/buffer-pool` — Buffer Pool

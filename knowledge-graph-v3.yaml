@@ -356,24 +356,14 @@ concepts:
     depends_on: [error-coding-basics]
     papers: [flash-coded-storage]
 
-  - slug: erasure-coding
-    title: "Erasure Coding"
+  - slug: ssd-reliability
+    title: "SSD Reliability and Protection"
     description: >
-      在學過 Galois field arithmetic 提供的代數工具以及 RAID 的磁碟冗餘策略之後，我們可以進入更通用的 erasure coding 框架。Erasure coding 與 error correction 的關鍵差異在於：erasure 情境下我們已經知道哪些資料區塊遺失了（例如某顆磁碟故障），只需要從剩餘的區塊中重建資料，而不需要像 error correction 那樣先定位錯誤。我們會介紹 Reed-Solomon code 如何在 GF(2^w) 上建構編碼矩陣，以及 MDS（Maximum Distance Separable）property 與 Singleton bound 的意義：MDS code 能以理論上最少的冗餘達到最大的容錯能力，可以視為 RAID 5/6 的數學推廣。實務上，我們會討論如何使用 Cauchy matrix 來建構高效的編碼矩陣，使得 encoding 和 decoding 只需要 XOR 運算即可完成。此外，我們也會介紹 Local Reconstruction Codes（LRC）的設計動機：在大規模分散式儲存系統中，修復單一區塊故障時若需要讀取所有存活區塊，網路開銷會過於龐大，LRC 透過增加 local parity 來大幅降低單一區塊修復所需的 I/O 量。
-    tier: advanced
-    open: false
+      NAND flash 本質上是不可靠的儲存媒介：cell 會磨損、會漏電、會被鄰居干擾。要把這樣的元件包裝成今天我們敢拿來存重要資料的 SSD，靠的是一層又一層的編碼保護。這堂課從一顆 SSD 內部的 ECC（BCH、LDPC）、跨 SSD 的 RAID 與 Diff-RAID，一路走到跨節點的 Reed-Solomon 與 LRC erasure coding，看工程師怎麼用三層防禦對抗不同尺度的故障，並理解 fail-slow、lockstep failure 等違反直覺的可靠性問題。
+    tier: basic
+    open: true
     pillar: reliability
-    depends_on: [error-coding-basics, raid]
-    papers: [flash-coded-storage]
-
-  - slug: ldpc
-    title: "LDPC Codes"
-    description: >
-      在 error-coding-basics 中我們學到了 error correction 的基本原理，而在 SSD pillar 的 nand-flash 單元中我們了解到 NAND flash cell 隨著 P/E cycle 增加會逐漸劣化、bit error rate 會持續上升，因此現代 SSD 需要非常強大的 error correction code，這就是 LDPC（Low-Density Parity-Check）code 被廣泛採用的原因。我們會介紹 LDPC code 的核心結構：一個 sparse parity-check matrix H，其中大部分元素為零，這個稀疏特性使得解碼演算法能夠高效運作。透過 Tanner graph 的圖形化表示，我們可以直觀理解 variable node 與 check node 之間的關係，並在此基礎上介紹 belief-propagation decoding 演算法如何透過在圖上反覆傳遞機率訊息來逐步收斂到正確的 codeword。最後我們會討論 hard-decision 與 soft-decision decoding 的差異：hard-decision 只使用每個 cell 讀出的 0 或 1，而 soft-decision 則利用 NAND flash 的 multi-level voltage sensing 來取得每個 bit 的信賴度資訊，大幅提升糾錯能力，但也需要更多次的 flash read 操作與更高的解碼運算量。
-    tier: advanced
-    open: false
-    pillar: reliability
-    depends_on: [error-coding-basics, nand-flash]
+    depends_on: [error-coding-basics, nand-flash, raid]
     papers: [flash-coded-storage]
 
   # ==== System pillar =======================================================
@@ -469,10 +459,6 @@ projects:
   - slug: lsm-kv-store
     title: "Mini LSM-Tree Key-Value Store"
     depends_on: [lsm-tree, bloom-filter, kv-store-api]
-
-  - slug: erasure-coding-lab
-    title: "Erasure Coding Implementation & Benchmark"
-    depends_on: [erasure-coding, raid]
 
   - slug: vector-search-engine
     title: "Vector Search Engine on SSD"

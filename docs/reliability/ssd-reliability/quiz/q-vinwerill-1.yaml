@@ -1,0 +1,32 @@
+author: vinwerill
+date: 2026-05-23
+question: |
+  在 SSD 上使用 Diff-RAID 取代傳統 RAID-5/6 時，為何在某些 workload 下可能反而導致整體效能下降？
+
+options:
+  - text: "Diff-RAID 透過 differential log 與 deferred parity merge 造成寫入負載在不同 SSD 之間分配不均，使部分 SSD 承受過高的 write / merge 壓力，導致 GC 更頻繁、延遲上升，進而拖累整體 RAID 效能。"
+    correct: true
+    explanation: |
+      Diff-RAID 的核心問題在於寫入與 parity 更新會因 log 累積與 merge 時機不同，而在 SSD 之間產生不平均的負載分配。某些 SSD 會承擔較多的寫入與 merge 工作，導致壓力集中，進而使其延遲與 garbage collection 次數上升。
+      這種不平均的分配會讓整體 RAID bottleneck 持續劣化，最終造成系統效能下降。
+
+  - text: "Diff-RAID 會破壞 SSD 的 internal FTL mapping consistency，使 logical block 與 physical block 對應錯亂，進而降低讀寫效能。"
+    explanation: |
+      SSD 的 FTL 由 SSD 內部管理，
+      filesystem 或 RAID layer 不會直接破壞 mapping consistency。
+
+      Diff-RAID 只改變寫入與 parity 更新方式，
+      不會導致 logical to physical mapping 錯亂。
+
+  - text: "Diff-RAID 會讓所有 SSD 同時進入 synchronized garbage collection，導致全系統 pause time 增加。"
+    explanation: |
+      Diff-RAID 的設計反而傾向於延遲 parity 更新並打散 write timing，
+      讓 workload 更非同步。
+
+      因此不會造成 GC 同步化，
+      問題通常是「不均勻」，而不是「同步」。
+
+  - text: "Diff-RAID 會使 SSD 的寫入壓力長期分布不均，造成部分 SSD 需要處理更多 background merge 與回收工作，進而使系統整體效能被最忙碌的 SSD 限制。"
+    explanation: |
+      Diff-RAID 雖然會改變寫入與更新的方式，但實際資料仍由 SSD 的 FTL 負責在 flash 上進行配置，因此不會讓寫入固定集中在特定區塊或長期造成單一 SSD 壓力集中。
+      效能問題主要來自 write / merge workload 在 SSD 之間的分配不均，而不是固定的物理寫入集中。

@@ -1,7 +1,7 @@
 author: vinwerill
 date: 2026-05-23
 question: |
-  在 SSD 上使用 Diff-RAID 時，為何 aging skew（不平均老化）可能反而導致整體效能下降？
+  在 SSD 上使用 Diff-RAID 時，為何 SSD 之間的磨耗不均可能反而導致整體效能下降？
 
 options:
   - text: "Diff-RAID 會因為 parity 更新需要額外等待所有 SSD 完成同步，導致每次寫入的 latency 明顯增加，進而降低整體 RAID 效能。"
@@ -14,7 +14,7 @@ options:
 
   - text: "Diff-RAID 會破壞 SSD 的 internal FTL mapping consistency，使 logical block 與 physical block 對應錯亂，進而降低讀寫效能。"
     explanation: |
-      SSD 的 FTL（flash translation layer）由 SSD 內部管理，
+      SSD 的 FTL 由 SSD 內部管理，
       filesystem 或 RAID layer 不會直接破壞 mapping consistency。
 
       Diff-RAID 只改變寫入與 parity 更新方式，

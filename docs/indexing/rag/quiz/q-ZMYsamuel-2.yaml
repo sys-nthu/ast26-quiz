@@ -1,0 +1,34 @@
+author: ZMYsamuel
+date: 2026-05-25
+question: |
+  一個團隊分別建立了兩套基於向量檢索的系統，兩套都使用相同的 768 維 float32 embedding model（每個 embedding 約 3 KB）：
+
+  - **系統 A（文字 RAG）**：對 Wikipedia 全文建 embedding（原始文字資料庫 76 GB）
+  - **系統 B（以圖搜圖）**：對商品圖片建 embedding（原始圖片資料庫 76 GB）
+
+  上線後發現：系統 A 的 embedding index 遠大於 76 GB，而系統 B 的 embedding index 遠小於 76 GB。
+  下列何者正確解釋了這個現象？
+options:
+  - text: "系統 A 使用更高維度的 embedding 以保留文字的豐富語義，維度遠高於系統 B，導致 index 較大。"
+    explanation: |
+      題目明確指出兩套系統使用**相同的** 768 維模型，embedding 大小相同。
+      「文字需要更多維度」是常見的直覺，但 embedding 維度由模型架構決定，與輸入媒體類型無關。
+  - text: "一個 256-token chunk 的原始文字約 1 KB，其 768 維 float32 embedding 約 3 KB，比原文大 3 倍左右；一張商品圖片原始大小約數百 KB，其 embedding 同樣只有 3 KB，比原圖小 100 倍以上。"
+    correct: true
+    explanation: |
+      這是文字 RAG 的核心挑戰所在。以 Wikipedia 為例：76 GB 的文字對應約 6000 萬個 chunk，
+      embedding 約 173 GB，比原文膨脹約 2.3 倍，再加上 HNSW 的 graph 邊列表，
+      整個 index 輕鬆超過原始資料大小。
+      反觀圖片：每張 ~300 KB 的圖對應的 embedding 仍只有 ~3 KB，
+      embedding 對圖片而言是 100 倍以上的降維壓縮，index 當然遠小於原始圖片資料庫。
+      **根本原因在於原始資料本身的大小**，而非 embedding 的差異。
+  - text: "系統 A 的 chunking 過程會產生大量 metadata（token offset、位置索引等）一起存進 index，這些 metadata 才是 index 膨脹的主因。"
+    explanation: |
+      embedding index 主要儲存的是 embedding vector 本身（及對應的 chunk ID），
+      不會把 tokenization 的 offset 或位置 metadata 都塞進向量索引結構裡。
+      index 大小的差距來自於原始文字 chunk 與 embedding 大小的比值，而非 metadata 的累積。
+  - text: "系統 B 的 index 較小，是因為工程團隊對圖片 embedding 做了 PQ 壓縮；系統 A 沒有壓縮，所以 index 比較大。"
+    explanation: |
+      題目的情境並未提及任何壓縮，兩套系統都是 float32 full-precision embedding。
+      即使都不做 PQ，差異依然存在，因為根本原因是原始資料本身的大小：
+      短文字 chunk 本來就比一張圖片小好幾個數量級，而 embedding 大小卻相近。

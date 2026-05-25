@@ -26,7 +26,7 @@ options:
       幾乎都是 L1 hit（延遲 ~1–4 ns）。
       128 KB 的 table 溢出至 L2，每次 lookup 延遲升至 ~10–20 ns。
       每個 database vector 需做 $M=8$ 次 lookup，十億筆累積下來，cache miss 的延遲差距直接決定 throughput。
-  - text: "配置 B 的 index 需要 12 bits（$\log_2 4096 = 12$），無法對齊到 1 byte，硬體 SIMD 向量化失效，throughput 因此下降。"
+  - text: "配置 B 的 index 需要 12 bits（$\\log_2 4096 = 12$），無法對齊到 1 byte，硬體 SIMD 向量化失效，throughput 因此下降。"
     explanation: |
       12-bit 對齊確實帶來實作上的不便，但現代 CPU 的 bit manipulation 指令可相對低成本地處理。
       在十億筆 vector 的 benchmark 中，cache miss 的累積影響遠大於 bit alignment 的開銷，

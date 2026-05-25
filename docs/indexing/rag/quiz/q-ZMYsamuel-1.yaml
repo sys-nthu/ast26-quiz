@@ -1,7 +1,7 @@
 author: ZMYsamuel
 date: 2026-05-25
 question: |
-  RAG 系統在對文件做 chunking 時，通常相鄰 chunk 之間會保留 **20–50 token 的 overlap**（頭尾共用一段文字）。
+  RAG 系統在對文件做 chunking 時，通常相鄰 chunk 之間會保留 **20–50 token 的 overlap**。
   一位新工程師認為「overlap 讓資料重複、徒增 embedding index 的儲存成本，應該全部去掉」。
 
   下列何者最能反駁這個說法，並說明 overlap 存在的核心理由？
@@ -18,7 +18,7 @@ options:
   - text: "文件依固定 token 數切割時，語義完整的句子可能恰好被切在 chunk 邊界。overlap 讓邊界附近的文字同時出現在相鄰的兩個 chunk 中，確保每個 chunk 的 embedding 都有足夠上下文捕捉正確語義。"
     correct: true
     explanation: |
-      這是 overlap 最核心的作用：**邊界語義保全**。
+      這正是 overlap 最核心的作用：**保全邊界語義**。
       若沒有 overlap，一個語義完整的句子或段落恰好被截斷在 chunk 邊界時，
       兩個 chunk 各自只有半句，embedding model 無法正確理解其語義。
       20–50 token 的 overlap 讓這段文字完整出現在至少一個 chunk 中，

@@ -1,29 +1,34 @@
 author: ZMYsamuel
 date: 2026-05-25
 question: |
-  一個系統要對 **256 維的 float32** vector 做 PQ 壓縮，設定 $M=16$、$k^*=256$。
+  一個工程師在比較兩種 ADC 配置，兩者都對 128 維 vector 使用 $M=8$ 個 sub-vector：
 
-  壓縮前後每個 vector 各佔多少 bytes？壓縮比是多少？
-  若資料集有 **5 億**筆 vector，壓縮前後各需要多少 GB？
+  - **配置 A**：$k^*=256$，lookup table 大小 = $8 \times 256 \times 4 = 8$ KB
+  - **配置 B**：$k^*=4096$，lookup table 大小 = $8 \times 4096 \times 4 = 128$ KB
+
+  配置 B 的 codebook 更細緻，量化誤差理應更低。但在對十億筆 vector 做距離計算的 benchmark 中，配置 B 的 throughput（每秒處理筆數）遠低於配置 A。
+
+  下列何者最可能是配置 B throughput 低落的核心原因？
 options:
-  - text: "壓縮前 1024 bytes、壓縮後 16 bytes，壓縮比 64x。5 億筆：壓縮前 ≈ 512 GB，壓縮後 ≈ 8 GB。"
+  - text: "配置 B 每次查詢需建立更大的 lookup table（32768 次距離計算 vs 配置 A 的 2048 次），建表成本高出 16 倍，造成整體延遲大幅上升。"
+    explanation: |
+      建表是每次 query 的一次性固定成本，建好後對所有 database vector 共用同一張 table。
+      對十億筆 vector 的 benchmark 而言，database 端的距離計算次數遠超建表次數，
+      16 倍的建表成本差距均攤下來可以忽略，不是 throughput 差距的主因。
+  - text: "配置 B 的 $k^*=4096$ 代表每個 sub-vector 有更多 centroid 可以對應，每個 database vector 需要的 lookup 次數因此增加，導致計算量上升。"
+    explanation: |
+      ADC 對每個 database vector 的查表次數固定為 $M$ 次，與 $k^*$ 的大小無關。
+      無論 $k^*=256$ 或 $k^*=4096$，每筆 database vector 都只需做 8 次 table lookup 再加總。
+  - text: "配置 A 的 8 KB lookup table 完全落在 L1 cache 中（典型大小 32–64 KB），每次 lookup 幾乎沒有等待；配置 B 的 128 KB table 遠超 L1 容量，大量 lookup 產生 L2 cache miss，存取延遲上升數倍至十倍。"
     correct: true
     explanation: |
-      壓縮前：256 維 × 4 bytes/維 = **1024 bytes**。
-      壓縮後：$k^*=256$ 個 centroid 的 index 只需 $\log_2 256 = 8$ bits = **1 byte** 儲存；
-      $M=16$ 段各 1 byte，共 **16 bytes**。
-      壓縮比：$1024 / 16 = 64\text{x}$。
-      5 億筆：壓縮前 $5 \times 10^8 \times 1024 \approx 512$ GB；壓縮後 $5 \times 10^8 \times 16 \approx 8$ GB。
-  - text: "壓縮前 1024 bytes、壓縮後 64 bytes，壓縮比 16x。5 億筆：壓縮前 ≈ 512 GB，壓縮後 ≈ 32 GB。"
+      這正是 $k^*=256$（8 KB table）成為標準配置的關鍵理由之一。
+      L1 cache 通常為 32–64 KB，8 KB 的 table 可長期常駐其中，對十億筆 vector 的所有 lookup
+      幾乎都是 L1 hit（延遲 ~1–4 ns）。
+      128 KB 的 table 溢出至 L2，每次 lookup 延遲升至 ~10–20 ns。
+      每個 database vector 需做 $M=8$ 次 lookup，十億筆累積下來，cache miss 的延遲差距直接決定 throughput。
+  - text: "配置 B 的 index 需要 12 bits（$\log_2 4096 = 12$），無法對齊到 1 byte，硬體 SIMD 向量化失效，throughput 因此下降。"
     explanation: |
-      這是把 centroid 的 index 誤當 float32（4 bytes）儲存的結果：$16 \times 4 = 64$ bytes。
-      $k^*=256$ 的 index 只需要 8 bits（1 byte）即可完整表示，不需要 4 bytes。
-  - text: "壓縮前 256 bytes、壓縮後 16 bytes，壓縮比 16x。5 億筆：壓縮前 ≈ 128 GB，壓縮後 ≈ 8 GB。"
-    explanation: |
-      256 維的 **float32** vector，每個維度佔 4 bytes，壓縮前應為 $256 \times 4 = 1024$ bytes。
-      若把維度數直接當 bytes（256 bytes），是混淆了「維度數」和「float32 的儲存大小」。
-  - text: "壓縮前 1024 bytes、壓縮後 2 bytes，壓縮比 512x。5 億筆：壓縮前 ≈ 512 GB，壓縮後 ≈ 1 GB。"
-    explanation: |
-      PQ 是對每個 sub-vector **分別**存一個 centroid index。$M=16$ 段就需要 16 個獨立的 8-bit
-      編號，共 **16 bytes**，並非把所有段合併成一個 2-byte 的聯合 hash。
-      2 bytes 只有 16 bits，根本不足以儲存 16 段各自的 index 資訊。
+      12-bit 對齊確實帶來實作上的不便，但現代 CPU 的 bit manipulation 指令可相對低成本地處理。
+      在十億筆 vector 的 benchmark 中，cache miss 的累積影響遠大於 bit alignment 的開銷，
+      不是 throughput 低落最主要的原因。

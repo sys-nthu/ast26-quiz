@@ -1,0 +1,30 @@
+author: ZMYsamuel
+date: 2026-05-25
+question: |
+  RAG 系統在對文件做 chunking 時，通常相鄰 chunk 之間會保留 **20–50 token 的 overlap**（頭尾共用一段文字）。
+  一位新工程師認為「overlap 讓資料重複、徒增 embedding index 的儲存成本，應該全部去掉」。
+
+  下列何者最能反駁這個說法，並說明 overlap 存在的核心理由？
+options:
+  - text: "去掉 overlap 會讓 embedding 的維度下降，使向量空間的語義表達能力不足，難以對應到正確的 query。"
+    explanation: |
+      embedding 的維度是由模型架構固定的，與 chunk 大小或是否有 overlap 完全無關。
+      去掉 overlap 不會改變 embedding model 的輸出維度。
+  - text: "overlap 能讓相鄰 chunk 的 embedding 在向量空間中距離更近，防止語義相關的 chunk 被分進 IVF 索引的不同 cluster 而遭到漏搜。"
+    explanation: |
+      embedding 之間的空間距離反映語義相似度，而非文字重疊程度。
+      IVF clustering 依向量本身的空間分布決定，不是根據 overlap 調整的；
+      這個推論把 overlap 的作用誤解成影響索引結構。
+  - text: "文件依固定 token 數切割時，語義完整的句子可能恰好被切在 chunk 邊界。overlap 讓邊界附近的文字同時出現在相鄰的兩個 chunk 中，確保每個 chunk 的 embedding 都有足夠上下文捕捉正確語義。"
+    correct: true
+    explanation: |
+      這是 overlap 最核心的作用：**邊界語義保全**。
+      若沒有 overlap，一個語義完整的句子或段落恰好被截斷在 chunk 邊界時，
+      兩個 chunk 各自只有半句，embedding model 無法正確理解其語義。
+      20–50 token 的 overlap 讓這段文字完整出現在至少一個 chunk 中，
+      避免「邊界句子語義消失」的問題，代價才只是少量重複儲存。
+  - text: "overlap 可以減少系統需要建立的 chunk 總數，讓 ANN 搜尋的候選集更小，從而降低查詢延遲。"
+    explanation: |
+      overlap 實際上**增加**了 chunk 的總數，因為部分文字被重複涵蓋在相鄰 chunk 中。
+      查詢延遲由 ANN 索引的效率（如 HNSW 的 efSearch、IVF 的 nprobe）決定，
+      而非直接由 chunk 總數決定。

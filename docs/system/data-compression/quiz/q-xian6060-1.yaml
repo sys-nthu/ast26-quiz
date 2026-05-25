@@ -1,5 +1,5 @@
 author: xian6060
-date: 2026-05-25
+date: 2026-05-26
 question: |
   當我們使用無失真壓縮演算法處理下列哪一種資料時，有可能因為演算法本身的 Header 或 Metadata 開銷，導致壓縮後的檔案比原檔案還要大？
 options:

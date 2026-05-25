@@ -1,0 +1,23 @@
+author: lin131chen
+date: 2026-05-18
+question: |
+  某 filesystem 採用 Copy-on-Write（COW）。系統管理員刪除一個 snapshot 後，filesystem 尚未完成 garbage collection 時，系統突然發生 crash。
+  下列何者最可能發生？
+
+options:
+  - text: "所有舊版本 block 都會立刻消失，因此 crash 後資料一定遺失。"
+    explanation: |
+      block 是否能被刪除取決於是否仍被 reference。若 block 仍被 live filesystem 或其他 snapshot 使用，filesystem 必須保留，因此不會立刻全部消失。
+      
+  - text: "filesystem 一定損壞，因為 snapshot pointer 已被刪除。"
+    explanation: |
+      刪除 snapshot 僅代表移除一個 reference，live filesystem 仍有自己的 root pointer，因此不會直接導致 filesystem 損壞。
+      
+  - text: "filesystem 一致性通常仍可維持，尚未回收的 block 可於之後再清理。"
+    correct: true
+    explanation: |
+      在 COW filesystem 中，garbage collection 的主要目的是空間回收，而非維持 correctness 的核心機制。即使 crash 發生在 garbage collection 尚未完成時，filesystem 通常仍可維持一致性，未回收的 block 可於後續再清理。
+  
+  - text: "live filesystem 必須 rollback 到舊 snapshot，才能恢復一致狀態。"
+    explanation: |
+      刪除 snapshot 並不影響目前 live filesystem 的一致性。rollback 是管理員主動恢復舊版本的操作，並非刪除 snapshot 後的必要行為。

@@ -1,0 +1,22 @@
+author: lin131chen
+date: 2026-05-15
+question: |
+  你在準備使用 PQ 建立千萬等級影像索引。在 codebook training 階段，為了節省運算時間，只從資料庫中隨機抽取「純文字掃描檔」的 feature vector 進行 k-means training。當系統上線後，使用者開始搜尋「戶外風景照」時，最有可能發生什麼情況？
+
+options:
+  - text: "搜尋速度不會受到顯著影響，但搜尋結果可能不準確。"
+    explanation: |
+      PQ 的搜尋速度主要取決於 lookup 與距離加總的過程，其計算複雜度與 codebook 品質無關。即使資料分布不匹配，系統仍會將風景照的 vector 量化到最近的 centroid 並進行距離計算，因此搜尋速度通常不會受到顯著影響，但搜尋準確度可能下降。
+
+  - text: "改用 SDC 可以彌補訓練資料與實際資料分布不匹配所造成的誤差，因此準確度不受影響。"
+    explanation: |
+      SDC 會將 query vector 也進行量化，通常會引入更多 quantization error，其準確度通常低於 ADC。此外，ADC 與 SDC 需要在系統設計時選定，不會根據 codebook 品質自動切換。
+
+  - text: "搜尋準確度會明顯下降，因為 codebook centroids 無法有效代表戶外風景照的 vector 分布，導致 quantization error 增加。"
+    correct: true
+    explanation: |
+      PQ 依賴 k-means 訓練出的 centroids 來近似原始資料。如果訓練資料與實際查詢資料的 vector 分布差異過大，learned codebook centroids 將無法有效代表實際查詢資料。這會增加 quantization error，進而降低搜尋準確度。
+
+  - text: "只要 m 設定得夠大，不同訓練資料對 PQ 品質的影響就會變得可以忽略，因此不會有明顯負面影響。"
+    explanation: |
+      增加 m 確實能讓 vector 被切分得更細緻，通常有助於降低 quantization error。然而，如果訓練資料與實際資料分布差異過大，learned codebook centroids 可能無法有效代表實際 vector 分布。此時即使 m 增加，也無法修正由 codebook representativeness 不足所造成的根本誤差，因此搜尋準確度仍可能下降。

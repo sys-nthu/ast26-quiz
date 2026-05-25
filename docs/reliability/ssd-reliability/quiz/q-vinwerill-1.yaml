@@ -1,0 +1,36 @@
+author: vinwerill
+date: 2026-05-23
+question: |
+  在 SSD 上使用 Diff-RAID 時，為何 SSD 之間的磨耗不均可能反而導致整體效能下降？
+
+options:
+  - text: "Diff-RAID 會因為 parity 更新需要額外等待所有 SSD 完成同步，導致每次寫入的 latency 明顯增加，進而降低整體 RAID 效能。"
+    explanation: |
+      Diff-RAID 的設計目標之一就是降低傳統 RAID 中頻繁的同步 parity 更新成本，
+      因此不會因為所有 SSD 必須同步完成 parity 更新而造成主要效能問題。
+
+      真正的問題在於不同 SSD 之間可能出現長期負載不均，
+      使部分 SSD 成為系統 bottleneck。
+
+  - text: "Diff-RAID 會破壞 SSD 的 internal FTL mapping consistency，使 logical block 與 physical block 對應錯亂，進而降低讀寫效能。"
+    explanation: |
+      SSD 的 FTL 由 SSD 內部管理，
+      filesystem 或 RAID layer 不會直接破壞 mapping consistency。
+
+      Diff-RAID 只改變寫入與 parity 更新方式，
+      不會導致 logical to physical mapping 錯亂。
+
+  - text: "Diff-RAID 會讓所有 SSD 同時進入 synchronized garbage collection，導致全系統 pause time 增加。"
+    explanation: |
+      Diff-RAID 的設計反而傾向於延遲 parity 更新並打散 write timing，
+      讓 workload 更非同步。
+
+      因此不會造成 GC 同步化，
+      問題通常是「不均勻」，而不是「同步」。
+
+  - text: "Diff-RAID 會使 SSD 的寫入壓力長期分布不均，造成部分 SSD 需要處理更多 background merge 與回收工作，進而使系統整體效能被最忙碌的 SSD 限制。"
+    correct: true
+    explanation: |
+      Diff-RAID 的 aging skew 會讓不同 SSD 承受不同程度的寫入與 merge 壓力。部分 SSD 可能因為需要處理較多 background merge、garbage collection 與 parity 更新，而逐漸成為系統 bottleneck。
+
+      在 RAID 中，整體效能往往會受到最慢 SSD 限制，因此這種長期的不平均負載可能導致整體效能下降。

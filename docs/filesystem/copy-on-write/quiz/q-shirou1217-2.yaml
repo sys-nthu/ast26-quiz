@@ -1,0 +1,18 @@
+author: shirou1217
+date: 2026-05-05
+question: |
+  Niko 在 OS 課學過 `fork()` 的 copy-on-write 後，以為 BTRFS 的 copy-on-write 也是一樣的 lazy copy。於是他說：「BTRFS 寫檔時應該也是先讓新舊版本共用同一個 block，等到真的有人讀或寫到那個 block 時，才透過 page fault 複製。」根據課程內容，這個說法最大的問題是什麼？
+options:
+  - text: "這個說法正確，BTRFS 和 `fork()` 的 copy-on-write 都是靠 MMU page fault 觸發複製，所以兩者的差異只在於一個管理檔案，一個管理 process。"
+    explanation: |
+      `fork()` 的 copy-on-write 是 virtual memory 層級的 lazy copy，確實依賴 MMU 將 page 標成 read-only，等寫入時觸發 page fault。BTRFS 的 copy-on-write 是 filesystem 層級的機制，不是靠 MMU page fault 觸發，也不是等到之後才複製。
+  - text: "這個說法錯在 BTRFS 的 copy-on-write 只會複製 metadata，不會複製 data block，所以寫入資料時仍然會原地覆蓋舊 block。"
+    explanation: |
+      BTRFS 的 copy-on-write 原則是任何 block 一旦寫過，就不再被原地覆蓋。修改資料時會產生新的 data block，接著因為 pointer 改變，parent block、grand-parent block 到 root path 也需要被複製。
+  - text: "這個說法錯在 filesystem 的 copy-on-write 是 eager，每次 `write()` 都會把新版本寫到新的 disk block，並沿著 tree path 更新到 root；而 `fork()` 的 copy-on-write 才是 lazy，等到真的寫入 shared page 時才複製。"
+    correct: true
+    explanation: |
+      課程中指出 OS `fork()` 的 copy-on-write 是 lazy，parent 與 child 一開始共用 physical pages，直到其中一方寫入時才觸發 page fault 並複製。filesystem 的 copy-on-write 則是 eager，每筆 `write()` 都會直接寫出新的 block，並一路更新 pointer 到 root，最後透過 atomic root pointer swap 讓新版本生效。
+  - text: "這個說法錯在 `fork()` 的 copy-on-write 會把複製後的 page 寫入 disk，因此它和 BTRFS 一樣具有斷電後仍可保留 snapshot 的持久性。"
+    explanation: |
+      `fork()` 的 copy-on-write 複製發生在 RAM 裡，斷電後不會保留。BTRFS 的 copy-on-write 產生的是 disk 上的正式版本，配合 root pointer 與 snapshot 機制，才具有持久性。

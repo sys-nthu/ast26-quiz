@@ -1,0 +1,50 @@
+author: vinwerill
+date: 2026-05-23
+question: |
+  在 SSD 上，若 F2FS 與 ext4 的 TRIM 功能同時失效，
+  為何 F2FS 更容易造成 SSD 內部不必要的 garbage collection 與資料搬移？
+
+options:
+  - text: "F2FS 採用 log-structured append-write 設計，會頻繁產生已被更新或刪除的舊資料；當 TRIM 失效時，SSD 無法辨識哪些資料已失效，導致 GC 時搬移其實已無效的資料。"
+    correct: true
+    explanation: |
+      F2FS 會持續產生已失效的舊資料。
+
+      若 TRIM 失效，
+      SSD 無法得知哪些資料其實已不需要，
+      因此在 garbage collection 時，
+      仍會搬移大量無效資料。
+
+      這會造成不必要的 GC 與資料搬移，
+      並導致 write amplification 上升與效能下降。
+
+  - text: "F2FS 在 TRIM 失效後會因為無法更新 SSD 的 FTL 映射資訊，而導致 logical block 與 physical block 對應錯亂，進而增加資料搬移成本。"
+    explanation: |
+      F2FS 的 FTL 映射由 SSD 內部負責管理，
+      filesystem 不會直接控制或更新 SSD 的 FTL mapping。
+
+      TRIM 失效不會導致 mapping 錯亂，
+      logical-to-physical 對應仍由 SSD 正確維護。
+
+      問題在於 SSD 無法得知哪些資料已無效，
+      因而在 garbage collection 時產生不必要的資料搬移。
+
+  - text: "ext4 在更新資料時會直接覆蓋原本的位置，因此 SSD 不需要額外整理資料，即使 TRIM 失效也不太會增加 garbage collection。"
+    explanation: |
+      ext4 確實較常採用 in-place update 的方式更新資料，使寫入行為較為直接。
+
+      但在 SSD 上仍由 FTL 管理實體 flash page，
+      即使是覆蓋寫入，也可能產生需要回收的舊資料。
+
+      因此 TRIM 失效仍可能導致額外 garbage collection，
+      只是通常比 F2FS 輕微。
+
+  - text: "F2FS 在 TRIM 失效後會退化為 random write 的模式，使原本的 sequential write 優勢消失。"
+    explanation: |
+      F2FS 的核心仍然是 log-structured append-write 模型。
+
+      TRIM 失效不會改變 filesystem 的寫入方式，
+      仍然是以順序追加寫入為主。
+
+      真正的問題是 SSD 無法有效回收已失效資料，
+      進而導致 garbage collection 與資料搬移成本上升，而不是寫入模式改變。

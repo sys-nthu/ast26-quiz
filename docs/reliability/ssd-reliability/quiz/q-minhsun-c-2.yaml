@@ -1,0 +1,46 @@
+author: minhsun-c
+date: 2026-05-18
+question: |
+  Google Filesystem (GFS) 的跨節點保護採用 $RS(9, 6)$，即 6 個 Data Fragment
+  加上 3 個 Parity Fragment ， Storage Overhead 為 $1.5\text{x}$。
+
+  某資料中心在相同的 Storage Overhead 限制下，提出以下替代方案，並命名為 Plan X：
+
+  採用 $LRC(12, 4, 2)$，將 12 個 Data Fragment 分成 4 組，佈局如下：
+  - 機櫃 1：$D_0, D_1, D_2, L_0$
+  - 機櫃 2：$D_3, D_4, D_5, L_1$
+  - 機櫃 3：$D_6, D_7, D_8, L_2$
+  - 機櫃 4：$D_9, D_{10}, D_{11}, L_3$
+  - 機櫃 5：$G_0, G_1$
+
+  其中，$L_0 \sim L_3$ 屬於 Local Parity，$G_0, G_1$ 屬於 Global Parity。
+  請問關於兩者的比較，下列何者正確？
+
+options:
+  - text: |
+      Plan X 在單點失效時重建所需的網路流量較低。
+    correct: true
+    explanation: |
+      GFS 不論哪個 Fragment 遺失，都必須讀取 6 個存活的 Fragment。
+      Plan X 的單點失效只需讀取同 Local Group 內的 3 個 Fragment，
+      重建成本減半，且全程在同機櫃內完成，不需跨機櫃。
+  - text: |
+      GFS 在單點失效時，透過同機櫃的其他 Fragment 即可重建。
+    explanation: |
+      根據 $RS(9, 6)$ 的特性，重建任一遺失的 Fragment 需要讀取任意 6 個
+      存活 Fragment。RS Code 沒有 Local Group 的概念，這些 Fragment 分散
+      在不同節點，重建過程必然需要跨機櫃存取。
+  - text: |
+      Plan X 的容錯能力比 GFS 強，因為它有更多的 Parity Fragment。
+    explanation: |
+      Parity 數量多不直接等於容錯能力強。GFS 的 $RS(9, 6)$ 作為 MDS Code，
+      保證在任意 3 個 Fragment 失效時仍可重建。Plan X 雖然有 6 個 Parity，
+      但 Local Parity 的保護範圍僅限於各自的 Group，整體同樣只保證容忍
+      任意 3 個 Fragment 失效 (Global Parity 數 $r = 2$，容錯上限 $r + 1 = 3$)。
+  - text: |
+      Plan X 在任何失效情境下的重建成本都低於 GFS。
+    explanation: |
+      當 Plan X 的整個 Local Group 同時遺失時，Local Parity 已不足以修復，
+      必須動用 Global Parity 並跨機櫃讀取其餘 Group 的存活 Fragment，
+      此時重建成本與 GFS 相當甚至更高。Plan X 的優勢僅在單點或少數失效
+      的常見情境下才能充分發揮。

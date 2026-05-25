@@ -1,0 +1,26 @@
+author: david20041024
+date: 2026-04-21
+question: |
+  當我們要找最近的 k 個高維向量時，會發現複雜度非常得高。
+  這時候如果查詢者能接受近似的答案，ANN 就能派上用場了。
+  其中，HNSW 提供了一個高效的 ANN。
+  請問下列關於 HNSW 何者正確?
+options:
+  - text: "假設 layer 2 出現 A 向量，那麼 layer 1 就不會出現 A 向量了"
+    explanation: |
+      當高層出現 A 向量時，那低層必出現 A 向量。
+      因為 HNSW 會從高層往低層去搜索，所以高層的向量必須在低層也存在，才能保證搜尋的正確性。
+  - text: "在建構 HNSW graph 時，保證某個向量的 M 個鄰居是全局最近的 M 個向量"
+    explanation: |
+      在建構 HNSW graph 時，找到 M 個鄰居的方法，依然是 ANN，所以鄰居其實也只是近似的鄰居。
+  - text: "假設 M = 64，然後 ef 趨近於無限大，那麼 recall 就會保證達到 100%"
+    explanation: |
+      當 efSearch → ∞ 時，HNSW 的搜尋會完整遍歷 entry point 所在的 connected component。
+      因此 recall 是否保證達到 100% 取決於 true nearest neighbors 是否位於該 connected component 中。
+      若在同一 component 中則 recall 可達 100%，否則無法保證。
+  - text: "在 HNSW 中，層數通常符合指數分布，但是理論的最大層數沒有上界"
+    correct: true
+    explanation: |
+      依照層數的分配公式，當 uniform(0,1) 的值非常小時，l 的值就會非常大。
+      因此，理論上 HNSW 的最大層數是沒有上界的。
+      當然，因問電腦精度的限制，會讓實際的最大層數有一個上限，但這個上限仍然是非常大的。

@@ -33,8 +33,8 @@ options:
       IVF 的 latency 與 recall 都與 nprobe 高度相關，加速與精度無法兼得。
       benchmark 只測過 nprobe=50 時 recall 為 92%（距 90% 門檻只有 2% 餘裕），
       把 nprobe 降至 10 會讓搜尋覆蓋率縮小 5 倍（$50/7700 \\approx 0.65\\%$ 降至 $10/7700 \\approx 0.13\\%$），
-      recall 有極高機率跌破門檻——將 SLA 押在這種未經驗證、餘裕極小的調整上不是合理的工程決策。
+      recall 有極高機率跌破門檻；將 SLA 押在這種未經驗證、餘裕極小的調整上不是合理的工程決策。
   - text: "拒絕方案 A。60M 規模下 HNSW 的 O(log N) 優勢有限，且 graph 的隨機存取會引發嚴重 cache miss，實測 latency 通常遠高於 benchmark 結果，10 ms 的數字並不可信。"
     explanation: |
-      cache 不友善是 HNSW 真實存在的議題，但已經反映在 benchmark 結果中——10 ms 是「實測」p99，
+      cache 不友善是 HNSW 真實存在的議題，但已經反映在 benchmark 結果中；10 ms 是「實測」p99，
       不是理論估計。任意把已測值乘上倍數來推翻決策，是用假設凌駕證據，不是合理的工程推論方式。

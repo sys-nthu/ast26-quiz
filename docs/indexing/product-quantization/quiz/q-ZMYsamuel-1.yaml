@@ -6,8 +6,7 @@ question: |
   - **配置 A**：$k^*=256$，lookup table 大小 = $8 \times 256 \times 4 = 8$ KB
   - **配置 B**：$k^*=4096$，lookup table 大小 = $8 \times 4096 \times 4 = 128$ KB
 
-  配置 B 的 codebook 更細緻，量化誤差理應更低。但在對十億筆 vector 做距離計算的 benchmark 中，配置 B 的 throughput（每秒處理筆數）遠低於配置 A。
-
+  配置 B 的 codebook 更細緻，量化誤差理應更低。但在對十億筆 vector 做距離計算的 benchmark 中，配置 B 的 throughput 卻遠低於配置 A。
   下列何者最可能是配置 B throughput 低落的核心原因？
 options:
   - text: "配置 B 每次查詢需建立更大的 lookup table（32768 次距離計算 vs 配置 A 的 2048 次），建表成本高出 16 倍，造成整體延遲大幅上升。"

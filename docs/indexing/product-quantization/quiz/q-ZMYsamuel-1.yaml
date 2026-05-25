@@ -1,0 +1,29 @@
+author: ZMYsamuel
+date: 2026-05-25
+question: |
+  一個系統要對 **256 維的 float32** vector 做 PQ 壓縮，設定 $M=16$、$k^*=256$。
+
+  壓縮前後每個 vector 各佔多少 bytes？壓縮比是多少？
+  若資料集有 **5 億**筆 vector，壓縮前後各需要多少 GB？
+options:
+  - text: "壓縮前 1024 bytes、壓縮後 16 bytes，壓縮比 64x。5 億筆：壓縮前 ≈ 512 GB，壓縮後 ≈ 8 GB。"
+    correct: true
+    explanation: |
+      壓縮前：256 維 × 4 bytes/維 = **1024 bytes**。
+      壓縮後：$k^*=256$ 個 centroid 的 index 只需 $\log_2 256 = 8$ bits = **1 byte** 儲存；
+      $M=16$ 段各 1 byte，共 **16 bytes**。
+      壓縮比：$1024 / 16 = 64\text{x}$。
+      5 億筆：壓縮前 $5 \times 10^8 \times 1024 \approx 512$ GB；壓縮後 $5 \times 10^8 \times 16 \approx 8$ GB。
+  - text: "壓縮前 1024 bytes、壓縮後 64 bytes，壓縮比 16x。5 億筆：壓縮前 ≈ 512 GB，壓縮後 ≈ 32 GB。"
+    explanation: |
+      這是把 centroid 的 index 誤當 float32（4 bytes）儲存的結果：$16 \times 4 = 64$ bytes。
+      $k^*=256$ 的 index 只需要 8 bits（1 byte）即可完整表示，不需要 4 bytes。
+  - text: "壓縮前 256 bytes、壓縮後 16 bytes，壓縮比 16x。5 億筆：壓縮前 ≈ 128 GB，壓縮後 ≈ 8 GB。"
+    explanation: |
+      256 維的 **float32** vector，每個維度佔 4 bytes，壓縮前應為 $256 \times 4 = 1024$ bytes。
+      若把維度數直接當 bytes（256 bytes），是混淆了「維度數」和「float32 的儲存大小」。
+  - text: "壓縮前 1024 bytes、壓縮後 2 bytes，壓縮比 512x。5 億筆：壓縮前 ≈ 512 GB，壓縮後 ≈ 1 GB。"
+    explanation: |
+      PQ 是對每個 sub-vector **分別**存一個 centroid index。$M=16$ 段就需要 16 個獨立的 8-bit
+      編號，共 **16 bytes**，並非把所有段合併成一個 2-byte 的聯合 hash。
+      2 bytes 只有 16 bits，根本不足以儲存 16 段各自的 index 資訊。

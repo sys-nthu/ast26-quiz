@@ -11,7 +11,7 @@ question: |
 options:
   - text: "系統 A 使用更高維度的 embedding 以保留文字的豐富語義，維度遠高於系統 B，導致 index 較大。"
     explanation: |
-      題目明確指出兩套系統使用**相同的** 768 維模型，embedding 大小相同。
+      題目中明確指出兩套系統使用**相同的** 768 維模型，embedding 大小相同。
       「文字需要更多維度」是常見的直覺，但 embedding 維度由模型架構決定，與輸入媒體類型無關。
   - text: "一個 256-token chunk 的原始文字約 1 KB，其 768 維 float32 embedding 約 3 KB，比原文大 3 倍左右；一張商品圖片原始大小約數百 KB，其 embedding 同樣只有 3 KB，比原圖小 100 倍以上。"
     correct: true

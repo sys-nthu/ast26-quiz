@@ -9,7 +9,7 @@ question: |
   使 metadata 大小接近 ext2 的 indirect block pointer 模型？
 
 options:
-  - text: "反覆對同一個大檔案 append 4 KB，但每次 append 前都先製造disk fragmentation，使新分配的 block 幾乎都無法和前一個 block 連續。"
+  - text: "反覆對同一個大檔案 append 4 KB，但每次 append 前都先製造 disk fragmentation，使新分配的 block 幾乎都無法和前一個 block 連續。"
     correct: true
     explanation: |
       正確。Extent 的優勢來自於一筆 extent 可以描述一段連續 physical blocks。

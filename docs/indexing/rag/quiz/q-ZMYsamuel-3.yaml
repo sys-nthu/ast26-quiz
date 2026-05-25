@@ -1,0 +1,33 @@
+author: ZMYsamuel
+date: 2026-05-25
+question: |
+  一個 RAG 系統使用 IVF 索引，對 6000 萬個 768 維 float32 vector 建索引，目前設定 $C=5000$ 個 cluster，查詢時 `nprobe=50`，recall@10 約 75%。
+  工程師 A 提議「把 `nprobe` 從 50 增加到 500」；工程師 B 提議「把 $C$ 從 5000 增加到 50000，`nprobe` 不變」。
+
+  下列何者最準確描述兩個方案對 recall 的影響？
+options:
+  - text: "兩個方案都能提升 recall，方案 B 較優，因為更細的 cluster 使 coarse quantization 更精確，讓最終距離排序更準確。"
+    explanation: |
+      方案 B（$C$ 從 5000 增至 50000，nprobe 不變為 50）在查詢時只掃描 $50/50000 = 0.1\%$ 的資料，
+      比原本的 $50/5000 = 1\%$ 少了十倍。更細的 cluster 確實讓 coarse quantization 更精確，
+      但在 nprobe 固定的情況下，搜尋覆蓋率大幅下降，query 的真實近鄰大概率落在未掃描的 cluster 中，
+      recall 非但不會提升，反而會顯著下降。
+  - text: "方案 A 能有效提升 recall；方案 B 在 `nprobe` 不變的情況下，搜尋覆蓋率從 1% 降至 0.1%，recall 反而下降。"
+    correct: true
+    explanation: |
+      IVF 的搜尋覆蓋率由 $\text{nprobe} / C$ 決定。
+      方案 A（nprobe: 50 → 500）：覆蓋率從 $50/5000 = 1\%$ 提升到 $500/5000 = 10\%$，
+      掃描的資料量增加十倍，recall 顯著改善，代價是查詢延遲上升。
+      方案 B（$C$: 5000 → 50000，nprobe = 50）：覆蓋率從 $1\%$ 降到 $50/50000 = 0.1\%$，
+      搜尋範圍縮小十倍，更多真實近鄰會落在未掃描的 cluster 裡，recall 下降。
+      若方案 B 同時把 nprobe 等比例調高到 500，覆蓋率才能維持在 1%。
+  - text: "方案 A 幾乎沒有效果，因為 IVF 的 recall 上限由 cluster 的品質決定，nprobe 只影響查詢速度而非 recall。"
+    explanation: |
+      nprobe 直接控制「查多少 cluster 裡的向量」，與 recall 高度相關。
+      nprobe 過小時，query 的真實近鄰可能集中在未掃描的 cluster 中，recall 因此低落；
+      增大 nprobe 讓系統有機會掃描到這些 cluster，是提升 recall 最直接的方式。
+  - text: "兩個方案效果相同，因為 IVF 的 recall 只取決於 cluster 內部的精確距離計算，與 nprobe 和 $C$ 的數值無關。"
+    explanation: |
+      cluster 內部的距離計算固然精確，但 recall 同樣高度依賴「真實近鄰是否在被掃描的 cluster 裡」。
+      若 nprobe 過小，或 $C$ 增大後 nprobe 沒有同步調整，導致覆蓋率不足，
+      精確的距離計算也無法從未掃描的 cluster 裡找回近鄰。

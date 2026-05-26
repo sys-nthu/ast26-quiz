@@ -18,7 +18,7 @@ options:
     explanation: |
       ADC 對每個 database vector 的查表次數固定為 $M$ 次，與 $k^*$ 的大小無關。
       無論 $k^*=256$ 或 $k^*=4096$，每筆 database vector 都只需做 8 次 table lookup 再加總。
-  - text: "配置 A 的 8 KB lookup table 完全落在 L1 cache 中（典型大小 32–64 KB），每次 lookup 幾乎沒有等待；配置 B 的 128 KB table 超出 L1，lookup 需從 L2 讀取（L2 典型 256 KB – 1 MB 仍可容納整張 table），存取延遲上升數倍。"
+  - text: "配置 A 的 8 KB lookup table 完全落在 L1 cache 中，每次 lookup 幾乎沒有等待；配置 B 的 128 KB table 超出 L1，lookup 需從 L2 讀取，存取延遲上升數倍。"
     correct: true
     explanation: |
       這正是 $k^*=256$（8 KB table）成為標準配置的關鍵理由之一。

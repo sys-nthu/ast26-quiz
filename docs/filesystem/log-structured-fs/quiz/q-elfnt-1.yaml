@@ -1,0 +1,24 @@
+author: elfnt
+date: 2026-05-26
+question: |
+  某工程師正在為一個大型社群平台的圖片儲存系統設計底層架構。該系統有以下特性：
+
+  - 使用者上傳的圖片一旦上傳後幾乎不會再被修改
+  - 使用者的個人資料與貼文元資料則頻繁更新
+  - 底層使用支援 ZNS 的 SSD
+
+  工程師 A 提議直接沿用傳統 F2FS，讓 F2FS 的六個 log 對應六個 zone 寫入 ZNS SSD。工程師 B 則警告說，就算採用此架構，仍有一個元件無法放在 ZNS SSD 上，必須另外配置一顆傳統 SSD。
+options:
+  - text: ""
+    correct: true
+    explanation: |
+      
+  - text: "F2FS 的 inode 區域；因為 inode 屬於 hot metadata，更新頻率高，ZNS 的循序寫入限制會造成嚴重的寫入放大。"
+    explanation: |
+      
+  - text: "F2FS 的 hot data log；因為圖片雖然不常修改，但讀取頻率極高，ZNS 的 append-only 特性會導致讀取路徑需要額外的 indirection，嚴重拖累讀取效能。"
+    explanation: |
+      
+  - text: "F2FS 的 Checkpoint Region；因為 CR 是整個 log-structured 檔案系統中唯一需要記錄 imap 最新位置的結構，若無法 in-place update 將導致系統在崩潰後無法恢復"
+    explanation: |
+      

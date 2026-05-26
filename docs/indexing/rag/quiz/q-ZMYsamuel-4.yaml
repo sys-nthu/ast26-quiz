@@ -20,7 +20,10 @@ options:
   - text: "採用方案 A。同時滿足 latency（10 ms < 30 ms）與 recall（92% > 90%）兩項 SLA；額外 15 GB graph 在 256 GB 預算內負擔輕微（總用 195 GB，留 60+ GB 餘裕），是符合所有約束的合理解。"
     correct: true
     explanation: |
-      HNSW 的 O($\log N$) 在 60M 規模下只需約 20 次距離計算，遠快於 IVF 的 O($\sqrt{N}$) ~7700 × nprobe 次。
+      HNSW 在 60M 規模下的搜尋成本來自兩部分：upper layers 約 $\log_2 N \approx 26$ 個 hop
+      （每個 hop 檢查 M=32 個鄰居），加上 layer 0 efSearch=200 的 beam search，總距離計算約數千次。
+      IVF 則為 $C + \text{nprobe} \times (N/C) \approx 7700 + 50 \times 7792 \approx 39$ 萬次。
+      HNSW 的距離計算次數顯著少於 IVF，這是 10 ms vs 65 ms latency 差距的主要來源。
       Benchmark 的 10 ms p99 留有 20 ms latency 餘裕，總記憶體 195 GB 在 256 GB 預算內也有 60+ GB 餘裕，
       是工程上同時滿足 latency、recall、memory 的最自然選擇。
   - text: "採用方案 B。額外記憶體只有 0.06 GB，是方案 A 的 1/250；雖然 latency 偏高，但「以記憶體效率為優先」是更穩健的工程選擇。"

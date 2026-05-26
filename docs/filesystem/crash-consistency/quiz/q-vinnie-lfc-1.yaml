@@ -1,22 +1,24 @@
 author: vinnie-lfc
 date: 2026-05-26
 question: |
-  ext4 的 extent 可以用一筆 metadata 描述一段連續的 physical blocks；
-  相比 ext2 一個 block 一個 pointer，通常能大幅減少大檔案的 metadata。
-  
-  但如果 extent 數量太多，ext4 仍然需要用 extent tree 來管理這些 extent。
-  請問下列哪一種 workload 最可能讓 ext4 的 extent 模型退化，
-  使 metadata 大小接近 ext2 的 indirect block pointer 模型？
+  ext4 使用 extent 來記錄檔案的 block mapping。正常情況下，一筆 extent 可以描述多個 data blocks，
+  因此能減少大檔案所需的 metadata。
+
+  但在某些 workload 下，extent 可能失去原本的壓縮優勢。
+  請問下列哪一種 workload 最可能使 ext4 需要大量 extent，
+  讓 metadata 數量隨著 data block 數量線性成長？
 
 options:
-  - text: "反覆對同一個大檔案 append 4 KB，但每次 append 前都先製造 disk fragmentation，使新分配的 block 幾乎都無法和前一個 block 連續。"
+  - text: "在 disk 已經高度 fragmented 的情況下反覆 append 4 KB。"
     correct: true
     explanation: |
       正確。Extent 的優勢來自於一筆 extent 可以描述一段連續 physical blocks。
-      如果每次 append 的 4 KB block 都被分配到不連續的位置，
-      那麼每個 block 可能都需要一個 extent。
+      如果 disk 已經高度 fragmented，每次 append 的 4 KB block 都可能被分配到不連續的位置，
+      那麼一筆 extent 可能只能描述一個 block。
+
+      這時 ext4 會接近 one block one extent。
       當 extent 數量太多、inode 放不下時，ext4 會把這些 extent 放進 extent tree。
-      因此 metadata 數量會隨著 data block 數量增加，變得接近 ext2 的 indirect block pointer 模型。
+      因此 extent 會失去原本的壓縮優勢，metadata 數量會隨著 data block 數量線性成長。
       
   - text: "一次性 sequential write 一個 10 GB 大檔案到空的 ext4 filesystem。"
     explanation: |

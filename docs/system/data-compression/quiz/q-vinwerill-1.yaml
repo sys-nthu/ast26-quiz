@@ -24,7 +24,7 @@ options:
       因此在大量 random seek 時，
       offset lookup 與 block 定位仍可能產生額外成本。
 
-  - text: "使用 fixed-output compression 搭配 large-block design，以利用固定輸出大小提升 random seek 效率，同時維持高 compression ratio。"
+  - text: "使用 fixed-output compression 搭配 large-block design，以利用固定輸出大小提升 random seek 效率，同時維持較高的 compression ratio。"
     explanation: |
       fixed-output compression 雖然有助於快速定位資料，
       但 large-block design 仍可能使每次 random access 需要解壓大量不相關資料。

@@ -19,6 +19,6 @@ options:
   - text: "F2FS 的 hot data log；因為圖片雖然不常修改，但讀取頻率極高，ZNS 的 append-only 特性會導致讀取路徑需要額外的 indirection，嚴重拖累讀取效能。"
     explanation: |
       ZNS 的 append-only 限制影響的是寫入路徑，與讀取路徑無直接關聯。讀取時仍可對 zone 內任意位置進行 random read，並不會因為 append-only 而增加讀取的 indirection 成本。
-  - text: "F2FS 的 Checkpoint Region；因為 CR 是整個 log-structured 檔案系統中唯一需要記錄 imap 最新位置的結構，若無法 in-place update 將導致系統在崩潰後無法恢復"
+  - text: "F2FS 的 cold data log；因為 cold data 幾乎不會被更新，ZNS zone 一旦寫入就很難觸發 reset，會導致大量 zone 長期被佔用無法回收，最終耗盡可用的 open zone 數量。"
     explanation: |
-      Checkpoint Region（CR）確實是 LFS 設計中唯一允許 in-place update 的區塊，但課程討論的是 F2FS 搭配 ZNS 的架構。F2FS 中真正因必須 in-place update 而無法上 ZNS 的關鍵結構是 NAT，而非 CR。
+      Cold data 不常更新恰恰是它適合放在 ZNS 的原因，因為整個 zone 的資料生命週期相近，GC 時可以整批 reset，反而是最理想的使用情境。此外 ZNS 的 open zone 數量限制針對的是同時寫入的 zone 數量，cold data log 寫滿後可以關閉，並不會持續佔用 open zone 的配額。

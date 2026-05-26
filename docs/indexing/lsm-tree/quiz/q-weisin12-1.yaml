@@ -1,0 +1,19 @@
+author: weisin12
+date: 2026-04-04
+question: |
+  對 LSM-tree 資料庫發出大量刪除指令後，磁碟可用空間不但沒有立即釋放，反而出現暫時減少的現象。
+  下列哪一項機制是造成此現象的主因？
+options:
+  - text: "系統將刪除視為新寫入，會向 memTable 寫入 tombstone ，實體空間需待未來 compaction 時才釋放。"
+    correct: true
+    explanation: |
+      SSTable 是 immutable 的，無法直接覆寫。而 tombstone 會消耗記憶體與 WAL 空間。
+  - text: "系統會尋找並修改 WAL ，將該資料的歷史寫入紀錄刪除，過程將暫時佔用額外空間。"
+    explanation: |
+      不能對 WAL 的紀錄做修改或刪除。
+  - text: "收到刪除指令立刻做 compaction ，並重寫相關的 SSTable ，重寫期間需要額外緩衝空間完成。"
+    explanation: |
+      單一刪除操作不會馬上做 compaction 。
+  - text: "系統會更新各層的 bloom filter ，將該資料對應的 bit 設為 0 ，這個操作會佔用到新的空間。"
+    explanation: |
+      Bloom filter 的 bit 只能設為 1 而不能改回 0 ，且僅用於優化讀取路徑，與空間回收無關。

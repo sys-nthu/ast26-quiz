@@ -1,0 +1,22 @@
+author: lin131chen
+date: 2026-05-18
+question: |
+  某 filesystem 採用 Copy-on-Write（COW）與 snapshot。系統目前狀態如下：snapshot_1 指向 root_v1，live filesystem 指向 root_v2。
+  其中：Block A 僅被 snapshot_1 使用，Block B 同時被 snapshot_1 與 live filesystem 共用。系統管理員刪除 snapshot_1 後，下列何者最可能發生？
+options:
+  - text: "Block A 可能被 garbage collection 回收，但 Block B 仍會保留。"
+    correct: true
+    explanation: |
+      在 COW filesystem 中，block 是否能被回收取決於是否仍有 reference 指向它。Block A 僅被 snapshot_1 使用，因此刪除 snapshot 後，將不再有 pointer 指向它，可被 garbage collection 回收。然而，Block B 仍被 live filesystem 使用，因此必須保留。
+
+  - text: "所有屬於 root_v1 的 block 都會被立即刪除。"
+    explanation: |
+      刪除 snapshot 並不代表整棵舊 tree 的 block 都會消失。若某 block 仍被其他 snapshot 或 live filesystem reference，filesystem 仍需保留該 block。因此 Block B 不可直接刪除。
+
+  - text: "因為 live filesystem 已更新到 root_v2，因此 Block B 一定會被刪除。"
+    explanation: |
+      題目已說明 Block B 同時被 live filesystem 共用，因此即使 snapshot_1 被刪除，Block B 仍有 reference 存在，filesystem 不可將其回收。
+
+  - text: "刪除 snapshot 後，filesystem 必須 rollback 到 root_v1 才能維持一致性。"
+    explanation: |
+      snapshot 的作用是保留歷史版本。刪除 snapshot 僅代表移除一個 pointer，不會影響目前 live filesystem 的一致性，也不需要 rollback。

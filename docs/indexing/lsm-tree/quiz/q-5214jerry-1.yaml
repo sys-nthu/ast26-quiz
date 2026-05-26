@@ -1,0 +1,21 @@
+author: 5214jerry
+date: 2026-04-03
+question: |
+  針對某 LSM-Tree 查詢機制，工程師比較了 point query：GET(key) 與 range scan：SCAN(key_start, key_end) 的效能。
+  他發現，當查詢大量完全不存在於資料庫中的 key 時，point query 幾乎不會產生 disk I/O。
+  但是 range scan（即使該範圍內根本沒有任何資料）卻觸發了明顯的 block reads。導致這個巨大效能差異的根本原因為何？
+options:
+  - text: "Bloom filter 只能處理精確匹配，無法用於範圍過濾。因此，只要查詢範圍與 SSTable 的 key 範圍重疊，系統就必須將該 SSTable 的 data block 載入記憶體檢查，進而產生 I/O。"
+    correct: true
+    explanation: |
+      Bloom filter 的數學本質是將一個具體的數值 hash 成數個 bit 位置，你必須精確知道你要找什麼才能使用它。
+  - text: "range scan 需要將範圍內的所有可能 key 逐一送入 Bloom filter 進行 hash 檢查。當掃描範圍過大時，會引發極嚴重的 CPU 運算瓶頸。"
+    explanation: |
+      由於 key 可能是 string 或是不連續的任意型態，系統根本無從枚舉範圍內的所有 key 來詢問 Bloom filter。邏輯上無法執行。
+  - text: "在 Leveled Compaction 的架構中，L1 到 LN 的每一層內部的 SSTable 都存在嚴重的 key 範圍重疊。range scan 為了合併多版本資料，必須強制開啟每一層的所有 SSTable。"
+    explanation: |
+      顛倒了 Leveled Compaction 的定義，在 L1 到 LN 之間，單一層級內部的 SSTable 其 key 範圍是嚴格不重疊的，最多只需要開啟少數幾個範圍剛好跨界的 SSTable。
+  - text: "當 range scan 在上層 SSTable 遇到 tombstone 時，系統無法確定該 tombstone 是否涵蓋了整個查詢範圍，因此必須去更底層的 SSTable 尋找被刪除的原始資料。"
+    explanation: |
+      tombstone 的設計目的就是為了遮蔽底層的舊資料。無論是 point query 還是 range scan，只要遇到了 tombstone 就代表該 key 已被刪除，系統會直接忽略該筆資料並繼續往下掃描同層的其他 key。
+      

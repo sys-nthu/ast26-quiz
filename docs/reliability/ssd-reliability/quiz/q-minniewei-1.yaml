@@ -1,0 +1,21 @@
+author: minniewei
+date: 2026-05-15
+question: |
+  在現代儲存系統架構中，關於不同層級採取不同 error control 策略的邏輯，下列敘述何者「錯誤」？
+options:
+  - text: "越靠近物理媒介（如 NAND Flash）層級，越傾向使用強大的 error correction code（如 LDPC），是因為該層的 RBER 最高，必須就近修復以防錯誤擴散至上層。"
+    explanation: |
+      物理層的 bit flip 必須在第一線處理掉，否則 Host 端無法處理這種瑣碎的 bit error。
+
+  - text: "File System 或傳輸介面 (ex: SATA, NVMe) 層級主要負責 error detection，並將錯誤資訊回報給上層應用程式或使用者，以便進行適當的 error handling（如重試、降級或警告）。"
+    explanation: |
+      這一層追求效率與完整性檢查，correction 通常交由 RAID 或應用層處理。
+
+  - text: "現今 NAND Flash 大多使用分散式 Erasure Coding (EC) 來修正單一 Cell 的寫入磨損。"
+    correct: true
+    explanation: |
+      分散式 EC 的開銷極大，適用於處理整 Node 或 Disk 的遺失，用它來修復 bit flip 會造成嚴重的效能浪費。
+
+  - text: "針對「整顆硬碟損壞」的場景，通常在 RAID 或分散式儲存層級處理，是因為只有在這一層級才能將「磁碟」視為一個整體進行冗餘備份。"
+    explanation: |
+      底層的 LDPC 救不了整顆壞掉的硬碟，必須靠上層的架構設計來救。

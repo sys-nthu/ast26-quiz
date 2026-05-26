@@ -259,7 +259,7 @@ concepts:
     tier: advanced
     open: false
     pillar: indexing
-    depends_on: [kv-store-api, bloom-filter]
+    depends_on: [bloom-filter]
     papers: [zns, co-design-btree-zns, wisckey]
 
   - slug: hnsw
@@ -368,30 +368,15 @@ concepts:
 
   # ==== System pillar =======================================================
 
-  - slug: kv-store-api
-    title: "Key-Value Store API"
+  - slug: btree-are-back
+    title: "B-Trees Are Back"
     description: >
-      幾乎所有的 storage engine 最終都透過 Key-Value Store API 來對外提供服務，包括 Put、Get、Delete、Scan 等基本操作。我們需要理解 memtable 如何作為 in-memory write buffer 暫存寫入資料，以及 write-ahead log (WAL) 如何在系統崩潰時保障資料的 durability。此外，我們也會學到 snapshot 和 iterator 的概念，它們讓使用者可以在一致的資料視圖上進行讀取與遍歷。掌握這組 API 是後續理解 LSM-Tree、B+Tree 等進階索引結構的必要基礎，因為這些結構本質上都是在實作這套介面。
-    tier: basic
+      經過多年 LSM-Tree 在 write-heavy workload 的主導，近年的研究重新檢視了 B+Tree 在現代硬體上的潛力。在 NVMe SSD、大容量 DRAM、與多核 CPU 的環境下，B+Tree 的隨機存取代價變得可以接受，而它在 read amplification、range query 與 space amplification 上的優勢愈發明顯。本單元會從 in-memory ordered index（如 Wormhole）的設計談起，看看現代 B+Tree 變體如何結合 hash trie、SIMD、cache-line aware layout 等技術逼近 hash table 的查詢速度，同時保留 range scan 的能力；並透過 2025 年 "B-Trees Are Back" 的綜述，理解為什麼許多 storage engine 又重新把 B+Tree 拉回設計選擇的中心。
+    tier: advanced
     open: false
     pillar: system
     depends_on: []
-    papers: [zns, co-design-btree-zns, wisckey]
-
-  - slug: buffer-pool
-    title: "Buffer Pool"
-    description: >
-      磁碟的存取速度遠低於記憶體，因此資料庫系統需要一個 buffer pool 來將常用的 disk page 快取在記憶體中。我們需要學習各種 eviction policy（如 LRU、LRU-K、Clock、ARC）來決定記憶體不足時該優先淘汰哪些 page，並理解 dirty-page tracking 與 writeback 機制如何確保修改過的資料最終被寫回磁碟。pin/unpin protocol 則確保正在被存取的 page 不會被意外淘汰。Buffer pool 的設計直接影響資料庫的 I/O 效率，也是理解 B+Tree on disk 與 storage engine 效能調校的核心知識。
-    tier: basic
-    open: false
-    pillar: system
-    depends_on: []
-    papers:
-      - b-trees-are-back
-      - co-design-btree-zns
-      - modern-nvme
-      - duckdb-xnvme
-      - watt
+    papers: [b-trees-are-back]
 
   - slug: data-compression
     title: "Data Compression"
@@ -402,16 +387,6 @@ concepts:
     pillar: system
     depends_on: []
     papers: [erofs]
-
-  - slug: inverted-index
-    title: "Inverted Index"
-    description: >
-      當我們需要從大量文件中快速找到包含特定關鍵字的文件時，逐一掃描顯然不可行。Inverted index 透過建立從 term 到 document ID 的 posting list，讓全文檢索可以在接近常數時間內完成。我們會學習 TF-IDF scoring 如何衡量一個 term 對特定文件的重要程度，以及 index construction 與 merging 的流程如何處理大量資料的索引建立。Query processing 中的 AND/OR 操作則決定了多關鍵字查詢的語意。Inverted index 是搜尋引擎與 log analysis 系統的基礎元件，也是理解現代資訊檢索架構的起點。
-    tier: basic
-    open: false
-    pillar: system
-    depends_on: []
-    papers: []
 
   - slug: deduplication
     title: "Deduplication"
@@ -458,7 +433,7 @@ projects:
 
   - slug: lsm-kv-store
     title: "Mini LSM-Tree Key-Value Store"
-    depends_on: [lsm-tree, bloom-filter, kv-store-api]
+    depends_on: [lsm-tree, bloom-filter]
 
   - slug: vector-search-engine
     title: "Vector Search Engine on SSD"

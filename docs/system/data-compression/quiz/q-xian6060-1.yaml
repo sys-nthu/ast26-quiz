@@ -1,0 +1,19 @@
+author: xian6060
+date: 2026-05-26
+question: |
+  如果你的系統環境是「I/O 速度極快、但 CPU 資源吃緊」，你最應該選擇下列哪一種壓縮演算法？
+options:
+  - text: "xz (LZMA)"
+    explanation: |
+      xz (LZMA) 主打「高壓縮率」，但代價是非常耗費 CPU 資源且壓縮/解壓縮速度極慢。在 CPU 吃緊的環境下使用 xz，會直接導致延遲飆高。
+  - text: "Brotli"
+    explanation: |
+      Brotli 壓縮率佳，解壓縮速度也很快，但它的壓縮過程非常消耗 CPU。它通常用於前端網頁靜態資源（如 HTML、CSS、JS）的預先壓縮，不適合 CPU 資源受限的系統。
+  - text: "gzip"
+    explanation: |
+      gzip 是一個平衡的演算法，壓縮率和速度都有不錯的表現。但如果與 LZ4 相比，gzip 的速度依然慢上許多，且 CPU 消耗較大。在追求極致 I/O 且 CPU 緊缺的極端場景下，gzip 仍不是最佳選擇。
+  - text: "LZ4"
+    correct: true
+    explanation: |
+      在「I/O 速度極快、但 CPU 資源吃緊」的環境下，系統的瓶頸通常不在於硬碟或網路的傳輸速度，而在於 CPU 的運算能力。
+      LZ4 的壓縮和解壓縮速度極快，相比於其他演算法，LZ4 放棄了極致的壓縮率，換來了極低的 CPU 運算成本，這正好契合 CPU 資源吃緊的場景。

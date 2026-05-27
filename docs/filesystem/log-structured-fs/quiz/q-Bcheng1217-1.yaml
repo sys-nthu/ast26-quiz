@@ -15,4 +15,4 @@ options:
       這個選項將不同系統的概念混淆了。`imap` 是 1991 年 LFS 中為了追蹤 inode 位置並讓系統實際運作而提出的機制，與 F2FS 利用 multi-head logging 進行冷熱分類的設計目的無關。
   - text: "為了讓設備的 WAF 接近 1.0。"
     explanation: |
-      這個選項混淆了不同層次的優化技術。雖然 multi-head logging 有助於降低 WAF，但要讓設備的 WAF 真正降低至接近 1.0，必須仰賴 F2FS 與下層 ZNS 進行主機與設備間的 Co-design，將上層的 Segment 直接對齊下層的 Zone，徹底消除快閃記憶體內部的 GC。單純依賴 F2FS 內部的 multi-head logging 是無法單獨達到 WAF ≈ 1.0 的。
+      這個選項混淆了不同層次的優化技術。雖然 multi-head logging 有助於降低 WAF，但要讓設備的 WAF 真正降低至接近 1.0，必須仰賴 F2FS 與下層 ZNS 進行主機與設備間的 co-design，將上層的 segment 直接對齊下層的 zone，徹底消除快閃記憶體內部的 GC。單純依賴 F2FS 內部的 multi-head logging 是無法單獨達到 WAF ≈ 1.0 的。

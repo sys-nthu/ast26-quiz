@@ -1,0 +1,51 @@
+author: WayneHuang1185
+date: 2026-05-27
+question: |
+  某 SSD controller 的 read 流程為：先用 Hard LDPC decoding，失敗才落到較慢的
+  Soft LDPC decoding。客戶 SLA 要求 99.95% 的 read request 必須在 single read
+  （Hard LDPC）完成。
+  已知：
+  - 每個 ECC codeword 大小為 $2 \times 10^4$ bits，並且每個 Read Request 的大小剛好等同於一個 ECC codeword。
+  - codeword 內 bit error 可視為獨立發生，當 UBER 很小時
+   $P_{\text{codeword fail}} \approx \text{codeword size} \times \text{UBER}$。
+  
+  下表為不同 RBER 下，Hard LDPC 解碼後的 UBER：
+  | RBER | Hard LDPC 後的 UBER |
+  |---|---|
+  | $1.5 \times 10^{-3}$ | $5 \times 10^{-10}$ |
+  | $2.0 \times 10^{-3}$ | $8 \times 10^{-9}$ |
+  | $2.5 \times 10^{-3}$ | $3 \times 10^{-8}$ |
+  | $3.0 \times 10^{-3}$ | $2 \times 10^{-7}$ |
+
+  為了滿足 SLA，Soft LDPC 最晚應該在 RBER 超過哪個值時觸發？
+options:
+  - text: "當 RBER 大於 $2.0 \times 10^{-3}$ 時觸發 Soft LDPC"
+    correct: true
+    explanation: |
+      客戶要求 99.95% 的 read request 必須在 single read 後完成，因此最多只有 $100\% - 99.95\% = 0.05\%$ 的 read request 可以進入 Soft LDPC path。
+      將 $0.05\%$ 轉成機率後是 $0.05\% = 0.0005 = 5 \times 10^{-4}$。
+      所以 Hard LDPC 的 codeword failure probability 必須滿足 $P_{\text{codeword fail}} \le 5 \times 10^{-4}$。
+      題目給定一個 codeword 大小為 $2 \times 10^4$ bits，而因為 UBER 是很小的數字，所以可以用用題目給的近似$P_{\text{codeword fail}} \approx \text{codeword size} \times \text{UBER}$ 來計算。
+      因此 UBER 必須滿足：
+      $$2 \times 10^4 \times \text{UBER} \le 5 \times 10^{-4}
+      \Rightarrow\text{UBER} \le \frac{5 \times 10^{-4}}{2 \times 10^4}
+      =2.5 \times 10^{-8}$$
+      因此 Hard LDPC 後的 UBER 必須小於等於 $2.5 \times 10^{-8}$。
+      從表格看，RBER = $2.0 \times 10^{-3}$ 時，UBER = $8 \times 10^{-9}$，仍然符合要求；但 RBER = $2.5 \times 10^{-3}$ 時，UBER = $3 \times 10^{-8}$，已經超過 $2.5 \times 10^{-8}$。
+      所以 Soft LDPC 最晚必須在 RBER 超過 $2.0 \times 10^{-3}$ 後觸發。
+  - text: "當 RBER 大於 $1.5 \times 10^{-3}$ 時觸發 Soft LDPC"
+    explanation: |
+      這個答案太保守。
+      在 RBER = $1.5 \times 10^{-3}$ 時，Hard LDPC 後的 UBER 是 $5 \times 10^{-10}$，這遠小於允許上限 $2.5 \times 10^{-8}$。
+      因此 Hard LDPC 在這個 RBER 下仍然很安全，還不需要觸發 Soft LDPC。
+  - text: "當 RBER 大於 $2.5 \times 10^{-3}$ 時觸發 Soft LDPC"
+    explanation: |
+      這個答案太晚觸發。
+      允許的 UBER 上限是 $2.5 \times 10^{-8}$，但在 RBER = $2.5 \times 10^{-3}$ 時，表格中的 Hard LDPC 後 UBER 已經是 $3 \times 10^{-8}$。
+      因為 $3 \times 10^{-8} > 2.5 \times 10^{-8}$，所以此時已經超過允許上限。
+      如果等到 RBER 大於 $2.5 \times 10^{-3}$ 才觸發 Soft LDPC，就代表系統在 RBER = $2.5 \times 10^{-3}$ 附近已經可能違反 single-read requirement。
+  - text: "當 RBER 大於 $3.0 \times 10^{-3}$ 時觸發 Soft LDPC"
+    explanation: |
+      這個答案明顯太晚。
+      在 RBER = $3.0 \times 10^{-3}$ 時，Hard LDPC 後的 UBER 是 $2 \times 10^{-7}$，這比允許的 UBER 上限 $2.5 \times 10^{-8}$ 大了約 8 倍。
+      因此若等到這個點才觸發 Soft LDPC，Hard LDPC failure rate 會明顯超過客戶允許的 slow path 比例。

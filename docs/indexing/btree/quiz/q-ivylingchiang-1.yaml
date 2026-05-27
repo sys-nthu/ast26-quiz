@@ -1,7 +1,7 @@
 author: "ivylingchiang"
 date: "2026-05-27"
 question: |
-  假設一個基於 **Adaptive B-Tree** 實作的生產環境資料庫儲存了大量的 URL 字串作為 Key。系統原本主要處理大量的單一網址查詢 (`Point Lookup`)，但最近一週的 Workload 發生劇烈改變，變成了以網址前綴的範圍掃描 (`Range Scan`) 為主。根據 *B-Trees Are Back* 論文的設計，系統內的 Leaf Nodes 會發生什麼動態轉變？
+  假設一個基於 **Adaptive B-Tree** 實作的生產環境資料庫儲存了大量的 URL 字串作為 Key。系統原本主要處理大量的單一網址查詢 (`Point Lookup`)，但最近一週的 Workload 發生劇烈改變，變成了以網址前綴的範圍掃描 (`Range Scan`) 為主。根據 *B-Trees* ，系統內的 Leaf Nodes 會發生什麼動態轉變？
 options:
   - text: "Leaf nodes 會大量轉變為 **Dense Leaves**，因為 `Range Scan` 需要連續的記憶體空間來提升掃描速度。"
     explanation: |

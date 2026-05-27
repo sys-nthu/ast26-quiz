@@ -1,7 +1,7 @@
 author: "ivylingchiang"
 date: "2026-05-27"
 question: |
-  在 *B-Trees Are Back* 論文中，針對 Comparison-based leaf 提出了 **Hints array** 的優化：在 header 放置 16 個從 slot 均勻取樣的 Head，並在搜尋時先對這 16 個元素進行 Linear Search。從傳統演算法的角度來看，Linear Search 的時間複雜度 $O(N)$ 劣於 Binary Search 的 $O(\log N)$。為什麼這個設計反而能為隨機查詢（Lookup）提升約 25% 的吞吐量？
+  在 *B-Trees* 中，針對 Comparison-based leaf 提出了 **Hints array** 的優化：在 header 放置 16 個從 slot 均勻取樣的 Head，並在搜尋時先對這 16 個元素進行 Linear Search。從傳統演算法的角度來看，Linear Search 的時間複雜度 $O(N)$ 劣於 Binary Search 的 $O(\log N)$。為什麼這個設計反而能為隨機查詢（Lookup）提升約 25% 的吞吐量？
 options:
   - text: "16 個 Hints 剛好佔用 64 位元組，完美契合現代 CPU 的單一 **Cache Line** 大小，只需一次 Cache Miss 就能縮小後續搜尋範圍，大幅減少對隨機記憶體位置的存取。"
     correct: true

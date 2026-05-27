@@ -10,7 +10,7 @@ options:
     correct: true
     explanation: |
       論文設計了 operation-adaption 機制。每個 leaf 帶有一個 1-byte 的 saturating counter。Scan 操作有 15% 的機率會使計數器加 1，point 操作以 5% 機率 −1。
-      Counter 滿了就轉成適合scan的 comparison-based。
+      Counter 滿了就轉成適合 scan 的 comparison-based。
   - text: "系統在偵測到第一次 range scan 時，會立刻以 synchronous 方式重構整棵樹，強制將所有 leaf 退回傳統 B+ Tree 的 Slotted Page 布局以確保指標連續性。"
     explanation: |
       系統不會因為單次操作就立刻觸發全局重構，採用的是漸進式、基於統計的動態調整。

@@ -10,10 +10,10 @@ options:
   - text: "在 Reshape 的過渡期間，系統必須將所有的 Parity blocks 集中遷移到該顆新硬碟上，暫時將拓撲退化轉換為 RAID 4，以避免在搬動資料時發生 CPU 運算瓶頸。"
     explanation: |
       RAID 4 確實有獨立 Parity 碟，但實務上 RAID 5 擴充是直接計算新的 Distributed Parity 對角線分佈，不會也不需要經歷轉化為 RAID 4 的過渡期，這會造成不必要的二次搬移。
-  - text: "為了維持快照的歷史版本，Btrfs 必須在每次發生 CoW 寫入時，將被覆蓋的舊資料區塊的實體位址記錄至系統的 Journaling Log 中，這導致在擁有大量快照的情況下，Btrfs 的日誌寫入負擔會超越 ext4。"
+  - text: " 陣列擴充會迫使系統執行大量的讀取-修改-寫入循環。在此重組過程中，如果沒有額外的日誌或備份機制，一旦發生斷電，正在重組中的 Stripe 將會因新舊拓撲狀態不一致而導致資料不一致。"
     correct: true
     explanation: |
       因為擴充是破壞性寫入，舊資料被讀出並以新格式覆寫，若過程中斷，該 Stripe 既不是舊的 3 碟格式，也不是完整的 4 碟格式。因此實務上必須依賴如 metadata checkpoints 或額外的 backup file 來保證崩潰恢復 Crash Consistency。
-  - text: "Btrfs 預設強制啟用延遲分配（Delayed Allocation）機制。它會將寫入的資料暫存於記憶體（RAM）中，直到快取達到閾值或記憶體不足時才進行磁碟空間分配。只有在系統執行 `sync()` 時，才會將雙份的資料（一份寫入快照區，一份寫入主資料區）刷入硬碟，因此實際上仍存在雙重寫入。"
+  - text: "為了保證重組期間的寫入效能，RAID 控制器會在新硬碟上建立「差異快取（Delta Cache）」。在擴充完成前，所有對舊有 Stripe 的寫入都會被導向新硬碟，待擴充進度達到 100% 時再進行全域的「指標切換」。"
     explanation: |
       差異快取和全域指標切換兩個機制都是不存在於 RAID 的。在 Block-level RAID 中，沒有龐大的 Metadata tree 可以做全域指標切換，那是 Btrfs/ZFS 等檔案系統的做法，RAID 只能老實地透過一個個 Stripe 的 Checkpoint 推進重組進度。

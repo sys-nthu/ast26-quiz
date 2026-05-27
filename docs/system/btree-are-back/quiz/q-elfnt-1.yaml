@@ -1,5 +1,5 @@
 author: elfnt
-date: 2026-05/26
+date: 2026-05-26
 question: |
   BAB 論文提出 Adaptive B-Tree 會在執行時動態決定每個 leaf 要採用哪種佈局。一個 leaf 目前是 comparison-based（採用 heads + hints），但在某些條件下會轉換成其他佈局。
   

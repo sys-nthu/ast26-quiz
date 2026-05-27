@@ -3,7 +3,7 @@ date: 2026-05-26
 question: |
   在一個沒有 journaling 或 Copy-on-Write 保護的簡化 filesystem 中，append 資料時可能同時改動 data block、inode size、inode extent list 與 block bitmap。若 crash 後只能依賴 `fsck` 檢查 on-disk 狀態，下列敘述何者正確？
 options:
-  - text: "`fsck` 的檢查對象是 inode、extent list 與 block bitmap 的對應關係；因此它能修正 block 配置 metadata 的矛盾，但在 metadata 都一致時無法判斷 data block 是否是這次 write 的正確內容。"
+  - text: "`fsck` 的檢查對象是 inode、extent list 與 block bitmap 的對應關係；因此它能修正 block 配置 metadata 的矛盾，但在 metadata 都一致時無法判斷 data block 是否是這次 append 的正確內容。"
     correct: true
     explanation: |
       正確。`fsck` 的角色是比對 filesystem metadata，例如 inode、extent list 與 block bitmap。bitmap 說 used 但沒有 inode 指向時，可釋放該 block；inode 指向 bitmap 仍標為 free 的 block 時，可把 bitmap 改成 used。

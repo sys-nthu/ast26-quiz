@@ -4,7 +4,7 @@ question: |
   在儲存系統的設計中，傳統 Journaling file system（Data Journaling mode）會面臨 Double-write penalty。
   Btrfs 藉由其 Copy-on-Write 機制天然地解決此問題。關於 Btrfs 快照機制對寫入效能與空間的影響，下列敘述何者正確？
 options:
-  - text: "Btrfs 建立快照後，修改已存在的資料區塊時不僅該資料區塊會寫入新位置，還會導致從該葉節點到 B-tree 根節點的所有 Metadata 發生 CoW。這雖然避免了傳統 Journaling 的Double-write，但卻導致了 Metadata 的 Write Amplification。"
+  - text: "Btrfs 建立快照後，修改已存在的資料區塊時不僅該資料區塊會寫入新位置，還會導致從該葉節點到 B-tree 根節點的所有 Metadata 發生 CoW。這雖然避免了傳統 Journaling 的 Double-write，但卻導致了 Metadata 的 Write Amplification。"
     correct: true
     explanation: |
       雖然避免了 Journaling 的 double-write，但任何底層區塊的變更都會導致其父節點的指標改變，進而迫使父節點也要 CoW，一路連鎖反應到根節點，這就是 Btrfs 的 Metadata 寫入放大問題。

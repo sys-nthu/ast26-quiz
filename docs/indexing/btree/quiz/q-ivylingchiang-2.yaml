@@ -1,0 +1,17 @@
+author: "ivylingchiang"
+question: |
+  在 *B-Trees Are Back* 論文中，針對 Comparison-based leaf 提出了 **Hints array** 的優化：在 header 放置 16 個從 slot 均勻取樣的 Head，並在搜尋時先對這 16 個元素進行 Linear Search。從傳統演算法的角度來看，Linear Search 的時間複雜度 $O(N)$ 劣於 Binary Search 的 $O(\log N)$。為什麼這個設計反而能為隨機查詢（Lookup）提升約 25% 的吞吐量？
+options:
+  A:
+    text: "栽培 16 個 Hints 剛好佔用 64 位元組，完美契合現代 CPU 的單一 **Cache Line** 大小，只需一次 Cache Miss 就能縮小後續搜尋範圍，大幅減少對隨機記憶體位置的存取。"
+    explanation: "正確。現代系統效能的瓶頸往往在於 Cache Miss 而非純粹的比較次數。這 16 個 Hints 緊密排列在同一個 Cache Line 中，載入成本極低。雖然是 Linear Search，但在 CPU 暫存器內執行速度極快，且能有效防止後續在 Heap 上做 Binary Search 時產生過多的隨機 Cache Line 換入。"
+  B:
+    text: "因為現代 CPU 的 **Hardware Prefetcher** 可以完美預測 Linear Search 的記憶體存取模式，而完全無法預測 Binary Search 的存取模式。"
+    explanation: "錯誤。雖然 Prefetcher 對順序存取較友善，但這不是 Hints Array 效能提升的主因。主因是這 16 個 Hints 本身就已經內聚在同一個已載入的 Cache Line 中，不需要依賴 Prefetcher 跨區塊抓取。"
+  C:
+    text: "因為當資料量達到 **Out-of-Memory** 並寫入 SSD 時，Linear Search 產生的 Page Fault 機率遠低於傳統的 Binary Search。"
+    explanation: "錯誤。Hints Array 的優化完全是針對 CPU 快取命中率（L1/L2/L3 Cache Locality）進行的 In-Memory 加速，與磁碟 I/O 或 Page Fault 沒有直接因果關係。"
+  D:
+    text: "因為這 16 個 Hints 已經涵蓋了該 Leaf 內部所有的 Key，所以在這個階段就能直接回傳正確答案，完全省略了後續的搜尋步驟。"
+    explanation: "錯誤。Hints 只是「均勻取樣」的 16 個前綴（Prefixes），它只能用來快速「縮小」邊界範圍，並不能代表完整的資料，後續仍然需要進行局部的搜尋與真實 Key 的比對。"
+answer: "A"

@@ -1,0 +1,21 @@
+author: fffelix-huang
+date: 2026-05-27
+question: |
+  某 Btrfs（CoW 檔案系統）的 B-tree 深度為 4：leaf → parent → grand-parent → root。每個 block 4KB，改一個 leaf 需沿 path 重寫這 4 個 block。
+
+  現在在**同一個 transaction** 內修改了**兩個共用同一個 parent 的相鄰 leaf**，Btrfs 將這些修改合併進同一棵新 tree。這次 flush 實際寫出幾個新 block？
+options:
+  - text: "5 個：2 個新 leaf，加上共用的 parent、grand-parent、root 各重寫一次。"
+    correct: true
+    explanation: |
+      兩個 leaf 共用同一個 parent，因此也共用同一個 grand-parent 與 root。同一個 transaction 內的修改合併進**同一棵**新 tree，path 上被共用的祖先節點只重寫**一次**：2 個新 leaf + parent + grand-parent + root = **5 個**。
+      這就是 amortize：共用越多上層 path，平均成本越低。WAF = 5×4KB / (2×4KB) = **2.5x**，低於單獨改一個 leaf 的 4x。
+  - text: "8 個：每個 leaf 各自沿 path 往上重寫 4 個 block，共 2 × 4 = 8 個。"
+    explanation: |
+      這假設兩次修改是各自獨立的 transaction。但兩者在同一個 flush 內且共用 parent，合併進同一棵新 tree 時，共用的 parent / grand-parent / root 不會被重寫兩次。8 個是「沒有 batching」的上界。
+  - text: "2 個：只有被改到的兩個 leaf 需要新 block，上層 pointer 原地更新即可。"
+    explanation: |
+      這違反 CoW 原則：任何 block 一旦寫過就不能原地覆蓋。指向新 leaf 的 pointer 存在 parent 裡，parent 也必須寫新的一份，並一路 cascade 到 root。這正是 pointer cascade（wandering tree problem）。
+  - text: "4 個：兩個相鄰 leaf 合併成一個新 block，再加 parent、grand-parent、root。"
+    explanation: |
+      CoW 不會把兩個不同的 leaf 合併成一個 block，它們是獨立節點，各自重寫成一個新 leaf。4 個是「只改一個 leaf」的寫入量；改兩個共用 path 的 leaf，會多出第二個新 leaf，共 5 個。

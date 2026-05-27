@@ -1,0 +1,20 @@
+author: fffelix-huang
+date: 2026-05-27
+question: |
+  Niko 的文字編輯器每 30 秒 autosave 一次 `main.c`，只呼叫 `write()`，從不呼叫 `fsync()`。底層 ext4 採用 delayed allocation，periodic writeback 約每 30 秒才把 dirty page 刷進 SSD。Niko 連續編輯一小時後斷電。
+
+  重開機後他發現最後幾次 autosave 的內容不見了。為什麼？
+options:
+  - text: "`write()` 只把資料寫進 page cache，delayed allocation 又刻意延後落地；在 writeback 把這些 dirty page 刷進 SSD 之前斷電，它們就一起蒸發了。"
+    correct: true
+    explanation: |
+      編輯器顯示「已儲存」只代表資料進了 page cache，不等於已 persistent。delayed allocation 為了湊出大 extent，會把實體寫入延後到 periodic writeback（約 30 秒）或 `fsync()`。斷電發生在最近幾次 autosave 還沒被 writeback 刷下去時，這些只存在記憶體的 dirty page 隨即消失。只有 `fsync()` 能強制立刻落地。
+  - text: "因為沒呼叫 `fsync()`，autosave 其實什麼都沒寫，連 page cache 都沒更新，畫面上的內容只活在編輯器自己的記憶體裡。"
+    explanation: |
+      `write()` 一定會更新 page cache，否則後續讀取會看不到剛寫的內容。`fsync()` 的作用不是「讓 write 生效」，而是強制把已經在 page cache 的 dirty page 同步刷到 SSD。差別在落地時機，不在於有沒有寫進 cache。
+  - text: "資料其實已經寫進 SSD，遺失是因為 SSD controller 的 DRAM cache 沒 flush；這層在 OS 之下，呼叫 `fsync()` 也救不了。"
+    explanation: |
+      遺失發生在更上層：dirty page 根本還沒離開 OS 的 page cache。`fsync()` 正是用來把資料推過 page cache、並要求裝置持久化的介面，因此它能避免這個情況，而不是無能為力。
+  - text: "ext4 ordered mode 會先寫 data 再寫 metadata；metadata 沒寫完，replay 就把對應的新 data block 視為無效丟棄，連已落地的舊版本也一起被回退。"
+    explanation: |
+      問題的根因是新資料從未離開 page cache，與 journal replay 無關。replay 只會捨棄未 commit 的 transaction，不會回退先前已經安全落地的舊版本內容。已 persistent 的舊資料不受影響。

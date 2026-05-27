@@ -1,0 +1,43 @@
+author: Huaaa817
+date: 2026-03-23
+question: |
+  在一個未啟用 IOMMU 的 Linux 系統中，你使用 `O_DIRECT` 從 NVMe SSD 讀取 16KB
+  資料到 user space buffer。該 buffer 對應到 4 個連續的 virtual pages，但在
+  physical memory 中分別對應到 4 個不連續的 physical pages。
+
+  driver 使用 `get_user_pages()` 將這些 pages pin 住，並建立一個包含 4 個 entry 的
+  scatter-gather list（SGL），每個 entry 都是 (physical_address, length)，交給
+  DMA controller 執行傳輸。
+
+  在 DMA 傳輸尚未完成時，系統觸發 memory compaction，試圖移動部分 pages。
+
+  請問以下哪一個敘述是正確的？（單選）
+
+options:
+  - text: "pin pages 的主要作用是確保 scatter-gather list 中記錄的 physical address 在 DMA 期間保持有效，即使 virtual address 不變，未 pin 仍可能導致 DMA 寫入錯誤位置。"
+    correct: true
+    explanation: |
+      DMA controller（在沒有 IOMMU 的情況下）完全依賴 driver 提供的 physical address，
+      並不會查詢 page table。scatter-gather list 中記錄的是一組固定的 physical address。
+      若沒有 pin，kernel 可能進行 page migration 或 swap，導致這些 physical pages 改變或被回收。
+      即使 user space 的 virtual address 完全沒有變，DMA 仍會寫入舊的 physical address，
+      造成資料毀損。
+
+  - text: "只要使用 scatter-gather list，DMA controller 就可以在傳輸過程中根據 page table 重新解析 virtual address，因此不需要 pin pages。"
+    explanation: |
+      這個選項混淆了 scatter-gather 與 virtual memory。SGL 中存的是 physical address，
+      DMA controller 並不會在傳輸時查詢 page table 或重新做 virtual-to-physical 轉換。
+      scatter-gather 只是讓 DMA 可以處理多段不連續的 physical memory，並不提供任何動態位址轉換能力。
+      因此如果 physical page 被移動，SGL 仍會失效。
+
+  - text: "因為使用 O_DIRECT 繞過 page cache，kernel 不會再對這些 pages 進行 migration 或 compaction，因此 pin 並非必要。"
+    explanation: |
+      O_DIRECT 只代表 I/O 不經過 page cache，並不代表 kernel 不會對這些 pages 做 memory management。
+      user pages 仍然屬於一般的 virtual memory 管理範疇，可能被 migration、swap（若未 pin）或 compaction 影響。
+      因此 O_DIRECT 並不能取代 pinning 的需求。
+
+  - text: "如果改成先 DMA 到一塊 kernel 中的 contiguous buffer，再 memcpy 到 user buffer，則為了確保 memcpy 正確，user buffer 仍需要在整個 DMA 過程中被 pin。"
+    explanation: |
+      在這種設計下，DMA 的目標是 kernel buffer，而不是 user buffer。需要穩定的是 kernel 的 DMA buffer（其 physical address），
+      而不是 user buffer。memcpy 是 CPU 經由 virtual address 存取 user memory，會透過 MMU 做正確轉換，
+      不依賴固定的 physical address，因此 user buffer 不需要因為 DMA 而被 pin。

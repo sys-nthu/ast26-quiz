@@ -1,0 +1,19 @@
+author: YYL-1220
+date: 2026-04-01
+question: |
+  在資料庫系統中， B+ tree 被廣泛用於實作索引。假設我們有一個 Fan-out 為 f、高度為 h 的 B+ tree ，關於其處理查詢時的操作邏輯與效能特點，下列哪一個敘述最準確？
+options:
+  - text: "所有的資料記錄僅儲存在 leaf nodes ，這使得每次查詢的路徑長度固定為 h ，提供穩定的 I/O 表現。"
+    correct: true
+    explanation: |
+      由於 internal node 不存資料，節點內可以容納更多 key （有較高的 Fan-out ），且所有搜尋路徑長度一致。這種設計確保了查詢效能的穩定性，且因為 internal node 較小，更容易被快取在記憶體中。
+  - text: "在執行 point query 時，若 internal node 已包含目標 key ，搜尋可立即在該層停止並回傳資料。"
+    explanation: |
+      這是 B-tree 的特性，而非 B+ tree 。在 B+ tree 中， internal node 僅作為「導航」使用，並不儲存實際的資料列或指向資料檔案的指標。即便在 internal node 找到了對應的鍵值，搜尋仍必須持續向下進行，直到抵達 leaf node 。
+  - text: "如果希望優化對連續範圍資料的查詢效率，可以在 B+ tree 的各個層級（包括 internal node 與 leaf node ）都建立了水平的 doubly linked list 。"
+    explanation: |
+      雖然 B+ tree 確實使用 linked list 來加速範圍查詢，但這種結構僅存在於 leaf nodes 之間。這讓系統在找到範圍的起點後，可以直接順著串列掃描後續資料，而不需要反覆回到 parent node 。
+  - text: "透過減少每個節點能容納的 key 的數量（即降低 f ），可以有效降低樹的高度 h ，從而減少磁碟 I/O 次數。"
+    explanation: |
+      根據 B+ tree 的結構公式，樹的高度 $h \approx \log_f N$ 。因此，「增加」分支度 f （讓每個節點裝更多鍵值）才會讓樹變得更扁平，進而「降低」高度 h 。減少 f 反而會使樹變高，增加 I/O 負擔。
+

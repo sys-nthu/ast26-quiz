@@ -1,0 +1,50 @@
+author: WayneHuang1185
+date: 2026-03-31
+question: |
+  某資料庫考慮把一個 table 的 page layout 從 slotted page 改成 fixed-length page。
+  已知條件如下：
+  page 大小為 8 KB ，page header 為 24 B。
+  在 slotted page layout 下，
+  -每筆 record 需要 4 bytes 的 slot。
+  -額外的 slot 讀取成本可視為 5 ns / record。
+  而在 fixed-length page layout 下
+  -每筆 record 不需要額外的 slot。
+  每讀一個 page 到 CPU 可見層級的成本，視為 800 ns / page。
+ 
+  這個 table 的 schema 如下：
+  固定部分為 48 B。
+  另外有一個 comment 欄位，固定大小為 80 B。
+  但是只有 5% 的 record 真的有 comment。
+  其餘 95% 的 record，comment = NULL。
+  現在有 1,000,000 筆 record，要做一次 sequential scan。
+  請問改成 fixed-length page 之後，哪一個選項最正確地描述總讀取時間的變化與原因。
+
+options:
+  - text: 改成 fixed-length page 之後反而比較慢，因為雖然少了 slot 讀取，但每筆 record 都必須預留 80 B 的 comment 空間，導致每個 page 能放的 record 大幅減少；增加的 page 讀取成本超過省下的 slot 成本
+    correct: true
+    explanation: |
+       這個選項正確指出 fixed-length 雖然少了 slot 讀取，但為稀疏的 variable-length 欄位預留固定空間，導致 page utilization 下降，最後整體更慢。
+       -------------
+       詳細的計算如下:
+       在 slotted page 中，平均每筆 record 的資料大小為 48 + 0.05 × 80 = 52 B
+       再加上 slot 之後，每筆 record 平均佔用 52 + 4 = 56 B
+       每個 page 可用空間為 8192 - 24 = 8168 B，因此 slotted page 每頁可放 floor(8168 / 56) = 145 筆
+       需要的 page 數為 ceil(1,000,000 / 145) = 6897 頁。
+       總 page 讀取成本為 6897 × 800 ns = 5,517,600 ns
+       總 slot 讀取成本為 1,000,000 × 5 ns = 5,000,000 ns
+       總成本為 5,517,600 + 5,000,000 = 10,517,600 ns，約為 10.52 ms。
+       在 fixed-length page 中，每筆 record 的資料大小為 48 + 80 = 128 B
+       每個page的可用空間仍為 8168 B，因此每頁可放 floor(8168 / 128) = 63 筆
+       需要的 page 數為 ceil(1,000,000 / 63) = 15874 頁。
+       總 page 讀取成本為 15874 × 800 ns = 12,699,200 ns
+       不需要 slot 讀取成本，因此總成本為 12,699,200 ns，約為 12.70 ms。
+       如此可以得出 fixed-length page 的總成本比 slotted page 還高，改成 fixed-length page 反而比較慢。
+  - text: 改成 fixed-length page 之後一定比較快，因為每筆 record 都少讀一次 slot。
+    explanation: |
+       這個選項只看到 fixed-length 少一次 slot indirection，卻忽略 page 數大幅增加。多讀 page 的成本比省下的 slot 成本還大。
+  - text: 兩者速度幾乎相同，因為只有 5% 的 record 有 comment，大多數 record 都不受 layout 影響。
+    explanation: |
+       正因為只有 5% 的 record 有 comment，slotted page 才更有優勢，因為它只在需要時才付出那 80 B 的儲存成本。
+  - text: 改成 fixed-length page 之後一定比較快，因為 NULL 欄位本來就不佔空間，所以 fixed-length page 不會真的浪費容量。
+    explanation: |
+       這個選項把 logical NULL 和 physical layout 混在一起。即使 comment = NULL，fixed-length page 若要維持固定 offset 存取，仍必須保留那塊空間給comment。

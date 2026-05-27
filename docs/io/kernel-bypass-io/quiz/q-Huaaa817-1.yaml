@@ -1,0 +1,26 @@
+author: Huaaa817
+date: 2026-04-03
+question: |
+  某資料庫團隊考慮將 storage layer 從 `io_uring_cmd` 改為 SPDK，以進一步降低 latency。
+  下列哪個敘述最能描述兩者本質差異？
+
+options:
+  - text: "SPDK 與 `io_uring_cmd` 都完全繞過 kernel，差別為 API 不同"
+    explanation: |
+      `io_uring_cmd` 仍依賴 kernel driver，
+      SPDK 則完全在 user space 操作裝置。
+
+  - text: "SPDK 透過 polling 與 user-space driver 完全消除 syscall 與 interrupt"
+    correct: true
+    explanation: |
+      正確。SPDK 直接控制 NVMe queue，
+      透過 polling thread 避免 syscall、interrupt 與 context switch。
+
+  - text: "`io_uring_cmd` 比 SPDK 更接近硬體，因為使用 NVMe passthrough"
+    explanation: |
+      passthrough 實際仍經 kernel driver，SPDK 才是真正直接控制裝置。
+
+  - text: "SPDK 與 `io_uring_cmd` 均可避免資料複製（memcpy），因此 latency 差異主要來自 queue depth 與 batching 能力"
+    explanation: |
+      錯誤，兩者皆可支援高 queue depth 與 batching，亦可能避免 memcpy，但主要差異在於 control path。
+      io_uring_cmd 仍經 kernel，而 SPDK 完全繞過 kernel，因此效能差異不在 batching。

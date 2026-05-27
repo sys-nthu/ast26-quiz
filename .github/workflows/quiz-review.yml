@@ -1,17 +1,25 @@
 name: Quiz Review
 on:
-  pull_request:
+  pull_request_target:
     paths: ['docs/**/quiz/q-*.yaml']
 
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Fetch PR head and merge quiz files
+        run: |
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-head
+          git checkout pr-head -- 'docs/'
 
       - uses: actions/setup-node@v4
         with:
@@ -44,7 +52,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
+
+      - name: Fetch PR head and merge quiz files
+        run: |
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:pr-head
+          git checkout pr-head -- 'docs/'
 
       - uses: actions/setup-node@v4
         with:
@@ -63,6 +77,7 @@ jobs:
         run: node scripts/claude-review.js ${{ steps.changed.outputs.all_changed_files }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
 
       - name: Post Claude review results
         if: always() && steps.changed.outputs.any_changed == 'true'

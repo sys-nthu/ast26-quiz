@@ -1,0 +1,24 @@
+author: minhsun-c
+date: 2026-03-13
+question: |
+  考慮兩顆 SSD：Drive A 與 Drive B，兩者使用相同的 NAND 快閃記憶體晶片與控制器。
+  兩者的實體 NAND 總容量皆為 1024 GB。
+  - Drive A 配置了 7% 的 OP (可用容量為 960 GB)。
+  - Drive B 配置了 28% 的 OP (可用容量為 800 GB)。
+  當兩顆硬碟在持續隨機寫入負載下達到 **穩態** 後，Drive B 的吞吐量 (throughput) 
+  顯著高於 Drive A。下列哪一個選項最能解釋這種效能差距？
+
+options:
+  - text: "Drive B 擁有更大的實體 NAND 陣列，允許控制器將資料並行分布在更多的 NAND die 上，從而增加了原始匯流排頻寬。"
+    explanation: |
+      兩顆硬碟擁有相同數量的 NAND die 與實體通道。效能差距是由於韌體管理效率與空間分配所致，而非硬體並行度的差異。
+  - text: "Drive B 較高的 OP 比例降低了 WAF，這代表控制器在 GC 期間搬移有效頁面所消耗的內部頻寬較少，進而保留了更多頻寬給主機 I/O。"
+    correct: true
+    explanation: |
+      較高的 OP 為 GC 提供了更多的「喘息空間」。透過選擇有效頁面較少的區塊進行回收，控制器得以降低 WAF。這節省了內部 NAND 頻寬，使其能更多地用於主機的讀寫請求。
+  - text: "由於 Drive B 的可用容量較小，映射表 (Mapping Table) 的總條目數減少，大幅提升了快取映射表 (Cached Mapping Table) 的命中率以減少地址轉換延遲。"
+    explanation: |
+      雖然 Drive B 需要映射的 LBA 較少，但映射表大小的微小縮減幾乎可以忽略不計。穩態下的吞吐量提升是由於降低了 GC 開銷，而非映射快取命中率的改善。
+  - text: "在穩態下，Drive B 會自動停用 Wear Leveling 以優先處理主機寫入請求，而 Drive A 因容量限制必須持續執行 Wear Leveling。"
+    explanation: |
+      Wear Leveling 對於 NAND 的壽命至關重要，且無法被停用。在穩態下，控制器必須更積極地管理資料存放以尋找可用空間，而非減少管理。

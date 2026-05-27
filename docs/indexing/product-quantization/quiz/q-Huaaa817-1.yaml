@@ -1,0 +1,22 @@
+author: Huaaa817
+date: 2026-05-16
+question: |
+  在 PQ 中，假設總 code 長度固定。若我們增加 $M$（sub-vector 的數量），同時降低每個 sub-vector 可使用的 bits 數量，最可能產生什麼 trade-off？
+
+options:
+  - text: "每個子空間維度降低，但每個 codebook 的表示能力可能不足。"
+    correct: true
+    explanation: |
+      增加 $M$ 會讓每個 sub-vector 維度變小，量化問題較簡單；但在總 code 長度固定時，每段可用 bits 變少，centroid 數量也變少，因此 codebook 的表示能力可能不足，造成量化誤差上升。
+
+  - text: "因為每個子空間維度較低，所以 quantization error 會下降。"
+    explanation: |
+      這個選項只看到子空間維度降低的好處，卻忽略了每段 bits 變少會使 centroid 數量下降，因此 quantization error 不一定會下降。
+
+  - text: "lookup table 會變小，因此 recall 提升。"
+    explanation: |
+      lookup table 變小可能改善 cache 效率，但 recall 主要取決於距離近似品質；若 centroid 太少，近似誤差變大，recall 反而可能下降。
+
+  - text: "ADC 會退化成 SDC，因為 query vector 也會被壓縮。"
+    explanation: |
+      調整 $M$ 與每段 bits 不會改變 ADC 的定義；ADC 中 query 仍保持原始 float32 精度，只有 database vector 被 PQ code 表示。

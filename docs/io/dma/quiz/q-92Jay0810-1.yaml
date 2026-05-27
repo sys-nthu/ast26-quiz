@@ -1,0 +1,19 @@
+author: 92Jay0810
+date: 2026-03-18
+question: |
+  一個系統將 I/O 傳輸從 **Programmed I/O (PIO)** 改為 **DMA (Direct Memory Access)**，但在實測中發現 CPU utilization 並沒有明顯下降，甚至在某些 workload 下反而變差。
+  請分析最可能的原因：
+options:
+  - text: "DMA 傳輸過程中仍需要 CPU 持續輪詢 (polling) 裝置狀態，導致 CPU 無法釋放"
+    explanation: |
+      這其實是在描述 PIO，而不是 DMA。DMA 的核心優勢就是「不需要 CPU 持續 polling」，只在開始與結束時介入，因此這不是合理原因。
+  - text: "DMA 傳輸完成後會產生 interrupt，若傳輸粒度太小會造成頻繁 interrupt，增加 CPU 負擔"
+    correct: true
+    explanation: |
+      DMA 雖然減少資料搬運成本，但每次傳輸完成仍會觸發 interrupt。若每次傳輸的資料量太小（chunk size 過小），會導致 interrupt 次數過多，CPU 需頻繁進入 interrupt handler，造成額外負擔，甚至抵消 DMA 的效益。
+  - text: "DMA 會繞過 CPU cache，導致 CPU cache 命中率上升，進而增加 CPU stall"
+    explanation: |
+      DMA 確實可能帶來 cache coherence 問題，但「cache 命中率上升導致 stall」這個因果關係是錯誤的。實際問題通常是 cache 與 memory 資料不一致，而非命中率提升。
+  - text: "DMA 只能用於 sequential access，對 random access workload 會完全失效"
+    explanation: |
+      DMA 並不限於 sequential access，許多 DMA controller 支援 scatter-gather，可以處理非連續的記憶體區塊，因此不會因為 random access 就失效。

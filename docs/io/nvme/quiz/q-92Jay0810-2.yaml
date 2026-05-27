@@ -1,0 +1,40 @@
+author: 92Jay0810
+date: 2026-03-01
+question: |
+  在 NVMe 中，**namespace** 提供邏輯位址空間的分割，使不同應用程式可以使用同一顆 SSD 的不同區域。
+  同時，NVMe 也提供多組 **Submission Queue (SQ)** 與 **Completion Queue (CQ)**，以支援高併發 I/O。
+
+  某系統將一顆 NVMe SSD 分成兩個 namespaces，分別提供給兩個應用：
+  - App A：高 IOPS、低延遲需求（latency-sensitive）
+  - App B：大量順序寫入（throughput-oriented）
+
+  兩個應用各自使用獨立的 queue（SQ/CQ），
+  且假設兩個 namespace 共享相同的底層硬體資源（例如 NAND channels 與 controller）。
+
+  在此情境下，以下哪一項最能描述此設計的 **performance isolation**？
+
+options:
+  - text: "兩個應用已使用不同 namespace，且各自有獨立的 queue，因此 I/O 效能完全隔離，不會互相影響。"
+    explanation: |
+      雖然 namespace 提供邏輯位址空間的分離，且多 queue 提供 I/O 提交的平行性，
+      但底層硬體資源（如 NAND channels、controller）仍然是共享的。
+      因此兩個應用之間仍可能產生資源競爭，無法達到完全的效能隔離。
+
+  - text: "雖然 namespace 與 queue 都分離，但兩個應用仍可能因為共享底層裝置資源而互相影響效能。"
+    correct: true
+    explanation: |
+      namespace 僅提供邏輯位址空間的分割，而多 queue 則提升 I/O 提交的平行性。
+      然而在共享底層硬體資源的情況下，不同應用的 I/O 仍可能在 controller、
+      NAND channels 等資源上競爭，導致效能互相影響，因此無法保證完整的 isolation。
+
+  - text: "只要使用不同 namespace，即使共用同一組 queue，也能達到完整的效能隔離。"
+    explanation: |
+      namespace 的功能在於提供邏輯位址空間的分離，而非效能隔離。
+      即使使用不同 namespace，若底層資源仍然共享，應用之間仍會互相影響。
+      此外，共用 queue 反而可能增加 contention。
+
+  - text: "使用多 queue 已可確保效能隔離，因此 namespace 的主要作用是提升 I/O 平行度。"
+    explanation: |
+      多 queue 的主要目的是提升 I/O 提交的平行性並降低 lock contention，
+      而非提供效能隔離。namespace 則提供邏輯位址空間的分割。
+      兩者都無法在共享硬體資源的情況下保證效能完全隔離。

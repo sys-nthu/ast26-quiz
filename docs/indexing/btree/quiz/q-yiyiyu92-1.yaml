@@ -1,0 +1,20 @@
+author: yiyiyu92
+date: 2026-04-02
+question: |
+  當你要執行一個範圍查詢，例如 WHERE order_id BETWEEN 100 AND 500 時，
+  如果 B+Tree 共三層且 leaf node 之間沒有用 doubly linked list 串接，查詢過程會如何？
+  相較之下，有 linked list 的設計帶來什麼最明顯的優勢？
+options:
+  - text: "沒有 linked list 時仍可快速完成，因為 B+Tree 樹高只有 3 層"
+    explanation: |
+      即使 B+Tree 的樹高只有 3 層，沒有 linked list 的情況下，範圍查詢仍然需要不斷回到上層 inner node 來判斷後續該走哪個子樹，並不會因為樹比較矮就變得快速。
+  - text: "沒有 linked list 時必須反覆回到上層 inner node 判斷該走哪個 child，導致大量額外 disk I/O；有 linked list 則可從起始 leaf node 開始進行簡單的 sequential scan"
+    correct: true
+    explanation: |
+      有了 doubly linked list 之後，只要先定位到起始的 leaf node（例如 order_id = 100），後續就可以沿著 linked list 往右順序掃描，完全不需要再回到上層節點。這讓範圍查詢從複雜的樹遍歷變成簡單高效的 sequential scan，大幅減少 disk I/O 成本。
+  - text: "沒有 linked list 時範圍查詢會自動使用 prefix truncation 來提高 fan-out"
+    explanation: |
+      Prefix truncation 是用來壓縮 inner node 中 routing key 的技術，主要目的是提高 fan-out 與降低樹高，和 leaf node 是否有 linked list 沒有直接關係，兩者無法互相自動加速。
+  - text: "沒有 linked list 時查詢只需 1 次 disk I/O，因為 root node 永遠在記憶體中"
+    explanation: |
+      即使 root node 和部分 inner node 常駐在記憶體中，沒有 linked list 的範圍查詢仍然必須多次回到上層節點進行路徑判斷，因此不會只需 1 次 disk I/O。完整範圍掃描仍會產生明顯的額外開銷

@@ -1,0 +1,23 @@
+author: elfnt
+date: 2026-03-30
+question: |
+  某個 workload 的特性如下：table 的每個欄位都是 `CHAR` 固定長度，所有 record 大小完全相同（128 bytes），且幾乎沒有 `DELETE` 或 `UPDATE`，以 sequential scan 為主。\ 
+  工程師 A 主張繼續用 slotted page，工程師 B 主張換成 fixed-length page（直接用 slot number * record size 計算 offset，不需要 slot array）。\ 
+  請分析：在此 workload 下，fixed-length page 相比 slotted page 的優勢為何？同時指出 fixed-length page 在哪種常見的 schema 變化下會立刻失去優勢。
+options:
+  - text: "Fixed-length page 的優勢是省去省去每筆 record 4 bytes 的 slot entry（記錄 offset 與 length），以及存取時的間接定址成本；一旦加入 variable-length 欄位導致 row length 變動，fixed-length page 的機制就會失效。"
+    correct: true
+    explanation: |
+      省去每筆 record 4 bytes slot entry，以及存取時不需要先查 slot array 再跳到實際位置的間接成本。\
+      舊 row 在 heap 裡沒有新欄位的實際資料，新舊 row 長度不同，用 slot number * 128 計算 offset 會得到錯誤位置。
+  - text: "Fixed-length page 的優勢是省去 page header 的固定開銷；一旦有任何 `DELETE` 操作，因為 fixed-length page 無法標記洞洞，整個 page 需要立刻 compaction。"
+    explanation: |
+      Page header 是 page 層級的固定開銷，slotted page 和 fixed-length page 都需要某種形式的 metadata，並不是換成 fixed-length page 就能省掉多餘開銷。\
+      失效情境的描述也有問題：fixed-length page 處理 DELETE 的方式是用一個 bitmap 標記哪些 slot 是空的，不需要立刻 compaction，這與 slotted page 的洞洞問題性質不同。
+  - text: "Fixed-length page 的優勢是 sequential scan 時可以平行讀多個 record；一旦 workload 出現任何 index 查詢，因為 fixed-length page 沒有 CTID，index 無法定址到 record。"
+    explanation: |
+      Sequential scan 平行讀多個 record 的能力來自 page 是連續的磁碟區塊，這與 slotted page 或 fixed-length page 無關，兩種 layout 都可以做 sequential scan。\
+      CTID 是 slotted page 的定址方式，fixed-length page 有自己的定址機制（page ID + slot number * record size），index 一樣可以用 (page ID, slot number) 來定址，不存在沒有 CTID 就無法建 index 的問題。
+  - text: "Fixed-length page 的優勢是省去在 Page Header 維護 Slot Array 末端指標與 heap area 前端指標的運算開銷；一旦有 Record 被刪除，Fixed-length page 會因為沒有 Slot Array 記錄位移，導致該 Page 無法回收剩餘空間"
+    explanation: |
+      Fixed-length 的回收機制只要直接計算 offset 覆蓋即可。

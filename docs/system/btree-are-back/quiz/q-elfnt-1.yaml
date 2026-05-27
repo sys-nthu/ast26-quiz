@@ -1,0 +1,20 @@
+author: elfnt
+date: 2026-05-26
+question: |
+  BAB 論文提出 Adaptive B-Tree 會在執行時動態決定每個 leaf 要採用哪種佈局。一個 leaf 目前是 comparison-based（採用 heads + hints），但在某些條件下會轉換成其他佈局。
+  
+  下列哪個情境最可能觸發 leaf 從 comparison-based 轉換成 fingerprinting？
+options:
+  - text: "這個 leaf 裡的 key 開頭多樣性不足，相鄰 key 的 head 重複率超過 1/16，導致 heads 幾乎沒有區分能力"
+    correct: true
+    explanation: |
+      Adaptive B-Tree 的 key-adaption 機制會在 split 或 merge 時檢查 leaf 內 key 的分布特性。當相鄰 key 的 head 重複率超過 1/16 時，代表 heads 幾乎無法在 binary search 的第一步就排除不相符的 key，comparison-based 的優勢消失。這時系統會改用 fingerprinting leaf：每個 key 算一個 1-byte hash，lookup 時用 SIMD 掃描整個 fingerprint 陣列，繞過 binary search，大幅減少 cache miss。
+  - text: "這個 leaf 的 range scan 操作頻率上升，saturating counter 累積到上限，系統判斷應該改用更適合掃描的佈局"
+    explanation: |
+      saturating counter 滿了代表 scan 操作頻繁，這時系統會轉成 comparison-based，因為 comparison-based 的有序結構更適合 range scan。fingerprinting leaf 的 key 是不排序的，scan 時需要 lazy sort，反而更慢。
+  - text: "這個 leaf 的 key 都是密集整數，系統在 split 時偵測到可以改用 frame-of-reference encoding，直接用位置推導 key 是否存在"
+    explanation: |
+      這個情境觸發的是轉換成 dense leaf，而非 fingerprinting。Dense leaf 針對的是 key 為密集整數的情況，直接用 frame-of-reference encoding 消除 key 的儲存與比較。
+  - text: "這個 leaf 因為持續 insert 導致空間不足，split 之後兩個新的 leaf 各自的 key 數量變少，系統判斷 binary search 在這麼少的 key 上成本過低，故改用 fingerprinting 的 SIMD 掃描更有效率。"
+    explanation: |
+      Key 數量變少只會讓 binary search 更快，不是觸發轉換的條件。Fingerprinting 的優勢在於繞過 key 比較來減少 cache miss，而非單純減少比較次數。Split 本身確實是 key-adaption 的觸發時機，但系統評估的是 key 的分布特性（head 重複率），而非 leaf 的大小。

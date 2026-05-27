@@ -1,0 +1,22 @@
+author: Vincent5201
+date: 2026-05-11
+question: |
+  使用 4 顆硬碟組成 RAID 陣列，進行一次 partial-stripe write（只覆寫 stripe 中的一個 block）。
+  若使用 subtractive parity 策略（讀取舊 data、讀取舊 parity、計算新 parity、寫入新 data、寫入
+  新 parity），請問 RAID 0 / RAID 1 / RAID 4 / RAID 5 各需要幾次 physical I/O？
+options:
+  - text: "1 : 2 : 2 : 2"
+    explanation: |
+      請見選項B解釋。
+  - text: "1 : 2 : 4 : 4"
+    correct: true
+    explanation: |
+      RAID 0：只需 1 次寫入 I/O。RAID 1：需要 2 次寫入 I/O（主數據與鏡像數據）。
+      RAID 4 & 5：讀取舊數據、讀取舊校驗碼、寫入新數據、寫入新校驗碼，總共 4 次。
+  - text: "1 : 4 : 4 : 4"
+    explanation: |
+      請見選項B解釋。
+  - text: "1 : 2 : 2 : 4"
+    explanation: |
+      請見選項B解釋。
+      

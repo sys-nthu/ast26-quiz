@@ -1,0 +1,20 @@
+author: Huaaa817
+date: 2026-03-14
+question: |
+  一個 SSD 使用 DFTL。mapping table 的完整版本存放在 NAND flash 中，而 SRAM 中只存放一部分 mapping entries 作為 Cached Mapping Table (CMT)
+  假設 workload 為 **uniform random write across the entire SSD**，以下哪個現象最可能發生？
+  
+options:
+  - text: "CMT miss 只會增加 NAND read，不會增加 NAND write"
+    explanation: |
+      DFTL 在 CMT miss 時確實會產生額外的 translation page read，但 eviction 時如果 mapping entry 是 dirty，FTL 必須將對應的 translation page 寫回 NAND flash。由於 translation page 的寫入粒度是整個 page，而不是單一 entry，因此即使只有一個 mapping entry 被修改，也可能導致整個 translation page 被重新寫入，這會增加 NAND write 次數。
+  - text: "CMT eviction 可能導致 額外 NAND write amplification"
+    correct: true
+    explanation: |
+      在 uniform random write workload 下，大量不同的 LBA 會被更新，導致 CMT 不斷發生 miss 和 eviction。當被淘汰的 mapping entry 是 dirty entry 時，FTL 需要將修改過的 translation page 寫回 NAND flash，因此會產生額外的 NAND write。這種 translation page write 會增加整體 write amplification。
+  - text: "CMT eviction 不會影響效能，因為 mapping entry 很小"
+    explanation: |
+      mapping entry 雖然很小，但 translation page 的寫入單位是 NAND page，例如 4 KB 或 8 KB。當一個 entry 被修改時，整個 translation page 可能需要重新寫入 NAND flash，因此 eviction 仍然可能帶來顯著的寫入成本。
+  - text: "CMT eviction 只會在 sequential workload 發生"
+    explanation: |
+      CMT eviction 的發生與 workload 的 access locality 有關，而不是只會在 sequential workload 發生。實際上在 sequential workload 中，由於 locality 較好，CMT eviction 反而較少。

@@ -1,0 +1,43 @@
+author: b0yi
+date: 2026-03-06
+question: |
+  假設有一顆採用 DFTL 架構的 SSD，其 SRAM 中的 CMT (Cached Mapping Table)
+  僅能同時容納 2 個 Translation Pages (TP)。
+  快取替換策略採用 **LRU (Least Recently Used)** 演算法。
+  
+  假設初始狀態下，CMT 是**空**的。
+  
+  接著，使用者依序發出以下 4 筆存取請求：
+  1. **Write LBA_10** (假設其 Mapping Info 位於 TP_1)
+  2. **Read LBA_20**  (假設其 Mapping Info 位於 TP_2)
+  3. **Write LBA_21** (假設其 Mapping Info 位於 TP_2)
+  4. **Read LBA_30**  (假設其 Mapping Info 位於 TP_3)
+
+  請問：在依序處理完這 4 筆請求後，NAND Flash **總共**產生了多少次 TP Read、TP Write、Data Page Read 與 Data Page Write 操作？
+options:
+  - text: "3次 TP Read，1次 TP Write，2次 Data Page Read，2次 Data Page Write"
+    correct: true
+    explanation: |
+      解析每筆請求的行為：
+      1. Write LBA_10 (TP_1)：CMT Miss。載入 TP_1 (1 TP Read)，寫入資料 (1 Data Write)。TP_1 變為 Dirty。
+         - CMT: [ TP_1(D) ] (MRU: TP_1)
+      2. Read LBA_20 (TP_2)：CMT Miss。載入 TP_2 (1 TP Read)，讀取資料 (1 Data Read)。TP_2 為 Clean。
+         - CMT: [ TP_1(D), TP_2(C) ] (LRU: TP_1, MRU: TP_2)
+      3. Write LBA_21 (TP_2)：CMT Hit (因為 TP_2 已在快取中)。直接寫入資料 (1 Data Write)。TP_2 因寫入操作變為 Dirty。
+         - CMT: [ TP_1(D), TP_2(D) ] (LRU: TP_1, MRU: TP_2)
+      4. Read LBA_30 (TP_3)：CMT Miss，且容量已滿。必須剔除 LRU(TP_1)。因為 TP_1 是 Dirty，需寫回 NAND (產生 1 次 TP Write)。接著載入 TP_3 (1 TP Read)，讀取資料 (1 Data Read)。TP_3 為 Clean。
+         - CMT: [ TP_2(D), TP_3(C) ] (LRU: TP_2, MRU: TP_3)
+      
+      總計：3次 TP Read，1次 TP Write，2次 Data Page Read，2次 Data Page Write。
+  - text: "3次 TP Read，0次 TP Write，2次 Data Page Read，2次 Data Page Write"
+    explanation: |
+      錯誤原因：這個選項漏算了第 4 筆請求時，被剔除的 Victim TP (TP_1) 處於 Dirty 狀態。
+      當替換掉 Dirty 的 TP 時，必須執行寫回操作 (TP Write) 以維持資料一致性。
+  - text: "3次 TP Read，2次 TP Write，2次 Data Page Read，2次 Data Page Write"
+    explanation: |
+      錯誤原因：可能誤以為在第 4 筆請求發生 CMT Miss 時，要把快取中所有的 Dirty TP (TP_1 與 TP_2) 都寫回 NAND Flash。
+      實際上，每次替換只需剔除 1 個 Victim TP (在此為 TP_1) 即可騰出空間，因此只會產生 1 次 TP Write。
+  - text: "2次 TP Read，1次 TP Write，2次 Data Page Read，2次 Data Page Write"
+    explanation: |
+      錯誤原因：漏算了第 4 筆請求 (Read LBA_30) 所產生的 1 次 TP Read。
+      因為 TP_3 原本不在 CMT 中，必須從 NAND Flash 載入才能讀取 Mapping Info。

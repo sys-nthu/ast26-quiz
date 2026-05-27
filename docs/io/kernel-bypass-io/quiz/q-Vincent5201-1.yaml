@@ -1,0 +1,23 @@
+author: Vincent5201
+date: 2026-03-28
+question: |
+  儘管 Kernel-Bypass I/O 很強大，但並非所有情況下都適用，以下關於 Kernel-Bypass I/O 限制
+  或缺點的描述，何者錯誤?
+options:
+  - text: "Kernel-Bypass I/O 無法使用 Kernel 提供的各種功能。"
+    explanation: |
+      Kernel-Bypass I/O 犧牲了 Kernel 提供的安全檢查、硬體抽象化等大量功能，開發者必須自行
+      實作或管理這些邏輯，技術門檻與開發成本大幅增加。
+  - text: "交給 Kernel-Bypass I/O 所管理的記憶體，只有一個 process 可以使用。"
+    explanation: |
+      Kernel-Bypass 通常會讓應用程式直接接管硬體與特定記憶體區域，這種「獨佔」機制使得硬
+      體資源難以在多個不相關的 Process 之間輕鬆地進行切換與共享。
+  - text: "Kernel-Bypass I/O 由於繞過 Kernel，因此無法使用 DMA 機制進行資料傳輸。"
+    correct: true
+    explanation: |
+      Kernel-Bypass 不但沒有避免 DMA，反而高度依賴 DMA。正是透過 DMA 直接將資料搬運
+      至 user space，繞過 kernel space，才達成極高效能。
+  - text: "原則上 Kernel-Bypass I/O 會占用 CPU 執行 Polling 模式。"
+    explanation: |
+      Kernel-Bypass I/O 為了低延遲所以採用 Polling，這意味著即便在沒有資料傳輸時，
+      該 CPU 也會維持高負載，在非頻繁 I/O 的情境下會造成電力與運算資源浪費。

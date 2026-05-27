@@ -1,0 +1,23 @@
+author: tokyodealer00101
+date: 2026-05-26
+question: |
+  在一個沒有 journaling 或 Copy-on-Write 保護的簡化 filesystem 中，append 資料時可能同時改動 data block、inode size、inode extent list 與 block bitmap。若 crash 後只能依賴 `fsck` 檢查 on-disk 狀態，下列敘述何者正確？
+options:
+  - text: "`fsck` 的檢查對象是 inode、extent list 與 block bitmap 的對應關係；因此它能修正 block 配置 metadata 的矛盾，但在 metadata 都一致時無法判斷 data block 是否是這次 write 的正確內容。"
+    correct: true
+    explanation: |
+      正確。`fsck` 的角色是比對 filesystem metadata，例如 inode、extent list 與 block bitmap。bitmap 說 used 但沒有 inode 指向時，可釋放該 block；inode 指向 bitmap 仍標為 free 的 block 時，可把 bitmap 改成 used。
+
+      但 metadata 彼此一致不代表 data 內容一定正確。如果 inode size、extent 與 bitmap 都對得起來，`fsck` 沒有應用程式原本要寫入的 bytes 可供比對，因此無法判斷該 block 是否其實殘留舊資料。
+
+  - text: "`fsck` 確認 inode size、extent list 與 block bitmap 彼此一致後，就能推定 data block 內容也是最新資料，並自動清除舊資料殘留。"
+    explanation: |
+      metadata 一致不等於 data 內容正確。`fsck` 可以檢查 metadata 是否互相矛盾，但不能推回應用程式原本要寫入的資料內容。bitmap 標為 used 卻沒有 inode 指向時，則可透過釋放該 block 修復 metadata 不一致。
+
+  - text: "`fsck` 主要拿 data block 中的 bytes 和應用程式原本要寫入的內容比對，因此能直接分辨舊資料殘留；但 inode 與 bitmap 互相矛盾時仍需要應用程式 log 才能修 metadata。"
+    explanation: |
+      `fsck` 是事後比對 inode、block bitmap 等 filesystem metadata 的一致性，不是根據 data block 的語意內容判斷資料新舊。對於 inode 與 bitmap 的矛盾，`fsck` 可依 filesystem metadata 規則修復，不需要應用程式 log。
+
+  - text: "`fsck` 會把 bitmap 標為 used 但沒有 inode 指向的 block 接回原本 append 的檔案，也會在 inode 指向 bitmap free block 時刪除 inode 以避免重複分配。"
+    explanation: |
+      bitmap used 但沒有 inode 指向時，`fsck` 只能釋放該 block，無法知道它屬於哪次 append。inode 指到 bitmap free block 時，可透過把 bitmap 改成 used 來恢復 metadata 一致性，不必直接刪除 inode。

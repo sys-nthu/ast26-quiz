@@ -1,0 +1,18 @@
+author: nehs9ney
+date: 2026-03-31
+question: |
+  在一顆廠商預設 7% over-provisioning 的消費級 SSD 上，使用者將可用空間近乎寫滿並進入 steady state 後，陸續刪除了約 30% 的檔案。然而 host 端並未對這顆 SSD 發送任何 TRIM 指令。在這種情況下，若使用者繼續對該 SSD 進行寫入，最可能觀察到什麼現象？
+options:
+  - text: "SSD 的 GC 在回收 block 時，仍然會搬移那些已被 host 刪除但 SSD 仍視為 valid 的 page，導致 WAF 相較有發送 TRIM 的情況顯著上升。"
+    correct: true
+    explanation: |
+      正確。當檔案被刪除時，host 端只在自身層面處理了刪除操作，但不一定會通知 SSD。在本題的情境中 host 未發送 TRIM，因此 SSD 的 controller 無從得知哪些 page 上的資料已不再被需要，仍將其視為 valid data。GC 在回收 block 時會將這些「在 host 端已不存在但 SSD 仍認為有效」的 page 搬移到新的 block，產生無意義的額外寫入，推高 WAF。在低 over-provisioning 且高空間利用率的條件下，這個效應尤其嚴重，因為 GC 被迫更頻繁啟動，且每個 block 的 valid page ratio 被這些不必要的資料墊高。
+  - text: "沒有 TRIM 不影響 GC 的效率，因為 GC 的 victim block selection 只取決於 block 內的 invalid page 比例，而刪除檔案後這些 page 會自動變成 invalid。"
+    explanation: |
+      刪除檔案後，對應的 physical page 不會自動變成 invalid。在 SSD 的視角中，一個 page 變成 invalid 只有兩種途徑：該 LBA 被新資料覆寫（out-of-place write 使舊 page 失效），或收到 TRIM 指令。單純的檔案刪除只發生在 host 端，SSD 完全不知情，因此這些 page 仍被視為 valid。
+  - text: "沒有 TRIM 只會影響讀取效能，因為 SSD 需要額外查詢 mapping table 確認哪些 page 已被刪除，但對寫入效能和 WAF 沒有影響。"
+    explanation: |
+      SSD 的 mapping table 記錄的是 LBA 到 physical page 的對應關係，不具備判斷資料是否仍被 host 需要的能力。沒有 TRIM 時，SSD 根本不知道哪些資料已被刪除，不存在「額外查詢」的問題。TRIM 的主要影響在於寫入端：它讓 GC 能跳過已刪除的 page，減少不必要的搬移，從而降低 WAF。
+  - text: "沒有 TRIM 的影響僅限於安全性層面（已刪除的資料仍可被還原），對 SSD 的效能和壽命沒有任何影響。"
+    explanation: |
+      TRIM 確實與資料安全性有關：未經 TRIM 處理的已刪除資料在 NAND 中仍然完整存在，可能被還原。但這不是 TRIM 唯一的作用。TRIM 對效能和壽命有直接影響：它讓 SSD 提前知道哪些 page 不再需要，使 GC 在回收 block 時能跳過這些 page，降低搬移量與 WAF，進而減少 NAND 的實體磨損並提升寫入效能。

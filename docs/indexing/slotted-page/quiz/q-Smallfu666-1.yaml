@@ -1,0 +1,30 @@
+author: Smallfu666
+date: 2026-03-28
+question: |
+  某個資料庫系統使用 8 KB slotted page 來存放 heap records。page header 為 24 bytes，
+  每個 slot 為 4 bytes。某個 page 已經插入多筆 variable-length records。之後發生以下事件：
+
+  1. slot 3 與 slot 6 的 record 被 DELETE，但尚未被 VACUUM 或 page pruning 回收
+  2. slot 5 的 record 被 UPDATE，新的版本因為變大，無法原地覆寫，所以新版本被搬到 page 內另一個位置，
+     而 slot 5 改為指向新位置
+  3. 接著系統想插入一筆新的 300-byte record，卻發現雖然 page 裡有不少刪除後留下的洞洞，仍然可能插不進去
+
+  問：下列哪一個敘述最正確？
+options:
+  - text: "DELETE 掉 slot 3 和 slot 6 後，這兩個 slot 會立刻消失，因此 slot array 變短，free space 直接增加。"
+    explanation: |
+      錯。DELETE 通常只會把 slot 標成 unused 或 dead，slot 本身不會立刻移除，
+      slot array 也不會直接縮短。
+  - text: "UPDATE slot 5 後，因為 record 搬家了，所以所有指向該 record 的 CTID 都必須更新，否則 index 會失效。"
+    explanation: |
+      錯。外部通常存的是 (page id, slot number)。只要 slot 5 還在，
+      更新 slot 裡的 offset 即可，不需要改所有外部引用。
+  - text: "即使 page 內總空間看起來夠大，只要 free space 被切成不連續的碎片，新 record 仍可能插入失敗；這正是 compaction 或 pruning 要處理的問題。"
+    correct: true
+    explanation: |
+      對。這題考的是 fragmented free space 和 contiguous free space 的差別。
+      洞洞很多，不代表有一塊夠大的連續空間可放新 record。
+  - text: "Slotted page 的主要目的只是讓 variable-length record 比 fixed-length record 更省空間，與 pointer 穩定性無關。"
+    explanation: |
+      錯。Slotted page 的核心價值之一就是 slot indirection，讓 page 內部搬動 record
+      時，外部的 (page id, slot number) 仍然穩定。

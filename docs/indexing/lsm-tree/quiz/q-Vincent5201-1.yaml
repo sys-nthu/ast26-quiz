@@ -1,0 +1,26 @@
+author: Vincent5201
+date: 2026-04-02
+question: |
+  在為儲存系統選擇索引結構與 SSD 類型時，需要考慮資料結構的寫入特性與 NAND flash 的物理限制。
+  以下關於 LSM-tree 和 B+tree 分別搭配 TLC SSD 與 QLC SSD 的敘述，何者錯誤？
+options:
+  - text: "B+tree 的 in-place update 會產生大量 random write，搭配 QLC 時會比搭配 TLC 更快
+          地消耗 P/E cycle。"
+    explanation: |
+      正確敘述。B+tree 的 random write 對於 QLC 來說，會嚴重縮短其壽命。
+  - text: "在寫入密集的場景下，LSM-tree 搭配 TLC SSD 比搭配 QLC SSD 更合適，因為 TLC 有較高
+          的 P/E cycle 能更好地承受 compaction 帶來的額外寫入。"
+    explanation: |
+      正確敘述。寫入密集的場景下，LSM-tree 會因為 compaction 產生高 WAF，因此搭配 TLC SSD 
+      比 QLC SSD 更合適。
+  - text: "LSM-tree 將 random write 轉為 sequential write，降低了 SSD 內部 GC 的負擔，因此
+          是 QLC SSD 的最佳搭配。"
+    correct: true
+    explanation: |
+      雖然 sequential write 確實減輕了 GC 壓力，但 compaction 過程中同一筆資料會被反覆讀出
+      再寫回造成高 WAF，並且這個軟體層的 WAF 到了 SSD 內部還會被 GC 再放大一次
+  - text: "LSM-tree 將 random write 轉成 sequential write，因此搭配 QLC 時可以大幅減少 SSD 
+          內部產生的 GC，因此 compaction 的 WAF 是主要的寫入放大來源"
+    explanation: |
+      正確敘述。都是 sequential write 時，SSD 就可以大幅減少 GC，主要的 WAF 來源就會是 compaction。
+      

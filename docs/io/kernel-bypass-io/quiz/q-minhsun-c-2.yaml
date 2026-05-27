@@ -1,0 +1,20 @@
+author: minhsun-c
+date: 2026-03-21
+question: |
+  某企業架設了一台高效能 AI 伺服器，底層配置了 10 個由不同廠商供應的 NVMe SSD （包含不同型號與顆粒類型）。技術團隊為了壓榨出 SSD 的極致效能，打算採用 SPDK (Kernel Bypass) 框架來取代傳統的 Linux I/O Stack。
+  關於此場景下採用 SPDK 的評估，下列敘述何者最為合理？
+
+options:
+  - text: "SPDK 雖然能提供極致效能，但在此異質硬體環境下，企業必須自行承擔原本由 Linux Kernel 處理的硬體「抽象化」與「相容性」維護，開發成本將大幅增加。因此，此伺服器不建議使用 SPDK。"
+    correct: true
+    explanation: |
+      Linux Kernel 的 I/O Stack （如 VFS 和 Block Layer） 隱藏了不同廠牌 SSD 的實作差異。一旦 Bypass Kernel，應用程式就必須直接面對 10 種不同特性的 SSD，對於企業來說，維護成本往往會抵消 SPDK 帶來的效能收益。權衡之下，在這種多廠商混合的異質環境中，使用 SPDK 的綜合價值可能有限。
+  - text: "由於 SPDK 能支援多家廠商的 NVMe SSD，異質環境帶來的軟體複雜度不會顯著增加，因此使用 SPDK 不會提高維護成本。"
+    explanation: | 
+      雖然 SPDK 可以技術上支援眾多廠商的 NVMe SSD，但異質環境仍然會大幅增加軟體複雜度和維護工作量。各種不同型號 SSD 在細節上的實作差異，使得相容性調校和持續維運的難度遠高於單一廠商環境。若輕忽這方面的開銷，很可能會抵銷 SPDK 的效能優勢。
+  - text: "在 SPDK 架構下，IOMMU 無法有效隔離異質 SSD 設備，將導致安全性風險。" 
+    explanation: |
+      只要處理器和主機板支援 IOMMU，SPDK 就能確保異質 SSD 之間的安全隔離，這與廠牌種類無關。IOMMU 是硬體層級的 DMA 隔離技術，與 SPDK 和諧共處。
+  - text: "相較於 SPDK，`io_uring` 是更適合此場景的技術選項，因為它在提升效能的同時，還能自動處理異質硬體帶來的相容性問題。"
+    explanation: |
+      `io_uring` 雖然能改善 Linux 的 I/O 效能，但它的原理是透過非同步的 SQ/CQ 來減少 System call 開銷，而非自動解決異質硬體的相容性。事實上，`io_uring` 仍運行在 Kernel 之中，完全依賴原有的 VFS 和 Block Layer 來提供硬體抽象化。相較之下，SPDK 才是真正繞過 Kernel，需要在 User space 處理硬體差異的方案。因此，儘管 `io_uring` 無法在效能上與 SPDK 相提並論，但對於許多實際場景而言，它仍然是一種更平衡的選擇。

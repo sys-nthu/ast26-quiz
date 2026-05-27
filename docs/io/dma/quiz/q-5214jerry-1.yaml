@@ -1,0 +1,26 @@
+author: 5214jerry
+date: 2026-03-31
+question: |
+  一名缺乏經驗的開發者在 user space 中使用 malloc() 宣告了一個 1 MB 的記憶體陣列，
+  並試圖將這個陣列的指標位址直接傳遞給一個傳統的 DMA controller（該 controller 不支援 IOMMU），
+  要求硬體將磁碟資料寫入該位址。這個操作會引發什麼災難性的後果，其根本原因為何？
+options:
+  - text: "DMA controller 會將該 virtual address 誤認為 physical address 並直接寫入，導致覆寫到系統其他不可預知的 physical memory 區域，造成資料毀損或系統崩潰。"
+    correct: true
+    explanation: |
+      應用程式拿到的指標是 virtual address，在 physical memory 中極可能是破碎且不連續的。
+      傳統 DMA controller 看不懂 virtual address，也沒有 CPU 的 MMU 可以幫忙翻譯。
+      它會把收到的數字當成 physical address 直接覆寫，這會摧毀作業系統或其他程式的資料。
+
+  - text: "作業系統會偵測到非法的記憶體存取，立刻觸發 page fault 並將該應用程式強制終止 segmentation fault"
+    explanation: |
+      page fault 是由 CPU 的 MMU 觸發的。在這個情境中，是 DMA controller 繞過了 CPU 直接對 RAM 進行讀寫，
+      CPU 根本不知道硬體正在寫入錯誤的實體位置，因此不會觸發 page fault 來保護應用程式。
+
+  - text: "DMA controller 會自動將這 1 MB 的請求拆分成 256 個 4 KB 的 interrupt，導致 CPU 陷入 interrupt storm 而癱瘓。"
+    explanation: |
+      controller 不會因為收到錯誤的位址格式就改變其中斷行為模式。它只會忠實地對指定的錯誤位置執行連續的記憶體寫入。
+
+  - text: "記憶體分配會直接失敗，因為 malloc() 無法在作業系統中分配出高達 1 MB 且實體連續的記憶體空間。"
+    explanation: |
+      malloc() 分配的是 virtual memory，分配 1 MB 虛擬連續空間非常容易。問題不在於分配失敗，而在於開發者將 virtual address 錯誤地餵給了只懂 physical address 的硬體。

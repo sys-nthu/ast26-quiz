@@ -1,0 +1,23 @@
+author: lin131chen
+date: 2026-03-27
+question: |
+  你正在優化一個高 IOPS 的 NVMe 系統，採用 per-core queue pair 設計。為了降低 MMIO 開銷，你讓每個 core 累積 64 個 command 後才更新對應的 Doorbell Register。
+  分析結果顯示，雖然 CPU 負載因 MMIO 頻率降低而減少，但 SSD utilization 下降，且 I/O 延遲顯著上升。
+  請問造成此現象的最合理原因為何？
+options:
+  - text: "當 Submission Queue 滿時，Host 會直接丟棄新的 I/O request，導致整體 throughput 下降。"
+    explanation: |
+      實際上當 SQ 滿時，Host 會進入等待（backpressure），而非直接 drop request。
+      
+  - text: "Doorbell Batching 導致 Controller Starvation，使 SSD 無法即時得知新的 command 而處於 idle 狀態。"
+    correct: true
+    explanation: |
+      Doorbell Batching 會延遲通知 NVMe controller 有新的 command，導致 controller 在兩次 doorbell 更新之間無法取得新的工作，進而產生 Controller Starvation，使 SSD 長時間處於 idle 狀態，並造成 I/O latency 上升。
+      
+  - text: "PCIe bandwidth 成為瓶頸。"
+    explanation: |
+      若 PCIe 頻寬成為瓶頸，代表傳輸匯流排已接近飽和。在此情況下，SSD 應持續處於高利用率以輸出最大頻寬，而非如題幹所述出現 utilization 下降與 idle 的現象。
+      
+  - text: "CQ 滿導致 SSD 停止所有正在進行以及後續的 I/O 操作。"
+    explanation: |
+      當 CQ 滿時，SSD 無法再寫入新的 completion，因此會停止從 SQ 取得新的 command；但已經在執行中的 I/O 仍會完成，而不會被中途停止。

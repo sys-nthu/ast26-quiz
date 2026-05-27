@@ -1,0 +1,18 @@
+author: nehs9ney
+date: 2026-03-31
+question: |
+  你在實驗室挖到一顆前人留下來的 2 TB QLC SSD，其平均 P/E cycle count 約為 900 次，已接近該顆 QLC SSD 的額定 P/E cycle 壽命。你打算將它用於一個幾乎只有讀取、極少寫入的 workload。在這種使用情境下，你最可能面臨什麼挑戰？
+options:
+  - text: "因為該 workload 幾乎不包含寫入，P/E cycle count 在使用期間不會再有明顯上升，SSD 壽命不會進一步縮短。"
+    explanation: |
+      即使 host 端幾乎沒有寫入，SSD 內部仍可能因為 retention 維護（定期 rewrite / refresh 即將超出 ECC 修正範圍的資料）而產生額外的 P/E cycle 消耗。老化的 QLC 電荷流失速率較快，controller 需要更頻繁地執行這類維護性寫入，同樣會推升 P/E cycle count。
+  - text: "因為幾乎沒有寫入，不太需要 GC 搬移資料，所以幾乎不會產生 Write Amplification。"
+    explanation: |
+      在該情境下 GC 確實不會頻繁觸發，但 WAF 不只來自 GC。老化 NAND 需要的 retention rewrite 屬於 SSD 內部的維護性寫入，即使 host 端完全沒有寫入操作，這些內部寫入同樣會產生 Write Amplification。
+  - text: "由於這顆 QLC SSD 已接近其額定 P/E cycle 壽命，controller 可能需要更多次的 read retry 才能正確讀取資料，導致其 read throughput 低於該 SSD 在全新且經過 steady state 時的表現。"
+    correct: true
+    explanation: |
+      正確。隨著 P/E cycle 累積，NAND cell 的 threshold voltage distribution 會因 oxide 磨損而逐漸變寬。QLC 需要區分 16 個 voltage level，各 level 之間的 margin 本就極窄，老化後更容易重疊。controller 需要透過 read retry 來正確判讀資料，這些操作會增加讀取延遲，降低 read throughput。
+  - text: "幾乎沒有寫入就不會觸發頻繁的 GC，所以在此情境下 SSD 的老化不會影響 read throughput。"
+    explanation: |
+      在給定情境下 GC 頻率確實不高，但 read throughput 下降的主因並非 GC 干擾，而是 NAND cell 本身的物理老化。老化 QLC cell 的 threshold voltage distribution 變寬，使得 controller 需要額外的 read retry 時間。此外 retention 維護的背景 rewrite 也會佔用 NAND 頻寬，間接影響讀取效能。

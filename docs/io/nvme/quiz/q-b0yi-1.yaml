@@ -1,0 +1,23 @@
+author: b0yi
+date: 2026-03-21
+question: |
+  你正在優化一個部署在 32 核 CPU 伺服器上的向量資料庫。
+  為了處理大量 4KB 隨機寫入（極高 IOPS 需求），你將 NVMe 驅動程式設定為 Per-core Queue Pair 模式。
+  請問下列關於該系統為了達到最佳效能的運作敘述，哪一個是「正確」的？
+options:
+  - text: "由於有 32 個核心同時發送 4KB 指令，為了避免指令在 PCIe 匯流排上碰撞，軟體必須在 SQ 中加入 Spinlock，確保同一時間只有一個核心能更新 Doorbell Register。"
+    explanation: |
+      Per-core Queue 的精髓就是消滅 Lock。因為 Core 7 擁有專屬的 SQ7，它不需要跟其他核心搶資源，所以 Lock-less。
+
+  - text: "當 Core 7 寫入指令到 SQ7 的下一個空位後，它必須更新 SQ7 的 Doorbell Register（一個 MMIO 寄存器），這動作相當於發信號告訴 SSD 控制器：「SQ 裡有新指令，請透過 DMA 讀取」。"
+    correct: true
+    explanation: |
+      軟體寫完 SQ（DRAM）後，必須按一下 Doorbell（MMIO），SSD 才會知道要去搬東西。這是觸發整個 I/O 流程的發令槍。
+
+  - text: "在完成階段，NVMe 控制器會將結果寫入 CQ，並由軟體自動更新 CQ 的 Tail 指標。只要軟體讀取了結果，控制器就會立刻知道該位置已空出，不需要額外的 Doorbell 更新。"
+    explanation: |
+      軟體處理完 CQ 的結果後，必須更新 CQ 的 Head Doorbell，告訴控制器：「我已經消費了這些完成結果，你可以覆蓋掉了」。如果沒有這個動作，控制器會以為 CQ 還是滿的，導致後續無法寫入新的完成報告。
+
+  - text: "雖然資料分散在不連續的物理分頁，但因為使用的是 4KB 小碎塊寫入，NVMe 控制器可以直接利用虛擬位址（Virtual Address）透過匯流排抓取資料，不需透過 PRP 或 SGL 進行位址轉換。"
+    explanation: |
+      DMA 永遠只認物理位址。即使只有 4KB，只要它在物理上與前一段資料不連續，就必須透過 PRP 或 SGL 這張「物理地圖」來導引 SSD 搬運工。

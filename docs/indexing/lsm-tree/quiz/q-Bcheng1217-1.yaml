@@ -1,0 +1,18 @@
+author: Bcheng1217
+date: '2026-04-01'
+question: |
+  某資料庫底層使用 LSM-Tree。團隊將合併策略由 leveled 改為 tiered compaction，並縮小 Bloom filter。請問此調整對系統的三大放大效應（write、read、space amplification）的影響為何？
+options:
+  - text: "寫入放大降低。但 tiered 策略囤積舊版本資料，加上 FPR 上升導致查詢需掃描更多 SSTable，使讀取與空間放大均大幅增加。"
+    correct: true
+    explanation: |
+      Tiered 採懶惰合併，減少資料搬動而降低寫入放大；但也因囤積舊資料，使空間放大增加。此外，高 FPR 讓系統無法有效跳過不包含目標 key 的檔案，導致讀取放大惡化。
+  - text: "空間放大降低，因 tiered 會積極合併重疊的 SSTable。但寫入會從 sequential 退化為 random write，使寫入放大飆升。"
+    explanation: |
+      積極合併與確保 key 範圍不重疊是 leveled 的特性。且 LSM-Tree flush 到磁碟始終是 sequential Write ，不會退化為 random write 。
+  - text: "三種放大效應皆降低。Tiered 確保每層 SSTable 的 key 範圍不重疊，讀取時最多只需查詢一個檔案，不受 FPR 影響。"
+    explanation: |
+      三種放大效應無法同時最小化。此外，確保 key 不重疊是 leveled 的特性，tiered 為了加速寫入反而會容許範圍重疊。
+  - text: "寫入與空間放大皆降低，因 tiered 減少合併且 Bloom filter 變小省下了空間。但 FPR 上升使得讀取放大增加。"
+    explanation: |
+      雖然 tiered 能降低寫入放大，但其懶惰合併會導致被覆蓋的舊資料與 tombstone 遲遲不被回收。實測中 tiered 的空間放大甚至會膨脹達數倍，絕對不可能降低。

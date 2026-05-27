@@ -1,0 +1,22 @@
+author: nehs9ney
+date: 2026-03-31
+question: |
+  某顆 SSD 在官網標示「耐久性：600 TBW」。已知 TBW 的計算公式為：
+
+  $TBW = \frac{SSD\ Capacity \times NAND\ P/E\ Cycles}{Write\ Amplification\ Factor}$
+
+  根據這個公式與標示值，下列何者最能正確解讀 TBW 的意義？
+options:
+  - text: "這顆 SSD 在 host 端累計寫入恰好 600 TB 之後就會故障，無法再使用。"
+    explanation: |
+      TBW 是廠商在特定測試條件下的保固耐久規格，不是精確的死亡線。許多 SSD 在超過標示 TBW 後仍可繼續運作，也可能因其他因素在未達 TBW 前就發生問題。
+  - text: "這個 600 TBW 是廠商在特定測試條件（含特定 Write Amplification Factor）下得出的標示值。實際使用中，不同 workload 會產生不同的 Write Amplification Factor，因此實際可寫入量可能與標示值有顯著差異。"
+    correct: true
+    explanation: |
+      正確。從公式可知 Write Amplification Factor 位於分母，直接影響 TBW 的大小。廠商依據標準測試工作負載測出特定的 Write Amplification Factor 再算出 TBW。但使用者的實際 workload 可能產生不同的 Write Amplification Factor，導致實際可寫入量與標示值有差異。
+  - text: "公式中的 Write Amplification Factor 是 NAND flash 的固定物理常數，因此 600 TBW 的限制對所有使用情境都相同。"
+    explanation: |
+      Write Amplification Factor 並非固定常數，它受到寫入模式、OP 比例、GC 策略、是否啟用 TRIM 等多種因素影響，不同 workload 可以產生截然不同的數值。
+  - text: "公式中包含 NAND P/E Cycles，因此 TBW 代表的是最終寫入 NAND flash cell 的總實體資料量，而非 host 端寫入的資料量。"
+    explanation: |
+      恰好相反。公式的分子是 NAND 能承受的總實體寫入量，但除以 Write Amplification Factor 後，得到的 TBW 是 host 端能寫入的邏輯資料量。因此 600 TBW 指的是 host 端的寫入上限估計值。

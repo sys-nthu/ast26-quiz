@@ -1,0 +1,38 @@
+author: vinnie-lfc
+date: 2026-05-26
+question: |
+  ext4 使用 extent 來記錄檔案的 block mapping。正常情況下，一筆 extent 可以描述多個 data blocks，
+  因此能減少大檔案所需的 metadata。
+
+  但在某些 workload 下，extent 可能失去原本的壓縮優勢。
+  請問下列哪一種 workload 最可能使 ext4 需要大量 extent，
+  讓 metadata 數量隨著 data block 數量線性成長？
+
+options:
+  - text: "在 disk 已經高度 fragmented 的情況下反覆 append 4 KB。"
+    correct: true
+    explanation: |
+      正確。Extent 的優勢來自於一筆 extent 可以描述一段連續 physical blocks。
+      如果 disk 已經高度 fragmented，每次 append 的 4 KB block 都可能被分配到不連續的位置，
+      那麼一筆 extent 可能只能描述一個 block。
+
+      這時 ext4 會接近 one block one extent。
+      當 extent 數量太多、inode 放不下時，ext4 會把這些 extent 放進 extent tree。
+      因此 extent 會失去原本的壓縮優勢，metadata 數量會隨著 data block 數量線性成長。
+      
+  - text: "一次性 sequential write 一個 10 GB 大檔案到空的 ext4 filesystem。"
+    explanation: |
+      錯。這通常是 extent 最擅長的情況。
+      如果磁碟空間充足且連續，allocator 可以分配大段連續 blocks，
+      少量 extent 就能描述整個檔案。
+
+  - text: "反覆讀取同一個大檔案，使它的 data blocks 都進入 page cache。"
+    explanation: |
+      錯。讀取 workload 不會改變檔案在磁碟上的 block layout，
+      也不會讓 extent 數量增加。Page cache 只影響讀取效能，不是 extent 模型退化的原因。
+
+  - text: "建立很多 hard links 指向同一個大檔案。"
+    explanation: |
+      錯。Hard link 只是增加 directory entry 並提高 inode 的 link count。
+      它不會改變檔案 data blocks 的 physical layout，
+      因此不會讓 extent 模型變大。

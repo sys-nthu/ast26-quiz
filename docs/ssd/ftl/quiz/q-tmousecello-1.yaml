@@ -1,0 +1,18 @@
+author: tmousecello
+date: 2026-03-08
+question: |
+  現代 SSD Controller 經常透過快取技術平衡 TLC 顆粒的效能瓶頸。我們希望能在不額外增加硬體與封裝成本的前提下，有效緩解 TLC 寫入速度較慢的問題，下列哪一項技術是目前最主流且能直接達成的解決方案？
+options:
+  - text: "利用 NVMe 協定的 Host Memory Buffer (HMB) 功能，借用主機端 DRAM 作為寫入資料的快取空間。"
+    explanation: |
+      NVMe 的 HMB 技術確實是利用主機端記憶體，但其設計目的是為了存放 Mapping Table (Metadata) 設計的，而非用於快取 User Data。
+  - text: "利用 NAND Flash 顆粒內部內建的實體 SLC 區域，為寫入的資料提供快取空間。"
+    explanation: |
+      TLC 顆粒並不會內建一塊 SLC 區域，雖然早期或某些特殊應用曾混用不同製程的顆粒，但實體 SLC 顆粒極度昂貴。若增加實體的 SLC 晶片與封裝，會直接違反題幹 不額外增加硬體與封裝成本的限制。
+  - text: "依賴 Controller 內部整合的 SRAM 緩衝區，為寫入的資料提供快取空間。"
+    explanation: |
+      Controller 內部的 SRAM 容量僅數 MB，主要用於存放指令與少量 Mapping Cache，容量不足以承載使用者寫入的資料。
+  - text: "透過 FTL 演算法將部分 TLC 空間動態配置為 1-bit 模式操作，為寫入的資料提供快取空間。"
+    correct: true
+    explanation: |
+      TLC 本身是 3-bit/cell，但 FTL 可以控制只在 Cell 中寫入 1-bit 的資料（模擬 SLC 的行為）。這大幅加快了寫入速度，且因為是直接利用既有的 TLC 顆粒，不需要增加額外的硬體與封裝成本，是現代 SSD 解決 Burst Write 效能的標準做法。

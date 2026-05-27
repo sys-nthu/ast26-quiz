@@ -1,0 +1,18 @@
+author: 910605jeremy
+date: 2026-03-29
+question: |
+  在高效能資料庫引擎（如 PostgreSQL 或 MySQL InnoDB）中，關於 Slotted Page Layout 處理 Variable-length records 與頁面維護的細節，下列敘述何者正確？
+options:
+  - text: "在執行頁面重組（Page compaction）時，為了保證外部指標的有效性，Slot Array 的大小與其在 Page Header 中的索引位置必須保持不變，即便中間存在因刪除而產生的空槽（Empty slots）"
+    correct: true
+    explanation: |
+      如果 Compaction 時移動了 Slot Array 的順序，所有外部索引都會失效。因此，Compaction 僅在 Heap Area 進行物理碎片的整理，並更新 Slot Array 中對應的 Offset 值。被刪除的 Slot 會被標記為「可重用」，但在該 Slot 被新紀錄覆蓋前，它的位置必須保留。
+  - text: "當 Slot Array 空間不足以容納新的 Slot 指標時，系統會動態調整 Page Header 的起始位址或縮小 Header 固定欄位，以騰出空間給 Slot Array 使用。"
+    explanation: |
+      Page Header 的大小在分頁初始化時是固定的。 Slot Array 緊接在 Header 之後向後增長，而資料紀錄（Heap）從頁尾向前增長。當兩者相撞時，代表頁面已滿。Header 本身其位置與大小不可變動，否則硬體對齊與解析會出錯。
+  - text: "Free-space pointer 始終指向 Slot Array 結束位置與 Heap Area 開始位置之間的「絕對中點（Absolute Midpoint）」，以平衡兩端增長的壓力。"
+    explanation: |
+      這是一個錯誤的假設。Free-space pointer 通常指向 Heap Area 的頂端（最新寫入紀錄的邊界）。Slot Array 與 Heap Area 並非對稱增長：Slot Array 每次增加一個固定大小的指標，而 Heap Area 每次增加一塊變長的資料。指針的作用是標註「下一次寫入資料的起始點」，而非維持中點。
+  - text: "當頁面內的一條 record 被刪除後，為了防止 External Fragmentation，Free-space pointer 會立即更新並觸發該 record 後方所有數據的位移，以確保剩餘空間始終是物理連續的。"
+    explanation: |
+      即時重組（Immediate Compaction）會導致極高的 CPU 與 I/O 成本，因為每刪除一筆資料都要移動大量記憶體。實際操作中，系統僅將該 Slot 標記為空，並更新 Page Header 中的 Space Counting。

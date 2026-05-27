@@ -1,0 +1,24 @@
+author: vinnie-lfc
+date: 2026-04-01
+question: |
+  假設某資料庫設計將 slot 與 record 資料交錯存放，並往同一方向成長：
+  
+  [slot][record][slot][record][slot][record]
+  
+  相較於 slotted page layout，該設計在處理 variable-length record 時可能產生一些問題。
+  下列何者最不可能為此設計所造成的問題？
+options:
+  - text: "插入新 record 時可能需要搬移大量既有資料"
+    explanation: |
+      由於 record 長度不固定且交錯排列，插入時可能需要將後方資料整體移動，造成 O(n) 的成本。
+  - text: "page 內空間容易產生 fragmentation，且難以有效利用"
+    explanation: |
+     DELETE 或 UPDATE 後會留下零碎空間，且 slot 與 record 混在一起，使空間較難整理成連續區域。
+  - text: "compaction 時需要同時搬動 slot 與 record，增加實作複雜度"
+    explanation: |
+      由於 slot 與 record 沒有分離，搬移 record 時通常也需要同步調整 slot，增加實作成本。
+  - text: "會導致該 page 無法被 B+Tree 的 leaf node 正確引用"
+    correct: true
+    explanation: |
+      B+Tree leaf node 透過 (page_id, slot_number) 來引用 record，只要求 page 內能根據 slot number 找到對應資料。
+      這與 slot 與 record 的實際排列方式無關，即使採用交錯設計，仍可透過線性掃描找到 slot，因此不會影響外部索引結構的正確性。

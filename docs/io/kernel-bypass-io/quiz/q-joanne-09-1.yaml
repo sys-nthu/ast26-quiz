@@ -1,0 +1,29 @@
+author: joanne-09
+date: 2026-04-01
+question: |
+  在 CSAL 雙層架構中，一個 VM 發出大量 **4KiB 隨機寫入** 請求。SPDK polling thread 在處理這批請求時，Upstream FTL 的 write buffer 已滿，觸發了一次 **compaction**，需將 Upstream 的 chunk 搬移至 Downstream QLC Tier。
+  請問在 compaction 進行期間，下列哪一項描述 **最精確** 反映了此架構的行為與設計取捨？
+options:
+  - text: |
+      Compaction 期間，新進的 4KiB 隨機寫入會被暫停，直到 Upstream write buffer 清出空間為止。
+      由於 SPDK 採用 polling 而非 interrupt，此暫停不會讓 CPU 閒置，polling thread 仍會持續空轉偵測 CQ，因此對整體 CPU 使用率沒有影響。
+    explanation: |
+      CSAL 的 Upstream 採用 log-structured storage，compaction 是在背景非同步進行，除非 buffer 達到 hard limit，否則不會直接封鎖前端寫入路徑。
+      此外，對 CPU 沒影響是錯誤的推論：雖然 polling 本來就佔用 100% core，但 compaction 相關的 I/O 處理會消耗 polling thread 實際的處理週期 (cycles)，會與同一 thread 下服務的其他 I/O 產生排擠效應。
+  - text: |
+      透過 write shaping，compaction 會將 Upstream 的資料聚合成 sequential 大區塊寫入 QLC 裝置，使得 QLC 裝置內部的 FTL 幾乎不需要執行 GC。
+      同時，將同一個 VM (壽命相近) 的資料集中寫入相同的 host-managed block 中，能讓該區塊的資料接近同時失效，大幅降低 host-side FTL 未來的 GC 負擔與 WAF。
+    correct: true
+    explanation: |
+      完全正確。CSAL 中有兩層 GC 概念，分別為 1. write shaping 的循序大檔寫入能避免 QLC 裝置端硬體內部的 GC；2. 同 VM 短壽命資料分群在一起，則是為了當 Host 端軟體層的 FTL 需要做 GC 時，該區段多數資料已經 invalid，可以直接整塊回收，從而降低 host-side FTL 層的 WAF。
+  - text: |
+      Compaction 完成後必須更新 host FTL 的 L2P mapping。由於此映射表主體放在較慢的儲存層且不在 DRAM 中，compaction 結束後的第一批前端讀取勢必會發生大量 cache miss，嚴重惡化讀取延遲，且 SPDK 的高並發 (high queue depth) 模型無法掩蓋這種延遲，成為該架構固有的瓶頸。
+    explanation: |
+      選項有兩個明顯錯誤。第一，新寫入或 compaction 中更新的 L2P 通常會駐留在 DRAM cache 中（被標記為 dirty），並非後續的讀取就必然發生 cache miss。
+      第二，SPDK 異步非阻塞的設計，正是要讓系統在等待某個 I/O 的 metadata 載入時，CPU 能夠繼續推進處理其他 I/O，這確保了整體的總吞吐量 (throughput) 能維持飽和，不會因為單一 IO 延遲而成為吞吐量瓶頸。
+  - text: |
+      受惠於 SPDK 的 shared-nothing 架構，因為每個 SSD 裝置都被分配到專屬獨立的 worker thread，所以這兩層的 I/O 路徑完全隔離。
+      Upstream 到 Downstream 的 compaction 會由專屬的背景執行緒處理，不會影響到服務新進寫入的 Upstream thread，前端延遲的影響為零。
+    explanation: |
+      SPDK 的 shared-nothing 是以 CPU core 為單位，一個 polling thread 往往負責輪詢多個 SSD 的 queue pairs，因此它們極可能在同一個執行緒下被處理。
+      即便刻意隔開執行緒，compaction 的資料依然需要從 Upstream SSD 讀出，勢必佔用 Upstream 的 I/O 頻寬，不管在軟體還是硬體層面上，都不可能完全隔離且影響為零。

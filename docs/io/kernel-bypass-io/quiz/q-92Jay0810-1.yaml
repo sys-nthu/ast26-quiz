@@ -1,0 +1,29 @@
+author: 92Jay0810
+date: 2026-03-31
+question: |
+  某系統工程師比較兩種 I/O 設計：
+
+  - **設計 A：** 完全 kernel bypass（例如 SPDK）
+  - **設計 B：** 使用 `io_uring`（仍經 kernel，但透過 shared ring buffer 減少 syscall）
+
+  實驗發現，在某些 workload 下，設計 B 的效能接近甚至超過設計 A。
+  請分析最合理的原因：
+options:
+  - text: "io_uring 並未繞過 kernel，因此在所有情況下都會比 kernel bypass 慢"
+    explanation: |
+      io_uring 雖然仍經過 kernel，但透過 shared ring buffer 大幅降低 syscall 與 context switch 成本。
+      在某些 workload 下，kernel 的 I/O scheduling、cache 與資源管理反而能提升整體效能，因此不一定比 kernel bypass 慢。
+  - text: "io_uring 透過 shared memory queue 減少 syscall 與 context switch，同時保留 kernel 的資源管理與最佳化"
+    correct: true
+    explanation: |
+      io_uring 使用 shared ring buffer（SQ / CQ）讓 user space 與 kernel 之間以低成本溝通，顯著降低 syscall 與 context switch overhead。
+      同時仍保留 kernel 的 I/O scheduling、資源管理與快取機制，使其在非極端低延遲或 mixed workload 下，可能比 kernel bypass 更有效率。
+  - text: "io_uring 強制使用 page cache，因此在所有 workload 都比 kernel bypass 快"
+    explanation: |
+      io_uring 並不強制使用 page cache，可搭配 buffered I/O 或 direct I/O。
+      效能取決於 workload 特性，例如是否有 temporal locality，而不是必然優於 kernel bypass。
+  - text: "io_uring 主要使用 interrupt，而 kernel bypass 主要使用 polling，因此 latency 較高"
+    explanation: |
+      io_uring 並不限於 interrupt，也支援 polling（例如 IORING_SETUP_SQPOLL）。
+      同樣地，kernel bypass 常見使用 polling，但這並非唯一模式。
+      latency 表現取決於實際設定與 workload，而非由 interrupt 或 polling 單一因素決定。

@@ -1,0 +1,31 @@
+author: vinwerill
+date: 2026-03-30
+question: |
+  你正在設計一個以 B+Tree 作為索引結構的資料庫系統。雖然理想上希望樹的高度越低越好，
+  但實務上每個 node 的大小通常不會超過一個 page（例如 4 KB 或 8 KB）。
+
+  在以下四種解釋中，請判斷哪一個最合理說明為何 B+Tree 的 node 大小通常會限制在單一 page 內。
+options:
+  - text: "若一個 node 剛好對齊並完整放入單一 page，則每次存取 node 只需一次 page I/O，避免跨 page 存取帶來額外的 I/O 成本與複雜性。"
+    correct: true
+    explanation: |
+      將 node 限制在單一 page 內，可以確保一次 I/O 就能完整讀取該 node。
+      若 node 跨越多個 page，則每次存取可能需要多次 I/O，反而增加延遲，
+      抵銷降低樹高所帶來的效益，因此實務上會將 node size 控制在一個 page 內。
+
+  - text: "將 node 限制在單一 page 可確保每個 node 的 fan-out 固定，避免樹高隨資料量增加而不穩定。"
+    explanation: |
+      每個 node 的 fan-out 會隨 node size 改變，但限制 node 在 page 內並不能固定樹高。
+      樹高會隨資料量增加而自然增加，此說法誤將 I/O 考量誤解為樹高控制原因，因此不正確。
+
+  - text: "node 大小限制在單一 page 是因為作業系統不允許一次 I/O 讀取超過一個 page 的資料。"
+    explanation: |
+      作業系統並未限制單次 I/O 必須小於一個 page，實務上可以一次讀取多個 page。
+      node size 限制主要是為了降低 I/O 次數與跨 page 存取的複雜性，而不是作業系統限制。
+
+  - text: "node 應該盡量大（例如 1 MB），因為子節點數量越多樹越矮，disk I/O 次數越少，整體查詢一定更快。"
+    explanation: |
+      雖然增大 node 可以提高子節點數量、降低樹高，但若 node 超過 page，存取單個 node 時會涉及多次 I/O，
+      disk I/O 次數可能反而變多，因此過大的 node 反而可能降低查詢效能。
+      另外，資料庫寫入通常以 page 為單位，node 越大代表即使只修改少量資料，也可能需要重寫整個 node，
+      增加寫入成本。因此實務上會將 node size 限制在一個 page 內，以平衡查詢效能與寫入成本。

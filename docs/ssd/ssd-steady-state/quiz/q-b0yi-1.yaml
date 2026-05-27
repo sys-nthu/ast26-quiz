@@ -1,0 +1,55 @@
+author: b0yi
+date: 2026-03-28
+question: |
+  你正在為一間量化交易公司採購企業級 SSD，需要同時服務兩個系統：
+
+  - **系統 X（HFT 交易 Log）**：每秒產生數萬筆 4KB 隨機寫入，24 小時不間斷，
+    對 **p99 tail latency** 極度敏感，任何超過 5ms 的延遲都可能導致交易損失。
+  - **系統 Y（ML 訓練資料集）**：每週批次循序寫入一次，其餘時間幾乎全為隨機讀取，
+    對延遲無嚴格要求，但希望最大化每 GB 的成本效益。
+
+  你手邊有兩款使用**相同 NAND Flash 總量（1024 GB 實體顆粒）**的企業級 SSD，
+  預算有限，每個系統只能選一款：
+
+  | 規格 | 型號 A（Read-Intensive）| 型號 B（Write-Intensive）|
+  |---|---|---|
+  | 可用容量 | 960 GB | 800 GB |
+  | Over-Provisioning | ~7% | ~28% |
+  | 標示隨機寫入 IOPS | 500K | 300K |
+
+  兩個系統皆已部署三個月，進入 **Steady State**。
+  請問下列哪一種分配方式，最符合 Steady State 下的效能設計邏輯？
+
+options:
+  - text: "系統 X 選型號 A，系統 Y 選型號 B。型號 A 標示 500K IOPS 優於型號 B，適合高 IOPS 需求的 HFT；型號 B 高 OP 可保護系統 Y 資料的耐久性。"
+    explanation: |
+      廠商標示的 IOPS 為 Fresh State 測試數據，無法反映 Steady State 下的 tail latency 表現。
+      此外，系統 Y 寫入頻率極低，高 OP 對耐久性的幫助微乎其微，反而白白損失 160 GB 可用容量。
+      分配方向與選擇理由皆有誤。
+
+  - text: "系統 X 選型號 B，系統 Y 選型號 A。型號 B 的 OP 較高，GC 必須搬移更多 Valid Pages，controller 對資料的掌控更精細，更適合需要穩定延遲的 HFT 場景。"
+    explanation: |
+      分配方向正確，但理由有誤。
+      在一般 Greedy-policy-based GC 演算法下，controller 優先選擇 Valid Ratio **最低**的 Block，
+      目的是最小化搬移成本，而非搬移更多 Valid Pages。
+      OP 較高讓 GC 能挑到更「划算」的 Block，WAF 因此更小，而非因「掌控更精細」而改善。
+
+  - text: "兩個系統都應選型號 B。更高的 OP 在任何 Steady State 場景下都能降低 WAF，改善 tail latency 與資料耐久性，沒有理由選 OP 較低的型號 A。"
+    explanation: |
+      OP 的效益取決於寫入強度與 Duty Cycle，並非放諸四海皆準。
+      系統 Y 寫入極為稀少且以循序為主，GC 壓力本就接近於零，
+      型號 B 多出的 OP 形同閒置，卻讓系統 Y 損失 160 GB 可用容量。
+
+  - text: "系統 X 選型號 B，系統 Y 選型號 A。系統 X 的持續高強度隨機寫入需要大 OP 來壓制 GC 壓力；系統 Y 寫入頻率極低，GC 壓力幾乎為零，型號 A 的高容量更符合成本效益。"
+    correct: true
+    explanation: |
+      **系統 X → 型號 B**
+      持續高強度隨機寫入會快速耗盡 Free Block Pool。OP 不足時，
+      Greedy GC 只能選到 Valid Ratio 偏高的 Block，WAF 可達 3～5，
+      GC internal write 與 host write 競爭 NAND die，p99 latency spike 因此失控。
+      28% OP 讓 GC 有足夠「可選空間」找到 Valid Ratio 更低的 Block，WAF 壓至 < 2，
+      tail latency 保持穩定。
+
+      **系統 Y → 型號 A**
+      寫入頻率極低，idle time 充裕，controller 早已在背景完成 GC，WAF 接近 1。
+      此情境下 OP 邊際效益趨近於零；選型號 A 可多得 160 GB 可用容量，成本效益更佳。

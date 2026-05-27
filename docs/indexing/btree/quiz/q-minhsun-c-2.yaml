@@ -1,0 +1,30 @@
+author: minhsun-c
+date: 2026-04-01
+question: |
+  已知一個資料庫共有 10 億筆資料，其系統底層採用 B+ Tree ，規格如下所示：
+
+  - 每個 inner node 大小為 8 KB
+  - 每個 routing key 平均長度為 40 bytes
+  - 每個 child pointer 佔 6 bytes
+  - 每個 leaf node 可存 100 筆資料
+
+  若改用 prefix truncation 後，平均 routing key 長度從 40 bytes 壓縮到 5 bytes，fan-out 和樹高會如何變化？
+
+options:
+  - text: "Fan-out 從 178 變成 744，樹高則從 5 層降至 4 層。"
+    correct: true
+    explanation: |
+      原本的 fan-out 是 $\lfloor {8192 \over (40 + 6)} \rfloor = 178$。使用 prefix truncation 後，fan-out 則改為 $\lfloor {8192 \over (5 + 6)} \rfloor = 744$。
+
+      資料庫共有 $10^9$ 筆資料，每個 leaf node 存 100 筆，因此需要 $10^9 / 100 = 10^7$ 個 leaf node。當 fan-out 是 178 時，需要 $\lceil \log_{178}(10^7) \rceil = 4$ 層 inner node，加上 1 層 leaf，共需 5 次 disk I/O。當 fan-out 增為 744 時，需要 $\lceil \log_{744}(10^7) \rceil = 3$ 層 inner node，加上 1 層 leaf，共需 4 次 disk I/O。
+
+      Prefix truncation 不改變任何資料，只壓縮 inner node 裡的 routing key，讓每個 node 塞進更多 entry，直接拉高 fan-out、壓低樹高。
+  - text: "Fan-out 從 178 變成 744，但樹高不會改變。"
+    explanation: |
+      Fan-out 越高，每層能覆蓋的 leaf 越多，所需的層數就越少。因此 leaf node 數量固定不代表樹高固定。
+  - text: "Fan-out 從 204 變成 744，樹高則從 5 層降至 4 層。"
+    explanation: |
+      每個 entry 所佔的空間是 routing key + child pointer = 40 + 6 = 46 bytes，因此正確的 fan-out 是 $\lfloor 8192 / 46 \rfloor = 178$。若忽略 pointer 大小會高估 fan-out。
+  - text: "Prefix truncation 只對查詢一段連續範圍的資料 (range query) 有幫助，對 fan-out 沒有影響。"
+    explanation: |
+      Prefix truncation 透過壓縮 inner node 中 routing key 的大小，直接提升 fan-out。因為 leaf node 之間有雙向鏈結串列可以依序走訪，查詢一段連續範圍的資料可以很有效率，但這個和 prefix truncation 是不同的機制。

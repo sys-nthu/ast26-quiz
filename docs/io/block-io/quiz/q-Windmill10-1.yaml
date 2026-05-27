@@ -1,0 +1,28 @@
+author: Windmill10
+date: 2026-04-03
+question: |
+  以下四個場景中，哪一個最適合使用 polling 作為 I/O completion 機制？
+
+options:
+  - text: "HDD 上的資料庫，每秒數千筆 random 4KB read，每筆 I/O 約需 10ms 完成。"
+    explanation: |
+      雖然 I/O 頻率不低，但 HDD 每筆 I/O 要花 10ms。如果用 polling，
+      CPU 每次要空轉 10ms 等裝置完成，浪費大量運算資源。
+      這種延遲等級下 interrupt 更合適，CPU 可以在等待期間做其他事。
+  - text: "單核機器上的資料庫，對 NVMe SSD 發出大量 random 4KB read。"
+    explanation: |
+      雖然 NVMe 延遲低且 I/O 密度高，但 polling 會讓 CPU core
+      持續忙於檢查 completion queue。單核機器上這顆 core 同時要跑應用程式，
+      如果被 polling 佔住就無法處理其他工作。
+  - text: "NVMe SSD 上的監控系統，每隔幾秒寫入一筆 4KB log。"
+    explanation: |
+      雖然 NVMe 延遲只有約 100 微秒，但 I/O 頻率極低。兩筆 I/O 之間
+      CPU 持續空轉檢查 status register 長達數秒，浪費的資源遠超過
+      interrupt 的 context switch 成本。
+  - text: "多核機器上的資料庫，對 NVMe SSD 每秒發出數十萬筆 random 4KB read。"
+    correct: true
+    explanation: |
+      同時滿足所有條件：NVMe 的 I/O 延遲低到微秒等級，I/O 密度極高，
+      且多核環境下可以讓一顆 core 專責 polling 而不影響其他工作。
+      如果用 interrupt，每秒數十萬次 context switch 和 handler 跳轉
+      會形成 interrupt storm。改用 polling 省掉這些開銷，延遲也更低。

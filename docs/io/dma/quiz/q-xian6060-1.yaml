@@ -1,0 +1,20 @@
+author: xian6060
+date: 2026-03-15
+question: |
+  假設你正在開發一個加密通訊程式，要求所有從硬碟讀取的資料都必須經過 CPU 做 AES 加密之後才能發送給網路卡。
+  請問在這種情況下，如果不使用特殊硬體 offload，開發者能直接使用 Zero-copy 相關技術完成此任務嗎？為甚麼？
+options:
+  - text: "可以，使用 Zero-copy 可以減少資料搬運量，提高效率。"
+    explanation: |
+      Zero-copy 不須 CPU 介入，更適合靜態資料的搬移，而 AES 加密需 CPU 進行處理。
+  - text: "不可以，資料必須經過 CPU 暫存器才能進行加密運算，不能使用 Zero-copy。"
+    correct: true
+    explanation: |
+      資料必須經過 CPU 暫存器，才能進行 AES 運算。
+      Zero-copy 的核心在於「不經過 CPU 搬運」，如果資料需要經過 CPU 進行運算（如加密），資料就不能 bypass CPU。
+  - text: "可以，Zero-copy 的使用，釋放出 CPU 去做加密操作。"
+    explanation: |
+      CPU 完全沒碰到資料，無法進行加密處理。
+  - text: "不可以。因為 Zero-copy 僅支援大於 4KB 的傳輸，而 AES 加密通常是以 128-bit 為單位進行，兩者單位不相容。"
+    explanation: | 
+      干擾選項，Zero-copy 的限制不在於資料大小單位，而在於資料流向。

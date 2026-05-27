@@ -1,0 +1,41 @@
+author: vinnie-lfc
+date: 2026-03-27
+question: |
+  某 SSD 採用 hybrid FTL（log-block based），並使用 fully-associative log block。
+  每個 block 包含 $N$ 個 pages。
+
+  系統目前有一個 data block DB0（對應一段連續的 LBA 範圍），以及一個 log block LB0。
+  LB0 用來暫存對 DB0 的更新。
+
+  在某一時刻，LB0 已寫滿，且 controller 觀察到：
+
+  * LB0 中的所有 page 均對應到 DB0 的 LBA 範圍
+  * 每個 logical page 在 LB0 中最多只出現一次
+  * LB0 已包含該 LBA 範圍內所有 logical pages 的最新版本
+  * 寫入順序是連續且與邏輯位移一致的
+
+  系統接下來需要回收 LB0 並釋放空間。
+
+  請問在此情況下，FTL 最可能採用的 merge 策略與其 NAND 操作開銷為何？
+
+options:
+  - text: "採用 switch merge，無需 page read/write，只需抹除舊的 data block。"
+    correct: true
+    explanation: |
+      LB0 已完整且無重複地覆蓋 DB0 的所有 logical pages，因此可直接進行 switch merge。
+      controller 只需將 LB0 標記為新的 data block，並抹除舊的 DB0，無需進行任何 page-level 的資料搬移。
+
+  - text: "採用 full merge，需要約 $N$ 次 page read 與 $N$ 次 page write。"
+    explanation: |
+      full merge 僅在 log block 無法完整覆蓋 data block 時才需要。
+      此情境中已滿足 switch merge 條件，因此不需要進行昂貴的資料整合。
+
+  - text: "採用 partial merge，僅需讀取未被更新的 pages 並寫入新 block。"
+    explanation: |
+      partial merge 適用於 log block 僅覆蓋部分 pages 的情況。
+      本題中 LB0 已完整覆蓋所有 pages，因此不需要 partial merge。
+
+  - text: "無法進行 merge，因為 log block 必須依照寫入順序與 data block 完全一致才能處理。"
+    explanation: |
+      switch merge 的關鍵在於 logical coverage（是否完整覆蓋），
+      而非實體寫入順序是否與原 data block 相同。

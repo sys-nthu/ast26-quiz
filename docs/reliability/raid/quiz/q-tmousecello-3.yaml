@@ -1,0 +1,19 @@
+author: tmousecello
+date: 2026-05-27
+question: |
+  當我們在一個由 3 顆硬碟組成的 RAID 5 陣列中，動態加入第 4 顆已全盤填零（Zeroed）的新硬碟進行陣列重塑（Reshape）以擴充容量。
+  針對此過程中的系統行為與同位元（Parity）處理，下列敘述何者最為正確？
+options:
+  - text: "由於 XOR 邏輯運算的特性為 $x ⊕ 0 = x$，加入填滿零的硬碟並不會改變原有的同位元計算結果。因此，進階的硬體 RAID 控制器可以略過耗時的舊資料重組階段，直接將新硬碟標記為可用空間，達到瞬間擴容的效果。"
+    explanation: |
+      $x ⊕ 0 = x$ 是正確的，但要注意 **條帶寬度（Stripe Size）改變了** 。原本 64KB 的 chunk 寫兩顆碟就跨入下一個 Stripe，現在要寫滿三顆碟才換行。這會導致資料在硬碟間的排列方式完全錯位（LBA Shift），因此絕對不可能略過舊資料重組，必定要全部搬移。
+  - text: "在 Reshape 的過渡期間，系統必須將所有的 Parity blocks 集中遷移到該顆新硬碟上，暫時將拓撲退化轉換為 RAID 4，以避免在搬動資料時發生 CPU 運算瓶頸。"
+    explanation: |
+      RAID 4 確實有獨立 Parity 碟，但實務上 RAID 5 擴充是直接計算新的 Distributed Parity 對角線分佈，不會也不需要經歷轉化為 RAID 4 的過渡期，這會造成不必要的二次搬移。
+  - text: "為了維持快照的歷史版本，Btrfs 必須在每次發生 CoW 寫入時，將被覆蓋的舊資料區塊的實體位址記錄至系統的 Journaling Log 中，這導致在擁有大量快照的情況下，Btrfs 的日誌寫入負擔會超越 ext4。"
+    correct: true
+    explanation: |
+      因為擴充是破壞性寫入，舊資料被讀出並以新格式覆寫，若過程中斷，該 Stripe 既不是舊的 3 碟格式，也不是完整的 4 碟格式。因此實務上必須依賴如 metadata checkpoints 或額外的 backup file 來保證崩潰恢復 Crash Consistency。
+  - text: "Btrfs 預設強制啟用延遲分配（Delayed Allocation）機制。它會將寫入的資料暫存於記憶體（RAM）中，直到快取達到閾值或記憶體不足時才進行磁碟空間分配。只有在系統執行 `sync()` 時，才會將雙份的資料（一份寫入快照區，一份寫入主資料區）刷入硬碟，因此實際上仍存在雙重寫入。"
+    explanation: |
+      差異快取和全域指標切換兩個機制都是不存在於 RAID 的。在 Block-level RAID 中，沒有龐大的 Metadata tree 可以做全域指標切換，那是 Btrfs/ZFS 等檔案系統的做法，RAID 只能老實地透過一個個 Stripe 的 Checkpoint 推進重組進度。

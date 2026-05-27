@@ -1,0 +1,21 @@
+author: VenceChing
+date: 2026-05-18
+question: |
+  某分散式儲存系統將三副本 (replication) 改為 RS(14, 10) 以降低成本，且底層硬碟皆具備 CRC 檢驗機制。關於此系統的 error coding 原理，下列敘述何者正確？
+options:
+  - text: "RS(14, 10) 的 minimum distance d=5，能直接定位並更正任意 4 個 node 的 silent corruption。"
+    correct: false
+    explanation: |
+      d=5 時對 error 更正能力上限為 2 個 (小於 d 的一半)。若要修復 4 個 error，d 必須至少為 9。
+  - text: "若改用 RS(20, 16) 維持 4 個 node 的容錯能力，可降低 node 失效時的 reconstruction 網路傳輸成本。"
+    correct: false
+    explanation: |
+      維持 4 個 node 容錯能力代表 n-k=4。RS(20, 16) 在單一 node 失效時，需從剩餘 node 讀取 k=16 個 shard 來還原資料；相比 RS(14, 10) 的 $k=10$，反而增加了網路與 decode 計算成本。
+  - text: "相較於三副本需多花 200% 的儲存空間，RS(14, 10) 僅需 40% 的 overhead，即可容忍任意 4 個節點失效。"
+    correct: true
+    explanation: |
+      三副本策略是將一份資料完整複製兩次，因此 overhead 為 200%。RS(14, 10) 產生 n-k=4 個 parity shard，overhead 為 4/10 = 40\%。由於 MDS code 的特性，只要剩下任意 k=10 個 shard 存活就能還原資料，因此能容許任意 4 台節點損毀。
+  - text: "RS code 具有 MDS 特性，適合取代 NAND flash 內的 LDPC code 來處理隨 P/E cycle 增加的 bit error。"
+    correct: false
+    explanation: |
+      NAND flash 隨 P/E cycle 增加會產生密集的 bit flip，LDPC 能處理極高 error rate 並搭配硬體電壓感測進行 soft decoding。RS code 運算基於 symbol，缺乏處理底層類比訊號的機制，無法取代 LDPC 在實體層的作用。

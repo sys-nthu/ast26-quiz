@@ -1,0 +1,18 @@
+author: Liu-yen-fu
+date: 2026-04-20
+question: |
+  在處理高維向量搜尋時，將 Product Quantization  應用於 HNSW 索引通常會比應用於 IVF 索引導致更明顯的 Recall 下降。下列哪一個選項最精確地描述了這種現象的核心原因？
+options:
+  - text: "PQ 產生的量化誤差在 HNSW 的多層導航路徑中具有累加效應，一旦在某層選錯鄰居，後續搜尋將難以修正方向。"
+    correct: true
+    explanation: |
+      HNSW 依賴 best-first search 在圖中跳轉，每一跳都基於 PQ 後的距離。誤差可能導致搜尋陷入局部最優解或偏離目標路徑，且這種路徑偏差是不可逆的。
+  - text: "IVF 在 coarse quantization 階段已經將資料分群，雖然在 cluster 內部排序時會因為 PQ 產生誤差，但這些誤差會互相抵銷使得每個 cluster 與 query vector 的距離誤差平均下來接近 0 ，因此整個 cluster 的距離評估大致還是準的"
+    explanation: |
+      問題在於 IVF 並不是「使誤差被平均掉」，而是「限制誤差影響範圍」。IVF Recall 掉得少，是因為 coarse quantizer 已經先縮小搜尋空間到 cluster 內部，之後才用到 PQ ，所以 PQ 的誤差只影響局部排序
+  - text: "HNSW 的多層圖結構會讓 PQ 的壓縮率被迫提高"
+    explanation: |
+      PQ 的壓縮率與索引結構（ IVF 或 HNSW ）是獨立的。PQ 只是把向量切塊壓縮，不論你用什麼索引，壓縮後的資料大小和精度損失主要取決於你設定的 M ，而非圖的複雜度。
+  - text: "HNSW 節點的 degree 通常很高，在 PQ 計算大量鄰居節點的距離時會產生嚴重的浮點運算累積誤差"
+    explanation: |
+      浮點運算誤差通常極小（$10^{-7}$ 等級），不足以破壞索引。HNSW-PQ 的問題在於 PQ 產生的距離近似值改變了節點的比較結果，導致搜尋演算法「走錯路」，而不是 CPU 算錯數。

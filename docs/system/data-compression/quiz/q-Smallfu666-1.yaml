@@ -1,0 +1,40 @@
+author: Smallfu666
+date: 2026-05-25
+question: |
+  在 Android 唯讀分割區的優化中，華為提出的 EROFS
+  成功解決了傳統 Squashfs 帶來的系統卡頓問題。已知 EROFS 採用了固定輸出
+  （Fixed-sized output）的 4 KiB 區塊設計。請根據 EROFS 的設計原理，推論下列
+  關於其「就地解壓（In-place Decompression）」與記憶體管理機制的敘述，
+  何者最為正確？
+options:
+  - text: |
+      因為每個壓縮區塊的輸出固定為 4 KiB，代表其對應的未壓縮資料也必然是固定的 4 KiB，因此可以直接進行就地解壓。
+    explanation: |
+      這是對 Fixed-sized output 的典型誤解。Fixed-sized output 的意思是
+       「compressed output / encoded block size 固定」；EROFS 接受
+      variable-sized 的原始資料，將其壓縮成 fixed-sized 的 compressed block。
+      不同資料區段的壓縮率不同，同一個 4 KiB compressed block 解壓後的原始
+      資料量是變動的（例如 8 KiB 或 16 KiB），並非固定為 4 KiB。
+  - text: |
+      EROFS 的 fixed-sized output compression 允許一個固定大小的 compressed block（例如 4 KiB）對應到變動長度的未壓縮 logical data blocks。讀取時，VFS 已為目標檔案資料配置 page cache pages；若該 compressed block 適合 in-place I/O，EROFS 可將解壓結果直接填入 page cache，從而減少額外 temporary buffer 配置與 memcpy 開銷。
+    correct: true
+    explanation: |
+      這是正確的。EROFS 採用 fixed-sized output：variable-sized 的原始 logical
+      data blocks 被壓縮成固定 4 KiB 的 compressed blocks。讀取時 VFS 已先為
+      目標檔案配置好 page cache pages；EROFS 可將壓縮資料放在 reusable page
+      上進行 in-place decompression，直接把解壓結果填入 page cache，避免傳統
+      做法中額外的 bounce buffer 配置與 `memcpy` 開銷。
+  - text: |
+      EROFS 嚴格要求每個壓縮區塊的邊界（Block Boundary）必須與檔案的邊界完全對齊，以確保在 page cache 內不會產生任何碎片。
+    explanation: |
+      EROFS 為保持高壓縮率，採取彈性的區塊布局，並不要求壓縮區塊邊界對齊檔案
+      邊界。若強求對齊反而會產生嚴重的內部碎片（Internal Fragmentation），
+      導致儲存效率下滑。
+  - text: |
+      論文當時的 EROFS 選擇使用 LZ4 演算法，是因為 LZ4 的壓縮率顯著高於 zstd，因此能讓每個 compressed block 對應更少的 page cache pages，進一步降低 in-place decompression 的記憶體需求。
+    explanation: |
+      錯。論文當時 EROFS 選擇 LZ4 的主因是 decompression speed 快，且在其
+      workload 下壓縮率足夠好（§4），而非壓縮率高於 zstd。事實上 zstd 的
+      壓縮率明顯高於 LZ4。此外，in-place decompression 能否成立主要取決於
+      fixed-sized output layout、page cache / reusable page 安排，以及該
+      compressed block 是否可安全原地解壓，並非由壓縮率高低決定。

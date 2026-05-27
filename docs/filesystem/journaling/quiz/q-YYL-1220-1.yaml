@@ -1,0 +1,23 @@
+author: YYL-1220
+date: 2026-05-24
+question: |
+  某 Linux 伺服器將 ext4 檔案系統配置為非預設的 data=journal 模式（Full Journaling Mode）。當應用程式對某個檔案進行 append 寫入操作時，系統不幸發生了無預警斷電。請問關於 data=journal 模式在處理 Crash Consistency 時的行為與影響，下列敘述何者正確？
+
+options:
+  - text: "在此模式下，data 與 metadata 都會先被完整寫入 journal 中，雖然保證了 Crash Consistency ，但會導致磁碟的 I/O 寫入量幾乎翻倍，進而降低寫入效能。
+"
+    correct: true
+    explanation: |
+      data=journal 模式運作時，任何資料寫入硬碟正式位置前，都必須原封不動地在 journaling area 寫一份。 Jouranl 確定 commit 後才把資料 checkpoint 到 filesystem 的正式區塊中，而且因為「 journaling area 寫一次、 main storage area 寫一次」造成的 write amplification，導致 disk I/O 負載接近翻倍，寫入效能明顯下降(特別是大檔案)
+  - text: "因為此模式也將資料寫入 journal，所以在系統重開機自動執行 journal replay 後，必定能完全避免任何 on-disk data 的遺失。"
+    explanation: |
+      忽略了 transaction 的 commit 點，斷電的瞬間這筆資料有可能「正在寫入 jouranl 但 transaction 還沒完成 commit 」，那重開機執行 journal replay 時， file system 會認定此 transaction 不完整，進而丟棄、忽略。所以即使資料碰到硬碟，但只要沒有 commit ，這部分資料重開機後依然會消失，它只能保證 Crash Consistency ，但無法保證資料會不會遺失。
+
+  - text: "在此模式下，若資料已寫入實體磁碟的正式位置，但 journal 還沒來得及 commit 發生斷電，重開機執行 journal replay 後會產生 Space Leak。
+"
+    explanation: |
+      data=journal 的規範下， data 與 metadata 是綁在同個 transaction 中被保護的。如果 journal 沒有 commit ，表示此 transaction 的任何更動在重開機執行 journal replay 時 ，都會被視為無效，因此系統不會承認 main storage area 有這筆新寫入的資料，此時 block bitmap 中對應區塊依然是 0 ，未來有新資料進來時，可直接覆蓋此區。 Data 與 metadata 狀態完全一致，不會產生 Space Leak ，也不需要 fsck 回收。
+  - text: "與預設的 ordered mode 相比，data=journal 模式因為精簡了寫入流程，所以在大檔案的 sequential write 情境下能提供更好的 throughput 。
+"
+    explanation: |
+      沒有精簡反而更繁複。 ordered mode 是先將 data 寫入 main storage area 再將 metadata 寫入 journal。 data=journal 則是將兩者一起寫入 journal ，再一起搬到 main storage area ，多了把 metadata 寫進 journal 的過程，在大檔案 sequential write 時，journaling area 會很快被塞滿並頻繁 Flushing ，造成嚴重的 performance bottleneck ， throughput 不降反升。

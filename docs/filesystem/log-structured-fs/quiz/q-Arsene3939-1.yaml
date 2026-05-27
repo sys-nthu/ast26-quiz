@@ -1,0 +1,22 @@
+author: Arsene3939
+date: 2026-05-23
+question: |
+  系統管理員在 NVMe SSD 上部署 F2FS，期望延長 SSD 壽命並提升效能。但運行一段時間後發現 SSD 的 write amplification 偏高、壽命消耗速度高於預期。在排除應用程式層的異常寫入後，下列何者最可能是底層架構上的根本原因？
+options:
+  - text: |
+      F2FS 採用的 Log-Structure 設計與 SSD 控制器內部的 FTL 機制發生重疊，導致作業系統與硬體各自執行 GC ( Garbage Collection )，產生重複搬移資料的現象。
+    correct: true
+    explanation: |
+      正確。這是 Log-on-Log 衝突問題。 F2FS 與硬體 FTL 都採用了 Log-Structure 與 GC 機制。當 F2FS 在作業系統層級進行 GC 來搬移有效數據時，底層的 FTL 會將這些搬移視為全新的寫入請求，進而增加硬體端的二次 GC 負擔，導致嚴重的寫入放大並損耗壽命。
+  - text: |
+      F2FS 原生的 NAT 設計無法有效處理隨機寫入，導致發生了傳統 Log-Structured File System 常見的 Wandering Tree 問題，引發大量連鎖的 metadata 覆寫。
+    explanation: |
+      錯誤。 F2FS 引入 NAT （ Node Address Table ）機制的初衷正是為了**解決** Wandering Tree 問題。 NAT 讓 metadata 的更新能夠集中在特定的記憶體與磁碟區域，避免了更新子節點時需要一路向上連鎖更新父節點到根目錄的效應。因此選項描述的因果關係與 F2FS 的實際設計相反。
+  - text: |
+      F2FS 將資料寫入對齊為 2MB 的區塊，但 NVMe SSD 的實體 Erase Block 不保證能跟。這導致 SSD 內部控制器在接收寫入指令時發生硬體中斷錯誤。
+    explanation: |
+      錯誤。 F2FS 的 2MB Segment 大小與硬體 Erase Block 不對齊，確實會影響硬體底層 GC 的效率與效能，但這只會造成管理上的 Overhead，並不會直接引發「硬體中斷錯誤」。
+  - text: |
+      F2FS 為了保證資料一致性，預設關閉了對 NVMe SSD 的非同步 TRIM 指令支援。這使得所有被刪除的檔案區塊必須等待同步清除後才能寫入新資料，進而增加了寫入次數。
+    explanation: |
+      錯誤。 F2FS 完整支援非同步 TRIM （ Async Discard ）機制，並以此來降低同步 TRIM 指令帶來的 IO 阻塞問題。且缺乏 TRIM 指令會導致無效資料堆積，但並不是造成「寫入放大偏高」的架構衝突原因。

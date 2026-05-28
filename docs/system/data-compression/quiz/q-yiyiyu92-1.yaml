@@ -1,21 +1,19 @@
 author: yiyiyu92
 date: 2026-05-27
 question: |
-  在設計唯讀檔案系統（如 Android 手機的系統分割區）時，系統必須處理大量且隨機的 $4 \text{ KB}$ Page 讀取請求。
-  若目前的硬體瓶頸主要在於 **CPU 解壓開銷（Decompression latency）** 與 **記憶體佔用**，而非單純的磁碟空間大小。
-  下列關於區塊壓縮（Block Compression）的設計抉擇，何者最符合低延遲、高隨機存取效率的工程實踐？
+  Android 系統分割區主要 workload 為 4 KB 的 random page read，硬體瓶頸在 CPU decompression latency 與記憶體佔用。下列關於 block compression 的設計，何者最符合低延遲、高隨機存取效率的工程實踐？
 options:
-  - text: "採用 Fixed-Output 模式並將輸出大小對齊 $4 \\text{ KB}$ Page，搭配解壓速度極快的演算法（如 LZ4），以實現就地解壓縮（In-place decompression）。"
+  - text: "採用 Fixed-Output 模式並將輸出大小對齊 $4 \\text{ KB}$ page，搭配解壓速度快的演算法（如 LZ4），以實現 in-place decompression。"
     correct: true
     explanation: |
       這是正確且最符合現代低延遲需求的設計（如 Android 的 EROFS 檔案系統）。
-      Fixed-Output ($4 \text{ KB}$) 可以讓壓縮後的物理區塊剛好與作業系統的 Page 對齊，除了能以 $O(1)$ 的複雜度快速定位磁碟位置外，還能直接將解壓結果寫入已分配好的 Page Cache（In-place），完美消除隨機讀取時的讀取放大（Read Amplification）並省去中間快取複製的開銷。
+      Fixed-Output ($4 \text{ KB}$) 可以讓壓縮後的物理區塊剛好與作業系統的 page 對齊，除了能以 $O(1)$ 的複雜度快速定位磁碟位置外，還能直接將解壓結果寫入已分配好的 page Cache（In-place），完美消除隨機讀取時的 read amplification 並省去中間快取複製的開銷。
   - text: "採用 Fixed-Input 模式切分較大的原始資料區塊（如 $128 \\text{ KB}$），因為大區塊能讓演算法看到更多重複資料，從而最大化壓縮率。"
     explanation: |
-      這是常見的權衡迷思。Fixed-Input 搭配大區塊雖然壓縮率好，但在面對隨機讀取 $4 \text{ KB}$ 的 Workload 時，系統會被迫將整個 $128 \text{ KB}$ 的大區塊全部讀入並解壓，造成嚴重的讀取放大（Read Amplification），這會極大地浪費 CPU 運算資源並耗盡記憶體（這正是早期 Linux 傳統 Squashfs 在手機隨機存取時導致卡頓的致命傷）。
-  - text: "無論採取何種區塊模式，都應優先選擇壓縮率最高的演算法（如 xz 或 high-level zstd），因為最大化降低快閃記憶體（Flash）的實體 I/O 次數永遠是儲存系統的第一優先考量。"
+      這是常見的權衡迷思。Fixed-Input 搭配大區塊雖然壓縮率好，但在面對隨機讀取 $4 \text{ KB}$ 的 workload 時，系統會被迫將整個 $128 \text{ KB}$ 的大區塊全部讀入並解壓，造成嚴重的 read amplification ，這會極大地浪費 CPU 運算資源並耗盡記憶體（這正是早期 Linux 傳統 Squashfs 在手機隨機存取時導致卡頓的致命傷）。
+  - text: "無論採取何種區塊模式，都應優先選擇壓縮率最高的演算法（如 xz 或 high-level zstd），因為最大化降低 flash 的實體 I/O 次數永遠是儲存系統的第一優先考量。"
     explanation: |
       錯誤。在現代高速儲存設備（如 NVMe SSD 或 UFS）上，I/O 速度已經極快。如果盲目選用 xz 等計算複雜度極高的演算法，CPU 解壓縮所花費的時間將遠遠超過省下 I/O 所賺到的時間，反而會使系統的隨機讀取延遲劣化。
   - text: "為了徹底消除解壓時的 CPU 負載，系統應該對所有儲存檔案（包含系統內已壓縮過的 JPEG 圖片或 MP4 影片）進行二次 Fixed-Output 強制壓縮。"
     explanation: |
-      錯誤。已經壓縮過的媒體檔案（如 JPEG, MP4），其資料熵（Data Entropy）已經極高、重複性極低。對其進行二次壓縮不僅無法進一步縮減空間，反而會平白無故浪費 CPU 的運算資源進行無效的解壓縮。
+      錯誤。已經壓縮過的媒體檔案（如 JPEG, MP4），data Entropy 已經極高、重複性極低。對其進行二次壓縮不僅無法進一步縮減空間，反而會平白無故浪費 CPU 的運算資源進行無效的解壓縮。

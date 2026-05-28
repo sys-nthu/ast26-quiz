@@ -1,0 +1,19 @@
+author: tmousecello
+date: 2026-05-27
+question: |
+  在儲存系統的設計中，傳統 Journaling file system（Data Journaling mode）會面臨 double-write penalty。
+  Btrfs 藉由其 Copy-on-write 機制天然地解決此問題。關於 Btrfs 快照機制對寫入效能與空間的影響，下列敘述何者正確？
+options:
+  - text: "修改已存在的資料區塊時，不僅該資料區塊會寫入新位置，還會導致從該葉節點到 B-tree 根節點的所有 metadata 發生 CoW。這雖然避免了傳統 Journaling 的 double-write，但卻導致了 metadata 的 write amplification。"
+    correct: true
+    explanation: |
+      雖然避免了 Journaling 的 double-write，但任何底層區塊的變更都會導致其父節點的指標改變，進而迫使父節點也要 CoW，一路連鎖反應到根節點，這就是 Btrfs 的 metadata 寫入放大問題。
+  - text: "Btrfs 快照完全消除了 write amplification。因為在 CoW 機制下，當修改快照中的資料時，Btrfs 只需要將異動的資料區塊寫入新位置，原有的 B-tree 結構與 metadata 區塊將保持不變，以此達到比傳統 Journaling 更高的隨機寫入效能。"
+    explanation: |
+      如果 metadata 保持不變，指標就不可能指向新的資料區塊，和需要指向新位置的需求矛盾，因此 B-tree 結構絕對不可能「保持不變」。
+  - text: "為了維持快照的歷史版本，Btrfs 必須在每次發生 CoW 寫入時，將被覆蓋的舊資料區塊的實體位址記錄至系統的 Journaling Log 中，這導致在擁有大量快照的情況下，Btrfs 的日誌寫入負擔會超越 ext4。"
+    explanation: |
+      Btrfs 是依靠 Extent Tree（維護 reference count） 來管理快照與舊資料的生命週期。舊資料之所以保留，是因為有快照的 reference count > 0，並不需要特地寫入 Journaling Log 中來追蹤舊實體位址。
+  - text: "Btrfs 預設強制啟用延遲分配（delayed allocation）機制。它會將寫入的資料暫存於記憶體中，直到快取達到閾值或記憶體不足時才進行磁碟空間分配。只有在系統執行 `sync()` 時，才會將雙份的資料（一份寫入快照區，一份寫入主資料區）刷入硬碟，因此實際上仍存在雙重寫入。"
+    explanation: |
+      新資料寫入新位置後，只要成功 atomically 更新 B-tree 根節點，新資料就正式生效。它不需要 Journal 來保護資料，因此在資料層面是完全不存在雙重寫入的。

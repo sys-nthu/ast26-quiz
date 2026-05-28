@@ -1,0 +1,24 @@
+author: elfnt
+date: 2026-05-26
+question: |
+  某工程師正在為一個大型社群平台的圖片儲存系統設計底層架構。該系統有以下特性：
+
+  - 使用者上傳的圖片一旦上傳後幾乎不會再被修改
+  - 使用者的個人資料與貼文元資料則頻繁更新
+  - 底層使用支援 ZNS 的 SSD
+
+  工程師 A 提議直接沿用傳統 F2FS，讓 F2FS 的六個 log 對應六個 zone 寫入 ZNS SSD。工程師 B 則警告說，就算採用此架構，仍有一個元件無法放在 ZNS SSD 上，必須另外配置一顆傳統 SSD。
+options:
+  - text: "F2FS 的 metadata 區域（含 NAT）；因為 NAT 必須支援 in-place update 才能斬斷 wandering tree 的連鎖更新，而 ZNS zone 僅允許循序 append，不支援覆寫。"
+    correct: true
+    explanation: |
+      NAT 存在的意義就是讓所有 node 的位置變動時，只需 in-place update NAT 這張表，從而截斷 wandering tree 的連鎖反應。若 NAT 本身也被迫只能循序 append（ZNS 的限制），那麼 NAT 自身的每次更新也會產生 wandering tree 問題，等於鎖死解不開。
+  - text: "F2FS 的 inode 區域；因為 inode 屬於 hot metadata，更新頻率高，ZNS 的循序寫入限制會造成嚴重的寫入放大。"
+    explanation: |
+      inode 確實屬於 hot metadata，但它本身就是 F2FS 六個 log 之一（hot node log）的儲存對象，設計上是透過 NAT 的間接層來解決位置變動的問題，可以正常放在 ZNS SSD 的 zone 中循序寫入。
+  - text: "F2FS 的 hot data log；因為圖片雖然不常修改，但讀取頻率極高，ZNS 的 append-only 特性會導致讀取路徑需要額外的 indirection，嚴重拖累讀取效能。"
+    explanation: |
+      ZNS 的 append-only 限制影響的是寫入路徑，與讀取路徑無直接關聯。讀取時仍可對 zone 內任意位置進行 random read，並不會因為 append-only 而增加讀取的 indirection 成本。
+  - text: "F2FS 的 cold data log；因為 cold data 幾乎不會被更新，ZNS zone 一旦寫入就很難觸發 reset，會導致大量 zone 長期被佔用無法回收，最終耗盡可用的 open zone 數量。"
+    explanation: |
+      Cold data 不常更新恰恰是它適合放在 ZNS 的原因，因為整個 zone 的資料生命週期相近，GC 時可以整批 reset，反而是最理想的使用情境。此外 ZNS 的 open zone 數量限制針對的是同時寫入的 zone 數量，cold data log 寫滿後可以關閉，並不會持續佔用 open zone 的配額。

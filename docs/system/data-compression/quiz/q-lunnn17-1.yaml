@@ -1,0 +1,20 @@
+author: lunnn17
+date: 2026-05-27
+question: |
+  在設計智慧型手機的唯讀檔案系統時，若主要目標是「減少 random access 時的記憶體消耗與 read amplification」，下列哪一種設計選擇最為合理？
+options:
+  - text: "採用 fixed-output 設計，將 block 固定為 4 KB（對齊 OS page size），並搭配 LZ4 演算法。"
+    correct: true
+    explanation: |
+      這是最合理的設計（即 EROFS 的做法）。fixed-output (4 KB) 允許 O(1) 的空間定位，且對齊 page size 可以做到 in-place decompression，節省中間 buffer 的記憶體配置。
+      搭配解壓極快的 LZ4，能有效降低手機 CPU 與電池的負擔。
+  - text: "採用 fixed-input 設計，並將 chunk size 設為 128 KB，以換取最高壓縮率。"
+    explanation: |
+      雖然 128 KB 的大 chunk 可以提升壓縮率，但當系統只需要讀取 1 byte 的資料時，會被迫觸發整塊 128 KB 的 disk I/O 與解壓縮運算，並在記憶體中配置大量 page，導致嚴重的 read amplification，這正是造成早期 Android 手機卡頓的主因。
+  - text: "不進行 block 切割，直接壓縮整份系統映像檔。"
+    explanation: |
+      如果應用程式只想讀取檔案中間的幾十個 bytes，系統必須從頭把整份檔案解壓縮才能找到目標位置，在運作中的作業系統上是完全不可行的。
+  - text: "採用 fixed-output 設計，並將壓縮演算法設為 xz (LZMA) 以獲得極高的壓縮率。"
+    explanation: |
+      雖然 fixed-output 解決了定址與讀取放大的問題，但是壓縮演算法不合適用在此場景。xz (LZMA) 雖然壓縮率極高，但其解壓縮速度太慢。
+      在手機這種 CPU 效能受限且高度依賴電池的裝置上，每次讀取檔案都要花費大量 CPU 週期解壓縮，會嚴重拖慢系統的實際 I/O 反應時間。

@@ -1,0 +1,30 @@
+author: Appledog3572
+date: 2026-05-25
+question: |
+  某個 RAID-4 系統有 12 顆磁碟（11 顆資料磁碟 + 1 顆 parity disk），
+  每顆磁碟的隨機讀寫吞吐量為 $R$ MB/s。
+  現有 10 個並發的隨機小寫請求，每個請求各自針對不同的資料磁碟。
+  這 10 個請求的總隨機寫入吞吐量最終被限制在多少？為什麼？
+options:
+  - text: '$10 \cdot R$ MB/s，因為 10 個請求分散在不同的資料磁碟，可以完全並行'
+    explanation: |
+      這個答案忽略了每次隨機寫入都必須存取 parity disk 的限制。
+      即使 10 個請求針對不同的資料磁碟，它們都需要讀取並更新**同一顆** parity disk，
+      因此無法完全並行，parity disk 成為瓶頸。
+  - text: '$11 \cdot R$ MB/s，因為資料磁碟可以完全並行，parity disk 只存放冗餘資料不影響隨機寫入速度'
+    explanation: |
+      parity disk 對隨機寫入有直接的影響。
+      每次隨機寫入（subtractive parity）都需要對 parity disk 執行一次讀（讀舊 parity）和一次寫（寫新 parity），
+      parity disk 成為瓶頸，不能被忽視。
+  - text: '$\frac{1}{2} \cdot R$ MB/s，因為所有隨機寫入都必須排隊等待同一顆 parity disk，parity disk 每個請求需 2 次 I/O'
+    correct: true
+    explanation: |
+      正確。每次隨機寫入（subtractive parity）需讓 parity disk 完成 2 次 I/O（1 讀舊 parity + 1 寫新 parity）。
+      所有請求都匯聚到同一顆 parity disk，形成瓶頸。
+      parity disk 最大吞吐量為 $R$ MB/s，每個邏輯 I/O 佔用 2 次，
+      因此邏輯寫入吞吐量固定為 $\frac{1}{2} \cdot R$，且**不隨磁碟數或並發請求數增加而提升**。
+  - text: '$\frac{12}{4} \cdot R$ MB/s，因為每個邏輯 I/O 需要 4 次實體 I/O，總吞吐量按比例均攤'
+    explanation: |
+      $\frac{N}{4} \cdot R$ 是「RAID-5」的隨機寫入吞吐量公式，不適用於 RAID-4。
+      RAID-4 的問題在於 parity 集中在單一磁碟，無論 $N$ 多大，瓶頸永遠是那一顆 parity disk，
+      吞吐量上限固定為 $\frac{1}{2} \cdot R$，不隨磁碟數增加而提升。

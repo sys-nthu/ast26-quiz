@@ -1,0 +1,47 @@
+author: vinwerill
+date: 2026-05-26
+question: |
+  在具有大量 random access 的 database workload 中，
+  若系統主要瓶頸來自 random seek 與 decompression latency，
+  下列哪種 compression 設計通常較適合？
+
+options:
+  - text: "使用 fixed-input compression 搭配 large-block design，以提升 compression ratio 並降低 metadata 數量。"
+    explanation: |
+      large-block 雖然可能提升 compression ratio，
+      但在 random access workload 中，
+      每次讀取少量資料時仍可能需要解壓整個 block。
+
+      fixed-input compression 也可能因為 output size 不固定，
+      增加 random seek 與 offset 計算成本，
+      因此不適合高頻 random access。
+
+  - text: "使用 fixed-input compression 搭配 small-block design，以降低每次 random read 需要解壓的資料量。"
+    explanation: |
+      small-block 確實有助於降低 random access 時的 decompression overhead，
+      但 fixed-input compression 的 compressed size 仍可能不固定。
+
+      因此在大量 random seek 時，
+      offset lookup 與 block 定位仍可能產生額外成本。
+
+  - text: "使用 fixed-output compression 搭配 large-block design，以利用固定輸出大小提升 random seek 效率，同時維持較高的 compression ratio。"
+    explanation: |
+      fixed-output compression 雖然有助於快速定位資料，
+      但 large-block design 仍可能使每次 random access 需要解壓大量不相關資料。
+
+      對 database workload 而言，
+      large-block 通常會增加 latency 與 cache pollution。
+
+  - text: "使用 fixed-output compression 搭配 small-block design，以降低 random access 時的解壓範圍，並簡化資料定位。"
+    correct: true
+    explanation: |
+      在大量 random access 的 database workload 中，
+      small-block design 能降低每次讀取時需要解壓的資料量，
+      減少 latency 與 memory overhead。
+
+      同時，
+      fixed-output compression 有助於快速計算 block offset 與定位資料，
+      因此更適合高頻 random seek 的情境。
+
+      雖然這種設計可能犧牲部分 compression ratio，
+      但通常能換取更好的 random access 效能。

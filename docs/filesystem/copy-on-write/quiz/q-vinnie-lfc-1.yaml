@@ -1,0 +1,33 @@
+author: vinnie-lfc
+date: 2026-05-28
+question: |
+  某 CoW filesystem 使用 4 KB block。
+  使用者修改了一個 leaf block 裡 100 bytes 的資料。
+  此 filesystem 另外把每個 data block 的 32-byte checksum 存在另一個 metadata block 中。
+  修改這筆資料時，root-to-leaf path 上的 5 個 block 必須 CoW 寫出，checksum 所在的 metadata block 也必須寫出一個新 block。
+  請問這次 write 會造成多少 bytes 的 disk write？對應的 filesystem-layer WAF 是多少（以 100 bytes 作為 WAF 的分母）？
+options:
+  - text: "20,480 bytes，WAF = 204.8。"
+    explanation: |
+      錯。這只算了 root-to-leaf path 的 5 個 blocks：
+      5 × 4 KB = 20,480 bytes。
+      但題目還要求多寫一個 checksum metadata block。
+
+  - text: "24,576 bytes，WAF = 245.76。"
+    correct: true
+    explanation: |
+      正確。root-to-leaf path 需要寫 5 個 blocks，
+      checksum metadata block 也需要寫 1 個 block。
+
+      total = 6 × 4 KB = 24,576 bytes
+      WAF = 24,576 / 100 = 245.76
+
+  - text: "4,096 bytes，WAF = 40.96。"
+    explanation: |
+      錯。這只算了 leaf block。
+      但 CoW tree 修改 leaf 後，parent 到 root 的 metadata blocks 也要寫新版本。
+
+  - text: "132 bytes，WAF = 1.32。"
+    explanation: |
+      錯。這把 100-byte data 修改和 32-byte checksum 直接相加。
+      但 filesystem-layer write 要以 4 KB block 為單位計算。

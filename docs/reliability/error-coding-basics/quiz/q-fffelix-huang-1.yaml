@@ -1,0 +1,18 @@
+author: fffelix-huang
+date: 2026-05-27
+question: |
+  某 HDD 韌體工程師要為每個 sector 選 checksum。該 sector 的典型故障是磁頭刮過磁軌，造成一段連續的 bit 同時錯誤。他在 CRC-32 與 SEC-DED Hamming code 之間選擇。為什麼 CRC-32 是更合適的 detection 選擇？
+options:
+  - text: "CRC-32 在設計上保證偵測任何長度 ≤ 32 bit 的單一 burst，剛好對應磁頭刮傷這種連續損毀；SEC-DED Hamming 是為散落的單一 bit error 設計，只能更正 1 個、偵測 2 個 bit error，遇到連續多 bit 翻會超出其能力。"
+    correct: true
+    explanation: |
+      CRC 的多項式除法結構讓它對「連續區段的 bit 翻」有確定性保證：標準 CRC-32 能抓到所有長度 ≤ 32 bit 的 burst，正好貼合磁頭刮傷的物理故障模式。SEC-DED Hamming 的設計前提是 bit error 彼此獨立、散落出現，能力上限是更正 1 bit、偵測 2 bit；一段連續多 bit 同時翻早已超出它的範圍，輕則漏判，重則誤判 error 的位置，套用更正規則把原本正確的 bit silently 改錯。
+  - text: "應該改用 SEC-DED Hamming，因為它能直接更正這段 burst，把刮傷的內容自動修回，比只能抓錯的 CRC 強。"
+    explanation: |
+      correction 不必然比 detection 強，要看是否對得上故障模式。SEC-DED 只能更正 1 個 bit，對連續多 bit 的 burst 無能為力，硬套更正規則反而會 silently 改錯。CRC 雖然只能 detect，但對這種 burst 給的是確定性偵測保證。
+  - text: "兩者對這種 burst 的偵測能力其實一樣，只要 redundancy bit 夠多就能涵蓋；CRC-32 純粹因為計算便宜才被選。"
+    explanation: |
+      計算便宜確實是 CRC 的優點，但不是它涵蓋 burst 的原因。burst 保證來自 CRC 特定的代數結構，而非「redundancy 夠多」這件事本身；以 random-error 為前提設計的 SEC-DED 並不繼承這個性質。
+  - text: "CRC-32 能偵測 burst，是因為它能定位 sector 內任意 32 個獨立隨機翻轉的 bit，random-error 能力比 Hamming 更強。"
+    explanation: |
+      這把 burst（連續區段）和「任意 32 個散落的隨機 error」混為一談。CRC 的強項是連續 burst 的偵測保證，並不保證抓到散布全 sector 的 32 個獨立隨機 error，也不負責定位。

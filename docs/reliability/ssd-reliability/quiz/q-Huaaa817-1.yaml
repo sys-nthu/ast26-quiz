@@ -1,0 +1,23 @@
+author: Huaaa817
+date: 2026-05-28
+question: |
+  某資料中心使用傳統 erasure code 保護分散式儲存資料。雖然它能容忍多個 fragment 同時失效，但工程師發現實際上大部分故障都只是單一 fragment 損壞，而每次重建都需要跨多個機櫃讀取大量資料，導致網路流量與修復延遲過高。
+  若希望優化最常見的 failure 情況，下列哪種設計最合理？
+
+options:
+  - text: "將 fragment 分群並加入 local parity，使單點失效可局部重建"
+    correct: true
+    explanation: |
+      核心問題是 single failure 很常見，但每次重建成本太高。加入 local parity 後，單點失效時只需讀取局部資料即可修復，因此能降低 cross-rack traffic 與 reconstruction latency。這也是 LRC 的核心概念。
+
+  - text: "增加更多 global parity 以提升 multi-failure 容錯能力"
+    explanation: |
+      這能提升 worst-case 容錯能力，但無法有效降低單點失效時的重建流量，還可能增加 storage overhead。
+
+  - text: "將 parity 集中放在同一台機器，方便集中管理"
+    explanation: |
+      parity 集中反而可能造成 bottleneck 或 single point of failure，也無法解決跨機櫃讀取流量過高的問題。
+
+  - text: "改用 RAID 0，避免 parity 帶來的重建成本"
+    explanation: |
+      RAID 0 沒有 redundancy，雖然沒有 reconstruction overhead，但任何 fragment 損壞都可能直接造成資料遺失。

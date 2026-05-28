@@ -1,0 +1,18 @@
+author: shirou1217
+date: 2026-05-05
+question: |
+  某個檔案系統想加入 transparent compression。當應用程式覆寫一個原本佔用 4KB 的資料區塊時，壓縮後的新內容大小可能變成 2KB，也可能因內容改變而變成 6KB。若此檔案系統採用 copy-on-write 設計，為什麼這種壓縮機制通常比在 ext4 這類 in-place update 檔案系統中更容易整合？
+options:
+  - text: "因為 copy-on-write 可以保證壓縮後的資料永遠剛好等於原本 block 大小，所以不需要更新 metadata。"
+    explanation: |
+      壓縮後的資料大小不一定等於原本 block 大小，可能變小，也可能因為內容改變而需要更多空間。copy-on-write 的優勢不是讓資料大小固定，而是它本來就會把新版本寫到新位置，再更新 pointer 與 metadata。
+  - text: "因為 ext4 完全不支援 extent，所以壓縮後的資料無法用連續 block 表示。"
+    explanation: |
+      ext4 支援 extent，而且 extent 正是用來描述連續 block 的 metadata 結構。壓縮在 ext4 中較難整合的原因不是沒有 extent，而是 in-place update 假設資料傾向回到原本位置，當壓縮後大小改變時，空間配置與 crash consistency 會變得更複雜。
+  - text: "因為 copy-on-write 本來就會把新版本寫到新的實體位置，壓縮後大小改變時，只要配置合適的新空間並更新 pointer；不像 in-place update 需要處理新資料是否塞得回原位置的問題。"
+    correct: true
+    explanation: |
+      copy-on-write 的流程本來就是 out-place update，寫入時產生新 block，然後沿著 tree path 更新 metadata，最後透過 root pointer swap 讓新版資料生效。因此壓縮後大小改變並不會破壞原本位置的配置假設，只需要讓 metadata 指向新的壓縮資料位置即可。
+  - text: "因為 copy-on-write 會先覆蓋舊資料，再把舊資料複製到 snapshot，因此壓縮可以在覆蓋完成後才執行。"
+    explanation: |
+      copy-on-write 的核心原則正是不要原地覆蓋舊 block。若系統先覆蓋舊資料，就失去了 crash consistency 與 snapshot 的基礎。正確流程是新資料寫到新位置，舊資料保持不動，必要時由 snapshot 繼續指向舊 block。

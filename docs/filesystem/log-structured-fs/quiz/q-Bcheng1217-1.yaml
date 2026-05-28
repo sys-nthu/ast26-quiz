@@ -1,0 +1,18 @@
+author: bcheng1217
+date: 2026-05-26
+question: |
+  F2FS 使用 multi-head logging 將資料分到六個不同的 logs (hot/cold separation)，其主要目的是什麼？
+options:
+  - text: "為了解決 log-on-log problem 的上下層衝突。"
+    explanation: |
+      這個選項代表了對 log-on-log problem 解法的誤解。log-on-log problem 是因為上層 F2FS 與下層 FTL 各自擁有獨立的 GC 機制，導致上下層在錯誤時機互相打架而產生。業界解決此問題的主要方法是透過 TRIM、Multi-Stream SSD 以及 ZNS 等技術，而非使用 multi-head logging。
+  - text: "為了降低 GC 時的搬移成本。"
+    correct: true
+    explanation: |
+      這是正確的。F2FS 透過 multi-head logging 實作 hot/cold separation，將資料分配到六個不同的 logs 中，其核心目的正是為了有效降低 GC 時的資料搬移成本。
+  - text: "加快記憶體中 imap 的讀取速度。"
+    explanation: |
+      這個選項將不同系統的概念混淆了。`imap` 是 1991 年 LFS 中為了追蹤 inode 位置並讓系統實際運作而提出的機制，與 F2FS 利用 multi-head logging 進行冷熱分類的設計目的無關。
+  - text: "為了讓設備的 WAF 接近 1.0。"
+    explanation: |
+      這個選項混淆了不同層次的優化技術。雖然 multi-head logging 有助於降低 WAF，但要讓設備的 WAF 真正降低至接近 1.0，必須仰賴 F2FS 與下層 ZNS 進行主機與設備間的 co-design，將上層的 segment 直接對齊下層的 zone，徹底消除快閃記憶體內部的 GC。單純依賴 F2FS 內部的 multi-head logging 是無法單獨達到 WAF ≈ 1.0 的。

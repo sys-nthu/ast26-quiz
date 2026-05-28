@@ -1,0 +1,18 @@
+author: YYL-1220
+date: 2026-04-03
+question: |
+  假設一個 LSM-Tree 儲存引擎為了追求極高的 write throughput ，選擇採用 tiered compaction 而非 leveled compaction 。在資料量持續增長且有大量更新的操作下，關於此系統的表現，下列哪一個推論最為合理？
+options:
+  - text: "由於每一層內部允許存在多個 key 範圍重疊的 SSTables ，這會導致顯著的 space amplification。 "
+    correct: true
+    explanation: |
+      這是 tiered compaction 的主要缺點。因為同一層可以有多個 SSTables 且它們的 key 的範圍是重疊的，這意味著同一個 key 的多個版本會同時散落在同一層的不同檔案中，直到觸發合併為止。這導致磁碟空間被大量舊資料佔用，即 space amplification 嚴重。
+  - text: "系統的 write amplification 會比採用 leveled compaction 時更高，因為每層都有多個重複的 key 需要頻繁合併。"
+    explanation: |
+      tiered compaction 的 write amplification 通常比 leveled compaction 低。在 tiered compaction 模式下，系統會等某一層累積了足夠數量的 SSTables 後才一次性合併到下一層，這種「批次處理」減少了資料被重複搬移和重寫的次數。
+  - text: "執行 point query 時的效能會得到提升，因為系統只需要檢查每一層中最新的一個 SSTable 即可確定資料是否存在。"
+    explanation: |
+      效能反而會下降。因為同一層有多個可能的 SSTables 含有該 key ，查詢時系統可能必須檢查該層所有的 SSTables （除非 Bloom filter 擋掉），這增加了讀取的磁碟 I/O 次數（ read amplification 較高）。
+  - text: "這種設計可以確保每一層的資料都是 globally sorted ，因此在收集特定資料範圍時不需要使用 priority queue 進行合併輸出。"
+    explanation: |
+      只有 leveled compaction 能保證 level 1 以上的每一層是 globally sorted 且不重疊的。在 tiered compaction 中，由於層內存在重疊，範圍掃描必須同時讀取並合併（ merge-sort ）多個 SSTables，這比 leveled compaction 更複雜且耗時。

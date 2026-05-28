@@ -1,0 +1,30 @@
+author: SL3333PY
+date: 2026-04-03
+question: |
+  某資料庫部署在 QLC SSD 上，寫入量極高且頻繁更新既有 key。
+  查詢多集中在最近的資料，偶爾查詢歷史資料。
+  系統使用 LSM-tree 搭配 tiered compaction，並為每個 SSTable 配置 Bloom filter（FPR = 1%）。
+  請問以下哪一項是這個設計最大的風險？
+options:
+  - text: "Tiered compaction 下，SSTable 不會立即合併，point query 必須依序對多個 SSTable 進行 Bloom filter 查詢與 disk read，即使 FPR = 1%，在高查詢頻率下累積的 I/O 開銷仍會成為瓶頸。"
+    explanation: |
+      雖然 Tiered compaction 確實會提高 read amplification，
+      但題目說明查詢集中在最近 1 小時的 hot data，這些資料大多仍在 memtable 或最新的幾層 SSTable，實際需要跨越的層數有限。
+      此外，workload 以寫入為主，read 並非主要壓力。
+      這個選項描述的問題存在，但在此情境下不是最大的風險。
+  - text: "歷史資料查詢時，資料分散在多個較深的 level，Bloom filter 的 false positive 會觸發跨 level 的額外 disk read；在 QLC 的高讀取延遲下，cold data 查詢的 P99 latency 將會惡化。"
+    explanation: |
+      Cold data 查詢在 Tiered compaction 下確實面臨較高的 read amplification，QLC 的讀取延遲也確實比 TLC/MLC 高。
+      然而，這混淆了「查詢效能問題」與「硬體壽命損耗問題」兩個方面。
+      QLC 的 P/E cycle 很低，代表壽命才是最大的隱憂，而非偶發的 cold data 查詢延遲。
+  - text: "Tiered compaction 造成的高 space amplification 會使 SSD 提前進入高使用率狀態，FTL GC 被迫頻繁搬移資料，導致硬體層 write amplification 上升，加速 QLC 壽命消耗。"
+    correct: true
+    explanation: |
+      Tiered compaction 延遲合併，造成高 space amplification，過時資料對 FTL 而言仍然是 valid page。
+      當 SSD 使用率偏高時，GC 在回收 block 時必須搬移更多 valid page 才能騰出空間，
+      硬體層 write amplification 上升，對 P/E cycle 低的 QLC 會加速壽命消耗。
+  - text: "LSM-Tree 的 compaction 過程需要讀取舊 SSTable 再寫回合併結果，這些 merge 操作在 QLC 上會產生額外的 random read，部分抵銷了 sequential write 對壽命的保護效果。"
+    explanation: |
+      Compaction 確實包含讀取舊 SSTable 的步驟，且 QLC 的讀取延遲確實較高。
+      然而，compaction 的讀取本質正是 **sequential read** 而非 random read，因為 SSTable 是不可變的有序檔案，整體掃描是連續的。
+      LSM-Tree 相較於 B+Tree 的優勢正是將 random write 轉為 sequential write，compaction 的 I/O 模式並不會破壞這個特性。

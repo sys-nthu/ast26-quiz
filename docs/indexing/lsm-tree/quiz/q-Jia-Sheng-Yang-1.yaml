@@ -1,0 +1,23 @@
+author: Jia-Sheng-Yang
+date: 2026-04-02
+question: |
+ 一位工程師為了降低 LSM-tree 儲存引擎的 read amplification，實施了兩項變更：
+ (1) 為每個 SSTable 附加 Bloom filter。
+ (2) 將 tiered compaction 切換為 leveled compaction。
+ 請問這兩項變更如何影響系統的各項 amplification？
+options:
+  - text: "Bloom filter 透過允許系統跳過不包含該 key 的 SSTable 來減少 read amplification；而 leveled compaction 減少了 read amplification，但增加了 write amplification。"
+    correct: true
+    explanation: |
+      Bloom filter： 透過機率性的過濾，引擎可以跳過肯定不包含目標資料的 SSTable，減少不必要的磁碟 I/O（read amplification 下降）。leveled compaction： 雖然它保持每層 SSTable 的 key range 不重疊、讀取更快（read amplification 較少），但為了維持這種嚴格的結構，系統必須更頻繁地執行合併與重寫，這會導致資料重複寫入磁碟的次數增加（write amplification 較大）。
+  - text: "Bloom filter 透過在記憶體中批次更新索引來減少 write amplification，而 leveled compaction 減少了 space amplification，但代價是顯著增加了 read amplification。"
+    explanation: |
+      Bloom filter 它主要用來判斷某個 key 是否「不在」磁碟中，因此它減少的是 read amplification，而非 write amplification。
+      leveled compaction 這種策略可以優化搜尋速度 （詳見選項一的解釋）。所以它會減少 read amplification，選項中說它會增加是錯誤的。
+  - text: "Bloom filter 增加了 space amplification，因為它們儲存了實際 key 的副本；而 leveled compaction 透過確保每層 SSTable 的 key range 不重疊，從而消除了 write amplification。"
+    explanation: |
+      Bloom filter 儲存的是 key 經過 hash function 映射後的 bit 位置，並非 key 的原始副本，空間佔用極小。Leveled compaction 確保每層 key range 不重疊確實有助於降低 read amplification，但為了維持這個不重疊的結構，系統需要頻繁地將資料讀出再寫入，造成 write amplification。
+  - text: "Bloom filter 減少了 write amplification，因為它們減少了 MemTable 必須執行 flush 的次數；而 leveled compaction 減少了 read amplification，且不會影響 CPU 或 I/O 負載。"
+    explanation: |
+      Bloom filter 它發生在讀取階段。而 MemTable 寫入滿了之後執行 flush（轉存為磁碟上的 SSTable）是寫入路徑的操作，兩者互不干擾
+      leveled compaction 這種策略雖然對讀取友善，但其合併（merge）過程非常消耗 CPU 運算資源與 I/O 頻寬，並非沒有影響。

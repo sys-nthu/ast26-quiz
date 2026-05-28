@@ -1,0 +1,22 @@
+author: tokyodealer00101
+date: 2026-05-26
+question: |
+  一個客服知識庫 RAG 系統用來回答退費規則。目前文件被切成偏短的 fixed-size chunks（約 `64 tokens`，僅保留少量邊界重疊）。
+  線上 log 顯示，對「試用期後在什麼情況可以退費？」這類問題，retriever 回傳的 top-k chunks 都包含「退費」、「試用期」、「例外條款」等關鍵字；用 brute-force top-10 抽查後，ANN recall@10 已接近 1。
+  但 LLM 仍常答錯。人工抽查送進 prompt 的內容後發現，每段 retrieved text 雖然相關，但通常只覆蓋退費規則的一小段；完整答案需要同時看到適用條件、限制與例外，這些內容常被分散到多個相鄰 chunks。
+
+  若要優先調整一類設計，下列哪一項最合理？
+options:
+  - text: "調高 ANN search 參數，例如增加 IVF 的 `nprobe` 或 HNSW 的 `efSearch`，讓 recall 更接近 exact nearest neighbor。"
+    explanation: |
+      這個調整主要解決 ANN 沒有找到真正 nearest neighbors 的問題。但題目已說用 brute-force top-10 抽查後，ANN recall@10 已接近 1，代表目前主要瓶頸不是近似搜尋漏掉相關 chunk。繼續調高 `nprobe` 或 `efSearch` 會增加 latency，卻不能補回被切散的規則上下文。
+  - text: "只把 `top-k` 從目前值調大，將更多 retrieved chunks 放進 prompt，但不改 chunking 設定。"
+    explanation: |
+      調大 `top-k` 可能暫時提高拼回上下文的機會，但它也會增加 prompt 長度、成本與 noise。更重要的是，若每個 chunk 本身只保留零碎規則，單純塞更多片段並沒有修正 indexing 階段把完整條件切散的根因。
+  - text: "重新調整 chunk granularity：將 chunk 調大到能容納完整規則段落或 FAQ 條目的大小，例如從約 `64 tokens` 提高到約 `256 tokens`，並視需要保留少量 overlap。"
+    correct: true
+    explanation: |
+      這是最直接對準症狀的調整。較大的 chunk 讓單一片段更可能保留完整退費條件、限制與例外；少量 overlap 則只是輔助降低邊界切斷風險。重點是改善送進 prompt 的 evidence 完整度，而不是只改善 ANN 搜尋參數。
+  - text: "換成更大的 embedding model 或 LLM，讓模型自行補足被切散的規則上下文。"
+    explanation: |
+      更大的 embedding model 可能改善語意相似度，更大的 LLM 可能提升推理能力，但 RAG 的目標是把可靠證據放進 context。若完整規則沒有被一起送進 prompt，要求模型自行補足缺失上下文會增加 hallucination 風險，不能當作根本修正。

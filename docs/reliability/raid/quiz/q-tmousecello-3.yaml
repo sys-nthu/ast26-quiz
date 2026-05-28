@@ -1,0 +1,19 @@
+author: tmousecello
+date: 2026-05-27
+question: |
+  某 RAID 5 array 在不停機的狀態下執行 reshape（將 3 顆 disk 擴充為 4 顆，新 disk 已全盤填零）。
+  此操作需把原本散佈在 3 顆 disk 上的 stripe 重新計算 parity，並依新 layout 重寫到 4 顆 disk 上。下列敘述何者正確？
+options:
+  - text: "由於 XOR 邏輯運算的特性為 $x ⊕ 0 = x$，新 disk 加入後既有 parity 不變，可以直接把它標為可用空間，無需重算任何 stripe。"
+    explanation: |
+      $x ⊕ 0 = x$ 是正確的，但 **條帶寬度（stripe size）改變了** 。原本 64KB 的 chunk 寫兩顆碟就跨入下一個 stripe，現在要寫滿三顆碟才換行。這會導致資料在硬碟間的排列方式完全錯位，因此絕對不可能略過舊資料重組，必定要全部搬移。
+  - text: "為了最小化擴充時的 I/O 負載，系統只需將現有陣列中每個 stripe 的 parity block 獨立抽離並重新打散至該顆新硬碟上，原有的 data blocks 位置保持不動，即可在維持 RAID 5 特性的同時增加可用容量。"
+    explanation: |
+      RAID 5 除了分散 parity 儲存，還做了 data striping。如果舊有的 data blocks 保持不動，檔案系統看到的 logical block address 將是不連續的。
+  - text: "跨 disk 的多個寫入無法同時 atomically 完成，reshape 中途斷電會留下 partial state，需要 NVRAM 或 log 來保證 consistent update。"
+    correct: true
+    explanation: |
+      因為擴充是破壞性寫入，舊資料被讀出並以新格式覆寫，若過程中斷，該 stripe 既不是舊的 3 碟格式，也不是完整的 4 碟格式。因此必須依賴如 metadata checkpoints 或額外的 backup file 來保證崩潰恢復 crash consistency。
+  - text: "Reshape 期間 small write 仍走 read-modify-write，parity disk 成為瓶頸，throughput 上限為 R/2（R = 單顆硬碟 throughput）。"
+    explanation: |
+      RAID 5 的同位元是分散儲存的，單一 parity disk 成為瓶頸的問題屬於 RAID 4。Reshape 期間的效能瓶頸，主要是因為背景大量循序讀寫的 restriping 和其他程式的 I/O 產生硬碟資源競爭，以及重組區塊時的鎖定，並非單純 R/2。

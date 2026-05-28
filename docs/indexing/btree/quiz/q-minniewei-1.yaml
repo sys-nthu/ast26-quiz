@@ -1,0 +1,30 @@
+author: minniewei
+date: 2026-04-02
+question: |
+  假設你正在為一家擁有 10 億（$10^9$）名用戶的社交平台設計資料庫索引。所有資料都儲存在硬碟中，且磁碟每讀取一個 Page 需要 10 ms。
+  請問在這種極端情境下，應該選擇 B+ Tree 還是 BST？以及較快者跟較慢者的時間差異大約是多少？
+
+    - 每個 page 大小為 8 KB
+    - 每個 inner node 大小為 8 KB
+    - 每個 routing key 平均長度為 40 bytes
+    - 每個 child pointer 佔 6 bytes
+    - 每個 leaf node 可存 100 筆資料
+
+  註 : 每個 inner node 的 fan-out 是 $\lfloor {8192 \over (40 + 6)} \rfloor = 178$。
+
+options:
+  - text: "BST 的搜尋次數為 30 次 I/O，而 B+ Tree 的搜尋次數為 5 次 I/O，因此 B+ Tree 較快，時間差異約為 250 ms。"
+    correct: true
+    explanation: |
+      在 BST 中，每個 node 只能存一筆資料，因此需要 $10^9$ 個 node，樹高約為 $\log_2(10^9) \approx 30$，因此搜尋需要約 30 次 I/O。每次 I/O 需要 10 ms，因此總搜尋時間約為 $30 \times 10 \text{ ms} = 300 \text{ ms}$。
+      在 B+ Tree 中，每個 leaf node 可存 100 筆資料，因此需要 $10^9 / 100 = 10^7$ 個 leaf node。每個 inner node 的 fan-out 為 178，樹高約為 $\lceil \log_{178}(10^7) \rceil = 4$，因此總搜尋時間為 $(4+1) \times 10 \text{ ms} = 50 \text{ ms}$。
+      每次 I/O 需要 10 ms，因此總搜尋時間差異約為 $300 \text{ ms} - 50 \text{ ms} = 250 \text{ ms}$。
+  - text: "BST 的搜尋次數為 30 次 I/O，而 B+ Tree 的搜尋次數為 4 次 I/O，因此 B+ Tree 較快，時間差異約為 260 ms。"
+    explanation: |
+      B+ Tree 的搜尋次數為樹高 + 1（因為需要讀取 leaf node），因此應該是 4 + 1 = 5 次 I/O，而不是 4 次 I/O。
+  - text: "BST 的搜尋次數為 24 次 I/O，而 B+ Tree 的搜尋次數為 5 次 I/O，因此 B+ Tree 較快，時間差異約為 190 ms"
+    explanation: |
+      B+ Tree 的 5 次 I/O 正確，但 BST 的搜尋次數應該是 $\log_2(10^9) = 30$，而不是 $\log_2(10^7) = 24$。24 是把 BST 的 node 數量誤用了 leaf node 數量 $(10^7)$ ，而非總資料量 $(10^9)$。
+  - text: "BST 的搜尋次數為 30 次 I/O，而 B+ Tree 的搜尋次數為 25 次 I/O，因此 B+ Tree 較快，時間差異約為 50 ms。"
+    explanation: |
+      BST 的 30 次正確。B+ Tree 的 25 次是把 fan-out 誤用為 2 (即 $\lceil \log_2(10^7) \rceil = 24$ 層內部節點，另加 1 層葉子節點，總計 25 次 I/O)，但 B+ Tree 的 fan-out 為 178，正確的樹高為 $\lceil \log_{178}(10^7) \rceil = 4$，總搜尋次數為 4 + 1 = 5 次。

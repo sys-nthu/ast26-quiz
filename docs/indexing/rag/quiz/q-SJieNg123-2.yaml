@@ -1,0 +1,22 @@
+author: SJieNg123
+date: 2026-05-27
+question: |
+  某企業部署了一套基於 LLM 的內部客服機器人，但上線後發現它雖然回答流暢，卻經常一本正經地胡說八道，捏造不存在的退換貨規定，或是給出去年舊版的產品報價。
+  工程團隊提議導入 RAG 技術來解決此問題。下列關於 RAG 動機與機制的敘述，何者最精確地解釋了它如何解決上述痛點？
+options:
+  - text: "導入 RAG 後，系統會自動將最新的公司規定與報價單轉換為訓練資料，定期對 LLM 進行 Fine-tuning，更新其內部的神經網路權重以消除幻覺。"
+    correct: false
+    explanation: |
+      錯誤。這是 Fine-tuning 的概念，並非 RAG。RAG 的核心優勢正是不需要重新訓練或微調模型權重，即可動態引入新知識，大幅降低了模型維護與更新的成本。
+  - text: "RAG 系統會在使用者發問時，先透過 vector search 從外部知識庫找出最相關的文件片段，將其拼接到 Prompt 中一併餵給 LLM，強制 LLM 基於這些外部證據來生成答案。"
+    correct: true
+    explanation: |
+      正確。這正是 RAG 的核心動機。LLM 容易產生 hallucination，透過外部檢索把相關片段作為 prompt 的 context，能讓生成結果有依據，且只要更新外部資料庫，模型就能給出最新報價。
+  - text: "RAG 透過 ANN 找到最相關的文件片段後，會直接將該片段原封不動地回傳給使用者，徹底繞過 LLM 的生成過程以保證 100% 的資訊正確率。"
+    correct: false
+    explanation: |
+      錯誤。如果只是把搜尋結果原封不動回傳，那就只是傳統的搜尋引擎。RAG 依然高度依賴 LLM 強大的語意理解、整合與統整能力來生成自然流暢的最終答案。
+  - text: "RAG 透過在 LLM 生成 token 的當下即時觸發 LEANN 架構去動態計算 embedding 並進行 graph search，從而動態修正模型輸出錯誤答案的機率分佈。"
+    correct: false
+    explanation: |
+      錯誤。RAG retrieval 階段發生在 LLM 生成答案之前的 prompt 準備階段，而非在 decoding 過程中逐字觸發搜尋。LEANN 則是針對向量資料庫的索引儲存優化，並非用來干預 LLM 的 token 機率。

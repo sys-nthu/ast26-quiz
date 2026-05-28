@@ -1,0 +1,24 @@
+author: elfnt
+date: 2026-04-02
+question: |
+  一個儲存系統的工程師正在為兩種不同的 workload 選擇架構，兩者都需要支援 point query，資料都存在 SSD 上：
+
+  - 系統 $P$：write-heavy，讀取相對少，且有大量查詢是找不存在的 key
+  - 系統 $Q$：read-heavy，已有大量資料，寫入量低，幾乎所有查詢的 key 都存在
+
+  工程師評估了以下四個設計決策，請找出分析**有誤**的一項：
+options:
+  - text: "若系統 Q 改用 LSM-Tree 並配備 Bloom filter，由於幾乎所有查詢的 key 都存在，Bloom filter 的 false positive 情況極少。因此可以藉由 Bloom filter 在高準確率下直接找到對應的 SSTable，讓 read amplification 大幅縮減。"
+    correct: true
+    explanation: |
+      分析錯誤。Bloom filter 在此情況下 false positive rate 確實少，但 Bloom filter 並沒有辦法找到對應的 SSTable，僅能知道這個 key 是否可能存在，仍需逐層查詢 SSTable，read amplification 並不會大幅縮減。
+  - text: "系統 $Q$ 適合 B+Tree：從 root 走到 leaf 的路徑確定，幾乎所有查詢都只需要 1 次真正的 disk I/O（上層 inner node 常駐 cache），因為讀取路徑本身就很短，不需要 Bloom filter 來輔助過濾。"
+    explanation: |
+      分析正確。B+Tree 的優勢在於 point query 的低 read amplification，尤其當上層 inner node 常駐 cache 時，幾乎每次查詢都只需 1 次 disk I/O 就能定位到 leaf node，效益非常高。
+  - text: "若系統 P 改用 B+Tree，大量 random write 會讓 SSD 的 FTL 難以集中 valid page，GC 需要搬移更多資料，軟體層的 write amplification 與硬體層的 GC write amplification 會疊加，吞吐量大幅下降。"
+    explanation: |
+      分析正確。B+Tree 在 write-heavy workload 下會有大量 random write，這對 SSD 的 FTL 來說是非常不友善的，會導致 GC 頻繁且代價高昂，整體吞吐量會大幅下降。
+  - text: "系統 $P$ 適合 LSM-Tree：寫入只需進 memtable 和 append WAL 即可返回，避免了 B+Tree 的 random disk I/O，但讀取需要逐層查詢多個 SSTable，對找不存在的 key 尤其昂貴，因此每個 SSTable 配上 Bloom filter 可以大幅降低這個代價。"
+    explanation: |
+      分析正確。LSM-Tree 的設計就是為了優化 write-heavy workload，寫入操作非常快，但讀取操作需要查詢多層 SSTable，對於找不存在的 key 來說尤其昂貴。Bloom filter 可以有效過濾掉大量不存在的 key，顯著降低 read amplification，提高查詢效率。
+      

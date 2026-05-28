@@ -2,8 +2,8 @@ author: tmousecello
 date: 2026-05-28
 question: |
   使用 SSD 做 RAID 5 會導致同批次購買的 SSD 承受幾乎相同的寫入負載，讓所有硬碟幾乎同時壽終正寢，增加陣列同時損毀的風險。
-  為了解決此問題，Diff-RAID 的概念被提出：透過人刻意製造 SSD 之間的磨損差異，以錯開它們的故障時間。
-  你作為系統管理員希望使用這樣的方式避免你的陣列同時損毀，下列哪一種手段**無法**有效製造磨損差異？
+  為了解決此問題，Diff-RAID 透過刻意製造 SSD 之間的磨損差異來錯開故障時間。
+  下列哪一種手段 **無法** 有效製造這種磨損差異？。
 options:
   - text: "刻意混合採用不同廠牌或不同型號的 SSD 來組建 RAID 5 陣列。"
     explanation: |
@@ -11,7 +11,7 @@ options:
   - text: "在同批次購買的相同型號 SSD 上，建立不同大小的 partition ，再利用這些大小不一的 partition 來組建 RAID 5。透過 OP 空間不同 WAF 不同的差異，達成磨損差異。"
     correct: true
     explanation: |
-      RAID 5 必須基於相同大小的 chunk 組建。若分割區大小不同，只會取最小的容量來對齊，剩餘空間將閒置，參與陣列的邏輯空間所承受的總 I/O 寫入量依然完全相等。FTL 會無視 OS 層的 partition，自動將寫入操作平均分散到所有的實體 NAND 區塊上。因此，這幾顆 SSD 最終消耗的 PE Cycle 完全一樣，依然會同時損壞。
+      在同一顆實體 SSD 上切不同 partition 其實並不會改變那顆 SSD 的實體 OP，使用者在邏輯層留一塊空 partition，FTL 不會把它當成 OP。 FTL 會自動將寫入操作平均分散到所有的實體 NAND 區塊上。因此，這幾顆 SSD 最終消耗的 PE Cycle 完全一樣，依然會同時損壞。
   - text: "修改陣列控制器的軟體演算法，在 parity 更新時刻意採用非對稱分佈，讓特定一顆 SSD 短期內承受絕大多數的 parity 寫入負載。"
     explanation: |
       因為 parity 更新伴隨較高的寫入放大，透過將 parity 更新集中於特定硬碟，能人為加速該硬碟的老化，確保它提早陣亡，讓系統有時間進行單碟替換與 rebuild，避免同時損毀。

@@ -1,4 +1,4 @@
-author: your-github-username
+author: Huaaa817
 date: 2026-05-28
 question: |
   某檔案系統採用 delayed allocation。使用者連續對同一個檔案寫入 50 MB，但 kernel 不馬上分配 disk block，而是先把資料留在 page cache。

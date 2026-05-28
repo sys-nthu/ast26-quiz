@@ -1,9 +1,9 @@
 author: bcheng1217
 date: 2026-05-28
 question: |
-  在評估不同 Error Coding 技術的參數與應用場景時，工程師需要權衡儲存效率與錯誤處理能力。關於 Parity Bit、Hamming(7,4) 與 CRC 的特性，下列敘述何者正確？
+  在評估不同 Error Coding 技術的參數與應用場景時，工程師需要權衡儲存效率與錯誤處理能力。關於 minimum distance、code rate 與幾種經典 code 的特性，下列敘述何者正確？
 options:
-  - text: "Two-repetition code 與 parity bit 的 minimum distance $d$ 皆為 2，這代表它們在發生資料損毀時，都能夠獨立更正 1 個 error。"
+  - text: "若某個 ECC 的 minimum distance $d=2$ ，則能更正 1 個 error。"
     explanation: |
       這個敘述是錯誤的。根據 minimum distance 的理論，當 $d=2$ 時，該 code 只能抓到 1 個 error 或修復 1 個 erasure，但不具備更正的能力。
   - text: "在設計 $(n, k)$ code 時，為了將系統的 space efficiency 極大化，工程師應盡量讓 code rate $R$ 接近 0，這樣能同時保有最強的更正能力。"

@@ -1,0 +1,34 @@
+author: vinnie-lfc
+date: 2026-05-29
+question: |
+  某 filesystem 使用 write-ahead logging 來保護 metadata consistency。
+  一筆 transaction 已經完整寫入 journal，且最後的 commit record 也已成功寫入硬碟。
+
+  但是在這筆 transaction 被 checkpoint 回正式的 filesystem 位置之前，系統突然 crash。
+
+  重新開機進行 recovery 時，filesystem 應該怎麼處理這筆 transaction？
+
+options:
+  - text: "replay 這筆 transaction，把 journal 裡的新版 block 寫回正式位置。"
+    correct: true
+    explanation: |
+      正確。commit record 已經存在，代表這筆 transaction 已經成立。
+      即使 crash 前還沒 checkpoint 回正式位置，recovery 仍可以根據 journal 裡的內容
+      把新版 block 寫回原本的 on-disk 位置。
+
+  - text: "丟棄這筆 transaction，因為它還沒有 checkpoint 完成。"
+    explanation: |
+      錯。checkpoint 只是把已 committed 的內容搬回正式位置，
+      不是判斷 transaction 是否成立的依據。
+      是否成立取決於 journal 裡有沒有 commit record。
+
+  - text: "只 replay 已經 checkpoint 到一半的 block，避免重複寫入。"
+    explanation: |
+      錯。recovery 不需要猜哪些 block 已經 checkpoint 過。
+      對 physical journaling 來說，把 journal 裡的新版 block 再寫回正式位置通常是安全的，
+      因為覆寫同一份 block image 不會改變最終結果。
+
+  - text: "直接執行 full fsck 掃描整個 filesystem，因為 journal 已經不能使用。"
+    explanation: |
+      錯。journal 的目的就是讓 crash recovery 不必掃描整個 filesystem。
+      只要 journal 中有完整 committed transaction，recovery 就可以 replay journal。

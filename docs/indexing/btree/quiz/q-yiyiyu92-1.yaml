@@ -1,7 +1,7 @@
 author: yiyiyu92
 date: 2026-04-02
 question: |
-  當你要執行一個範圍查詢，例如 WHERE order_id BETWEEN 100 AND 500 時，
+  當你要執行一個範圍查詢， WHERE order_id BETWEEN 100 AND 500 ，
   如果 B+Tree 共三層且 leaf node 之間沒有用 doubly linked list 串接，查詢過程會如何？
   相較之下，有 linked list 的設計帶來什麼最明顯的優勢？
 options:

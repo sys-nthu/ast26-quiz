@@ -1,0 +1,25 @@
+author: Liu-yen-fu
+date: 2026-05-28
+question: |
+  根據《B-Trees Are Back (2025)》論文，下列哪一個關於 Wormhole 跟 Viktor Leis 教授提出的 Adaptive B-Tree 在現代硬體與實際生產環境下的評估是最精準、最能體現該論文核心貢獻的？
+options:
+  - text: "該論文的核心價值在於證明「資料結構的實際效能取決於其與現代 CPU cache、memory allocator 及 paging 機制的契合度」 ；其將 record 直接內嵌於固定 4 KiB page，不僅免除了 in-memory structure 高達 1/3 的 memory allocator overhead ，更使其能透過 buffer manager 在 out-of-memory 時進行 transparent paging 。"
+    correct: true
+    explanation: |
+      Wormhole 等 in-memory structure 由於將 record 透過個別的獨立函式分配，有高達 1/3 的空間開銷是由於 memory allocator overhead 造成的 。
+      而 B-Tree 把 record 直接內嵌在 page 裡，沒有這種 memory allocator overhead 。
+      In-memory structure 內部因使用 virtual memory 中的地址，一旦被 swap out 再載入，pointer 會失效，無法對齊固定大小的 page 進行有效分頁 。
+      而 Adaptive B-Tree 節點是固定大小的 page，能與 buffer manager 結合，在 out-of-memory 時透過將 cold page evict 到 SSD 來進行 transparent paging 。
+  - text: "在海量雲端數據下，Wormhole 理論上的 $O(\log L)$ asymptotic complexity 優勢不可逆。論文實驗顯示，無論面對何種 key feature（如 dense integer），常規或優化後的 B-Tree 在 in-memory lookup 測試中的 throughput 皆落後 Wormhole 至少 50% 以上，因此 Big-O 仍是決定性的選型標準 。"
+    explanation: |
+      在面對 dense integer 時，優化後的 B-Tree 在 lookup throughput 上反而超越了 Wormhole 達 27% 
+  - text: "現代伺服器記憶體容量極大。既然 Wormhole 在 in-memory lookup 中表現優異，只要擴充 memory 即可。根據論文， Wormhole 由於採用緊湊的 MetaTrieHT 結構，其空間利用率極高，幾乎 100% 用於存放 key-value，這使得 Adaptive B-Tree 針對 layout 與空間利用率的優化在現代硬體下顯得不重要。"
+    explanation: |
+      Wormhole 雖然索引結構本身很小，但 record 都是分散 malloc 的，memory allocator overhead 大概佔了 1/3 空間；  
+      反之，B-Tree 把 record 直接內嵌在 page 裡，只用 16-bit offset 就能定位，不需要 64-bit pointer 。  
+      因此，選項中宣稱 Wormhole 空間利用率接近 100% 完全不符合事實 。
+  - text: "Adaptive B-Tree 雖然在部分 workload 勝出 ，但其在 runtime 會有不同類型的 leaf ，也會動態調整 leaf 的 layout ，其架構不確定性會嚴重破壞 CPU 內建 hardware prefetcher 對 slot array 的 linear prefetching 能力，因此在記憶體內的效能表現，穩定度不如傳統單一固定 layout 的 B+ Tree 。"
+    explanation: |
+      B-Tree binary search 的 access pattern 本身對 hardware prefetcher 就不友善 。  
+      Adaptive B-Tree 的優化（例如限制 hints 陣列在 16 個 hint，剛好佔一個 cache line 大小的 64 byte 內），是主動去迎合處理器的 cache line 空間特徵，將 cache miss 減到最少，而不是被動依賴 prefetcher 。  
+      此外，動態調整 leaf layout 的過程中採用隨機機率更新 counter，能有效降低寫入競爭與監測本身的 overhead ，並不會干擾效能。

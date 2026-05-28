@@ -3,11 +3,11 @@ date: 2026-05-28
 question: |
   下列哪個敘述最能體現 BAB 論文的核心貢獻？
 options:
-  - text: "資料結構的實際效能取決於其與現代硬體的契合度，例如將 record 直接內嵌於固定大小 page 中能使其透過 buffer manager 在 out-of-memory 時進行 transparent paging"
+  - text: "在現代硬體上，cache miss 次數往往比漸近複雜度更能主導實際效能，因此 layout 是否契合 cache 很重要。"
     correct: true
     explanation: |
-      將 record 直接內嵌於固定大小的分頁中，使其能與硬體儲存單元對齊，進而配合 buffer manager 實現 transparent paging 
-  - text: "無論面對何種 key feature ，常規或優化後的 B-Tree 在 in-memory lookup 的 throughput 皆落後 Wormhole 。"
+      論文中的案例顯示：在面對 dense integer 時，優化後的 B-Tree 在 lookup throughput 上超越了理論上複雜度較優的 Wormhole 。
+  - text: "無論 key 屬於何種型態，常規或優化後的 B-Tree 在 in-memory lookup 的 throughput 皆落後 Wormhole 。"
     explanation: |
       在面對 dense integer 時，優化後的 B-Tree 在 lookup throughput 上超越了理論上複雜度較優的 Wormhole 。
   - text: "Wormhole 由於採用緊湊的 MetaTrieHT 結構，其空間利用率極高，幾乎 100% 用於存放 key-value 。"

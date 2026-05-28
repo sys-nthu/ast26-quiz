@@ -10,7 +10,7 @@ options:
       而 B-Tree 把 record 直接內嵌在 page 裡，沒有這種 memory allocator overhead 。
       In-memory structure 內部因使用 virtual memory 中的地址，一旦被 swap out 再載入，pointer 會失效，無法對齊固定大小的 page 進行有效分頁 。
       而 Adaptive B-Tree 節點是固定大小的 page，能與 buffer manager 結合，在 out-of-memory 時透過將 cold page evict 到 SSD 來進行 transparent paging 。
-  - text: "在海量雲端數據下，Wormhole 理論上的 $O(\log L)$ asymptotic complexity 優勢不可逆。論文實驗顯示，無論面對何種 key feature（如 dense integer），常規或優化後的 B-Tree 在 in-memory lookup 測試中的 throughput 皆落後 Wormhole 至少 50% 以上，因此 Big-O 仍是決定性的選型標準 。"
+  - text: "在海量雲端數據下，Wormhole 理論上的 $O(\\log L)$ asymptotic complexity 優勢不可逆。論文實驗顯示，無論面對何種 key feature（如 dense integer），常規或優化後的 B-Tree 在 in-memory lookup 測試中的 throughput 皆落後 Wormhole 至少 50% 以上，因此 Big-O 仍是決定性的選型標準 。"
     explanation: |
       在面對 dense integer 時，優化後的 B-Tree 在 lookup throughput 上反而超越了 Wormhole 達 27% 
   - text: "現代伺服器記憶體容量極大。既然 Wormhole 在 in-memory lookup 中表現優異，只要擴充 memory 即可。根據論文， Wormhole 由於採用緊湊的 MetaTrieHT 結構，其空間利用率極高，幾乎 100% 用於存放 key-value，這使得 Adaptive B-Tree 針對 layout 與空間利用率的優化在現代硬體下顯得不重要。"

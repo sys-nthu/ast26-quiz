@@ -1,0 +1,37 @@
+author: vinnie-lfc
+date: 2026-05-29
+question: |
+  某 database workload 每次 transaction commit 都需要 durable。
+  如果每次都直接依賴 ext4/JBD2 的 fsync()，小更新也可能觸發很貴的 physical journal commit。
+
+  因此 database 選擇用 O_DIRECT 繞過 page cache，自己管理 WAL。
+  這個做法和 FastCommit 的設計想法最像哪一個？
+
+options:
+  - text: "把頻繁發生的小型 durable update，先記成比較小、比較接近操作語意的 log，避免每次都付出完整 physical commit 的成本。"
+    correct: true
+    explanation: |
+      正確。Database 自己管理 WAL，是因為它比 filesystem 更知道 transaction 的語意，
+      可以用自己的 log 來控制 durability。
+      FastCommit 也是類似想法：
+      fsync 時先寫小型 logical FCLog，定期再交給 JBD2 做完整 slow commit。
+      兩者都是把常見且頻繁的 durable path 變便宜。
+
+  - text: "把 fsync() 的工作延後到背景批次處理，讓 application commit 先回傳成功，之後再慢慢寫入硬碟。"
+    explanation: |
+      錯。這個選項看起來像是在改善效能，但它會改變 durability 語意。
+      Database transaction commit 和 FastCommit 的 fsync 都仍然需要在回傳前提供 crash-safe 的保證。
+      FastCommit 不是單純延後落盤，而是用較小的 FCLog 來更便宜地滿足 fsync。
+
+  - text: "讓 database 直接控制資料落盤順序，完全避免 filesystem 再提供任何 crash consistency 機制。"
+    explanation: |
+      錯。O_DIRECT + database WAL 確實讓 database 更直接控制自己的 log 寫入順序，
+      但這不代表 filesystem 的 crash consistency 不重要。
+      FastCommit 也沒有取消 ext4/JBD2，而是在保留 JBD2 slow commit 的前提下，
+      加上一條比較便宜的 fast path。
+
+  - text: "把每次 fsync() 造成的多個 metadata block 合併成較大的 sequential write，主要靠順序寫入來降低成本。"
+    explanation: |
+      錯。順序寫入確實是 journal 的一個優點，但這不是 FastCommit 和 database WAL 最核心的相似處。
+      關鍵不是單純把很多 block 排成 sequential write，而是用更小、語意更高層的 log，
+      避免每次小更新都寫完整的 physical journal transaction。

@@ -1,0 +1,18 @@
+author: Ivan711031
+date: 2026-05-29
+question: |
+  BAB 作者預先把每個 key 的前 4 bytes 存進 heads 陣列以加速 binary search。若資料庫的 key 全是以 https://www. 開頭的 URL，heads 為何失效？adaptive layout 會如何因應？
+options:
+  - text: "系統透過 key-adaption 機制偵測到 heads 區分度過低（相鄰 key 的 head 重複率超過 1/16），會自動切換為 fingerprinting leaf 來恢復搜尋效率。"
+    correct: true
+    explanation: |
+      當面對 URL 這種具備極長共同前綴的資料時，固定的 4 bytes heads 數值會完全相同。系統的 adaptive layout 會計算 heads 的重複率，一旦發現相鄰鍵值的重複率超過閾值（1/16），就會判定 heads 失去區別能力。此時系統會放棄 heads，切換成 fingerprinting leaf，利用雜湊指紋等方式來取代單純的前綴擷取，以減少 cache miss 並恢復高效比較。
+  - text: "系統應動態切換至 hints 陣列（從 slot 中均勻取樣 16 個 heads），透過這 16 個樣本來快速跳過相同的前綴。"
+    explanation: |
+      hints 的真實機制是從節點中均勻取樣 16 個 heads，配合 linear scan 指令進行線性掃描，從而加速並縮小後續 binary search 的範圍。然而，若所有鍵值的 heads 都因為 URL 共同前綴而一模一樣，取樣出來的 hints 也會全數相同，這完全無法解決區分度喪失與 cache miss 的根本問題。
+  - text: "URL 的長度變異過大，導致 heads 陣列無法保持固定大小，破壞了連續記憶體配置。系統應退回最原始的無最佳化 slotted page 格式。"
+    explanation: |
+      heads 的定義就是強制擷取固定長度（通常為 4 bytes），完全不受鍵值總長度變異的影響，也不會破壞記憶體連續性。效能下降的原因是「區別能力」喪失，而非長度變異。此外，系統有 key-adaption 機制可以應對，不需直接退回原始的 slotted page。
+  - text: "系統會啟動 frame-of-reference encoding，把 `https://www.` 這個共同前綴提取為基準值，僅針對後綴進行比較。"
+    explanation: |
+      frame-of-reference encoding 主要用於數值密集且差異不大的「整數」情境（例如將相近的整數減去一個最小基準值來節省空間）。這個機制並不適用於解決字串前綴重複與 heads 區別能力過低的問題。

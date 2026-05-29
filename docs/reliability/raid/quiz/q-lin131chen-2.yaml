@@ -1,0 +1,23 @@
+author: lin131chen
+date: 2026-05-26
+question: |
+  某 RAID-0 系統由 4 顆 disk 組成，系統可調整 chunk size。工程師將 chunk size 設得非常小，希望讓大型 sequential read 能分散到多顆 disk 上平行讀取。系統上線後，大型 sequential access 的 throughput 提升，但部分 small random access 的效能反而變差。
+  下列何者最合理地解釋此現象？
+
+options:
+  - text: "較小的 chunk size 可提升大型 sequential access 的 parallelism，但可能讓 small random access 產生額外 I/O overhead。"
+    correct: true
+    explanation: |
+      較小的 chunk size 讓大型 sequential request 更容易跨越多顆 disks，因此能利用多顆 disks 平行讀取，提升 throughput。但對 small random access 而言，通常不需要跨 disk 平行化。但當 chunk size 小於 small random request 的 size 時，原本可能只需一顆 disk 處理的 request 反而可能跨多顆 disks，造成額外 I/O 成本。
+
+  - text: "chunk size 越小，RAID-0 的可靠性越高，因為每份資料會自動複製到更多 disks。"
+    explanation: |
+      chunk size 只影響資料 striping 的粒度，不會產生 redundancy。RAID-0 沒有 mirroring，也沒有 parity。因此不論 chunk size 如何設定，任一顆 disk 故障都可能造成資料遺失。
+
+  - text: "較小的 chunk size 會降低大型 sequential access 的 parallelism，因為每次 request 只能使用一顆 disk。"
+    explanation: |
+      這個說法方向相反。chunk size 較小時，大型 sequential request 更容易被分散到多顆 disks 上，因此通常能提高 parallelism。chunk size 較大時，小型 request 才更可能只落在單一 disk 上。
+
+  - text: "chunk size 只影響 RAID 的可用容量，不會影響 read/write 效能。"
+    explanation: |
+      chunk size 不只影響資料 layout，也會影響 workload 如何分布到多顆 disks。它會改變 sequential access 與 random access 的 parallelism 與 I/O 開銷，因此會影響 read/write performance。

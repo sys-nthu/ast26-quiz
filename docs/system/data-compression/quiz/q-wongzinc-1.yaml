@@ -1,0 +1,24 @@
+author: wongzinc
+date: 2026-05-28
+question: |
+  有三個檔案 X、Y、Z，壓縮後的大小分別為 1.2KB、2.8KB、3.5KB。在傳統 4KB block 系統中，
+  這三個檔案總共會消耗多少實體空間？如果改用 EROFS，又會消耗多少實體空間？
+options:
+  - text: "傳統：8KB / EROFS:8KB"
+    explanation: |
+      傳統檔案系統不允許兩個檔案共用同一個 block。X 與 Y 會各自配置一個獨立的 4KB block，
+      因此三個檔案至少需要 3 個 block，共 12KB，不會是 8KB。
+  - text: "傳統：7.5KB / EROFS:7.5KB"
+    explanation: |
+      傳統系統強制每個檔案對齊到獨立的 block，實際是 12KB；EROFS 的最小配置單位是一個 block。
+      動用第 2 個 block 後，無論填入多少，實體消耗都是 $2 \times 4\text{KB} = 8\text{KB}$, 
+      一定是 4KB 的倍數。
+  - text: "傳統：12KB / EROFS:8KB"
+    correct: true
+    explanation: |
+      傳統系統強制每個檔案對齊到獨立的 block，實際是 12KB；
+      EROFS 的 continuous packing 讓 X + Y 共用 block 1、Z 用 block 2 → $2 \times 4\text{KB} = 8\text{KB}$。
+  - text: "傳統：12KB / EROFS:7.5KB"
+    explanation: |
+      EROFS 的最小配置單位是一個 block。動用第 2 個 block 後，無論填入多少，
+      實體消耗都是 $2 \times 4\text{KB} = 8\text{KB}$, 一定是 4KB 的倍數。

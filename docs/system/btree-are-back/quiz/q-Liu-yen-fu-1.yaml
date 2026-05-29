@@ -1,0 +1,18 @@
+author: Liu-yen-fu
+date: 2026-05-28
+question: |
+  下列哪個敘述最能體現 BAB 論文的核心貢獻？
+options:
+  - text: "在現代硬體上，cache miss 次數往往比漸近複雜度更能主導實際效能，因此 layout 是否契合 cache 很重要。"
+    correct: true
+    explanation: |
+      論文中的案例顯示：在面對 dense integer 時，優化後的 B-Tree 在 lookup throughput 上超越了理論上複雜度較優的 Wormhole 。
+  - text: "無論 key 屬於何種型態，常規或優化後的 B-Tree 在 in-memory lookup 的 throughput 皆落後 Wormhole 。"
+    explanation: |
+      在面對 dense integer 時，優化後的 B-Tree 在 lookup throughput 上超越了理論上複雜度較優的 Wormhole 。
+  - text: "Wormhole 由於採用緊湊的 MetaTrieHT 結構，其空間利用率極高，幾乎 100% 用於存放 key-value 。"
+    explanation: |
+      Wormhole 雖然索引結構本身很小，但 record 都是分散 malloc 的，memory allocator overhead 大概佔了 1/3 空間
+  - text: "Adaptive B-Tree 的 leaf layout 會動態調整，因此表現不如傳統單一固定 layout 的 B-Tree 。"
+    explanation: |
+      Adaptive B-Tree 能調整至當前 workload 下的最佳 layout ，表現與手動固定為最佳 layout 的 B-Tree 只差 2%

@@ -4,9 +4,9 @@ question: |
   你在準備使用 PQ 建立千萬等級影像索引。在 codebook training 階段，為了節省運算時間，只從資料庫中隨機抽取「純文字掃描檔」的 feature vector 進行 k-means training。當系統上線後，使用者開始搜尋「戶外風景照」時，最有可能發生什麼情況？
 
 options:
-  - text: "搜尋速度不會受到顯著影響，但搜尋結果可能不準確。"
+  - text: "搜尋速度與準確度都不會受到顯著影響，因為 PQ 在查詢階段會將 query vector 量化到最近的 centroid，這個 nearest-centroid 機制能補償訓練資料分布的偏差。"
     explanation: |
-      PQ 的搜尋速度主要取決於 lookup 與距離加總的過程，其計算複雜度與 codebook 品質無關。即使資料分布不匹配，系統仍會將風景照的 vector 量化到最近的 centroid 並進行距離計算，因此搜尋速度通常不會受到顯著影響，但搜尋準確度可能下降。
+      PQ 在查詢時確實會把 vector 量化到最近的 centroid，但這只能在現有的 codebook 範圍內近似，無法補償 codebook 本身的代表性不足。當訓練資料（文字掃描檔）與查詢資料（風景照）分布差異大，centroid 位置就無法精確描述風景照的 vector，nearest-centroid 反而把它們強行對應到不合適的點，影響搜尋速度與準確度。
 
   - text: "改用 SDC 可以彌補訓練資料與實際資料分布不匹配所造成的誤差，因此準確度不受影響。"
     explanation: |

@@ -1,0 +1,24 @@
+author: wongzinc
+date: 2026-05-28
+question: |
+  Global parity 在 LRC 中的角色為?
+options:
+  - text: "加速單點失效的重建"
+    explanation: |
+      加速單點失效重建是 local parity 的角色：只需讀取同一 local group 內的其餘 fragment 就能還原。
+      Global parity 的還原成本反而較高（需讀取大量 fragment），不負責加速單點重建。
+  - text: "取代 OOB 區的 CRC"
+    explanation: |
+      OOB 區的 CRC 是 NAND 裝置內部的位元錯誤偵測，屬於單顆硬碟層級。
+      Global parity 是跨裝置/跨節點的 erasure coding，兩者在不同層次，不互相取代。
+  - text: "處理 local parity 無法獨力還原的 multi-failure"
+    correct: true
+    explanation: |
+      Local parity 只能還原其所屬 group 內的單一失效。
+      當某個 group 內的失效數超過 local parity 的能力，
+      local parity 就無法獨力還原，
+      需要 global parity 介入。
+  - text: "直接降低 storage overhead"
+    explanation: |
+      加入 global parity 會增加冗餘、提高 storage overhead，而非降低。
+      LRC 的取捨是用較多的 parity 空間換取較低的重建成本，global parity 屬於增加 overhead 的那一邊。

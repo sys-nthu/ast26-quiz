@@ -1,0 +1,23 @@
+author: lin131chen
+date: 2026-05-26
+question: |
+  某系統對一組 data bits 加上一個 parity bit，使整組 bits 的 XOR 結果應為 0。
+  讀取資料時，receiver 會重新對所有 bits 做 XOR 檢查。
+  若資料在儲存或傳輸過程中發生 bit flip，下列何者最合理？
+options:
+  - text: "如果只有 1 個 bit 翻轉，parity 可以偵測到錯誤，但無法指出是哪個 bit 發生錯誤。"
+    correct: true
+    explanation: |
+      parity bit 可以偵測奇數個 bit error。當只有 1 個 bit 翻轉時，整組 bits 的 XOR 結果會改變，因此 receiver 可以知道資料發生錯誤。但 parity 只提供整體檢查結果，無法指出是哪一個 bit 發生錯誤，因此只能偵測錯誤，不能更正錯誤。
+
+  - text: "如果有 2 個 bit 同時翻轉，parity 一定可以偵測到錯誤。"
+    explanation: |
+      parity bit 的限制是只能偵測奇數個 bit flip。若有 2 個 bit 同時翻轉，兩次變化會互相抵消，使整體 XOR 結果仍然符合 parity 條件。因此 parity 不一定能偵測偶數個 bit error。
+
+  - text: "parity 可以更正任意 1 個 bit error，因為 XOR 運算是可逆的。"
+    explanation: |
+      XOR 的可逆性在知道遺失位置時可以用於重建資料，但單一 parity bit 並不知道是哪個 bit 發生錯誤。因此 parity 可以告訴 receiver 有錯誤發生，但無法定位錯誤位置，也就無法直接更正任意 1 個 bit error。
+
+  - text: "parity 無法應用在 storage system，因為它只能處理 bit，不能處理 disk 或 block。"
+    explanation: |
+      parity 的概念可以從 bit 層級延伸到 block 或 disk 層級。例如多個 data blocks 可以透過 XOR 產生 parity block，當系統知道某個 block 或 disk 遺失時，可以利用剩餘資料與 parity 重建。因此 parity 不只適用於 bit，也能應用在 storage redundancy 中。

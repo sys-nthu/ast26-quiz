@@ -1,0 +1,24 @@
+author: wongzinc
+date: 2026-05-28
+question: |
+  Fail-slow 的 SSD 放入 RAID 陣列時,相較 fail-stop 反而可能更不利,原因是?
+options:
+  - text: "Fail-slow 會消耗更多 parity 空間"
+    explanation: |
+      Parity 空間由 RAID 等級決定（例如 RAID 5 固定佔一顆容量），與硬碟快慢無關。
+      Fail-slow 不會改變 parity 的配置方式。
+  - text: "Controller 難以判斷何時應將該硬碟移出陣列"
+    correct: true
+    explanation: |
+      Fail-stop 是二元故障：硬碟不回應，controller 立刻判定失效、踢出陣列並重建。
+      Fail-slow 的硬碟仍會回應、只是變慢，通過健康檢查卻拖慢整個 stripe 的延遲。
+      controller 缺乏明確的失效訊號，難以決定該踢出重建還是繼續使用，
+      陣列因此長期維持在降速狀態運作。
+  - text: "Fail-slow 會使其餘硬碟的 P/E cycle 加速"
+    explanation: |
+      P/E cycle 取決於寫入量，由 RAID 的資料/parity 分布決定，
+      不會因為某顆硬碟變慢而轉嫁到其他硬碟。此選項把效能衰退與 flash 磨損混為一談。
+  - text: "Fail-slow 無法觸發重建程序"
+    explanation: |
+      問題不在於無法觸發重建，而在於該不該以及何時觸發。
+      Fail-slow 的硬碟仍可被踢出並重建，真正的困難是 controller 判斷不出時機。

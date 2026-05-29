@@ -1,0 +1,18 @@
+author: ianlin12
+date: 2026-05-28
+question: |
+  下列有關 在 SSD 上運作 RAID-5 的問題。請問何者正確?
+options:
+  - text: "SSD 沒有機械磨損，所以故障時間不會受到使用方式影響"
+    explanation: |
+      SSD 雖然沒有像 HDD 一樣有機械磨損，但是 SSD 有 P/E cycle 耗損問題，使用方式會直接決定其生命的長度
+  - text: "如果在 SSD 上運作 RAID-5，則可能因為 cell 磨損速率幾乎一致，可能在相近時間同時失效，導致來不及 rebuild，資料消失"
+    correct: true
+    explanation: |
+      同批、同型號、又被 RAID-5 均勻分散寫入，使他們的故障時間重疊，近乎同時壞掉
+  - text: "如果換成在 HDD 上運作的話，也會遇到跟 SSD 相同的問題"
+    explanation: |
+      並不會，HDD 會遇到機械磨損問題，同時壞掉的機率較低，跟 SSD 不同，基本上不會遇到多顆同時壞掉的問題
+  - text: "後人提出 Diff-RAID，在不同 SSD 之間做 wear leveling 來解決問題"
+    explanation: |
+      是在不同 SSD 之間做 anti-wear leveling 才對

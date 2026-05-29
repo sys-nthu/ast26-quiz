@@ -1,0 +1,25 @@
+author: lin131chen
+date: 2026-05-26
+question: |
+  某 RAID-5 系統有 8 顆 disk，其中 1 顆 disk 故障。工程師更換新 disk 後，系統開始 rebuild，透過讀取其他 disks 上的 data 與 parity，重建故障 disk 原本的內容。
+  在 rebuild 尚未完成期間，下列何者最合理？
+
+options:
+  - text: "系統已經插入新 disk，因此 RAID-5 的可靠性已完全恢復，不再有資料遺失風險。"
+    explanation: |
+      插入新 disk 並不代表 rebuild 已完成。在故障 disk 的內容尚未完全重建前，系統仍處於 degraded 狀態。若此時再發生另一顆 disk failure，RAID-5 可能無法恢復完整資料。
+
+  - text: "rebuild 期間系統需要讀取其他 disks 來重建資料，因此前台 I/O 效能可能下降；若再壞一顆 disk，資料可能遺失。"
+    correct: true
+    explanation: |
+      RAID-5 可以容忍單一 disk failure。rebuild 時，系統需要讀取同一 stripe 中其他 data blocks 與 parity blocks，以重建故障 disk 上的內容。
+      這會消耗 disk bandwidth，影響前台 read/write 效能。同時，在 rebuild 完成前若再有另一顆 disk 故障，就會超出 RAID-5 的容錯能力而造成資料遺失。
+
+  - text: "rebuild 只需要讀取 parity disk，因為 parity disk 已經包含所有遺失資料的完整副本。"
+    explanation: |
+      RAID-5 的 parity 不是完整副本。parity 是由同一 stripe 中多個 data blocks XOR 計算而來。重建某個遺失 block 時，系統需要讀取該 stripe 中剩餘的 data blocks 與 parity，才能計算出遺失內容。
+
+  - text: "rebuild 期間只有 write 會受到影響，read 不會受到影響，因為 read 不需要參與重建。"
+    explanation: |
+      rebuild 會持續讀取其他 disks 的內容，因此會消耗 disk bandwidth。同時，如果前台 read request 剛好讀到故障 disk 原本的位置，系統也需要透過其他 blocks 與 parity reconstruct 該資料。因此 read 與 write 都可能受到影響。
+

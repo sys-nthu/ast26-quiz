@@ -1,0 +1,22 @@
+author: 5214jerry
+date: 2026-05-27
+question: |
+  關於 BAB 論文中提出的 fingerprinting leaf 以及其 adaptive layout ，
+  當一個原本處於 fingerprinting 布局（key 不排序、直接 append、point query 時利用 1-byte hash 與 SIMD 進行加速）的 leaf node，
+  其 workload 突然從 90% 的 point query 轉變為 90% 的範圍掃描 range scan 時，系統會如何應對？
+
+options:
+  - text: "系統利用內部一個基於機率更新的 saturating counter，在多次 range scan 操作後讓計數器填滿，從而將該 leaf 動態轉換為適合掃描的 comparison-based 布局。"
+    correct: true
+    explanation: |
+      論文設計了 operation-adaption 機制。每個 leaf 帶有一個 1-byte 的 saturating counter。Scan 操作有 15% 的機率會使計數器加 1，point 操作以 5% 機率 −1。
+      Counter 滿了就轉成適合 scan 的 comparison-based。
+  - text: "系統在偵測到第一次 range scan 時，會立刻以 synchronous 方式重構整棵樹，強制將所有 leaf 退回傳統 B+ Tree 的 Slotted Page 布局以確保指標連續性。"
+    explanation: |
+      系統不會因為單次操作就立刻觸發全局重構，採用的是漸進式、基於統計的動態調整。
+  - text: "系統會維持 fingerprinting 布局不變，因為利用 SIMD 進行線性掃描，其速度在任何 workload 下都遠快於維護和遍歷已排序的 Slot 陣列。"
+    explanation: |
+      Fingerprinting 當遇到大量 range scan 時，每次掃描都需要 lazy sort，效能會大幅下滑，因此它並不適合 scan 導向的 workload。
+  - text: "系統會啟動 key-adaption 機制，在執行 range scan 時將該 Leaf 強制 split 為多個 dense leaves，藉此完全移除 key 的儲存空間以加速遍歷。"
+    explanation: |
+      轉為 dense leaves 的前提是 key 的物理分布必須是 dense integer，由 key-adaption 在 split/merge 時判斷，這屬於 key 本身的特性，無法僅靠 workload 的轉變就強行轉換。

@@ -1,0 +1,22 @@
+author: Arsene3939
+date: 2026-05-27
+question: |
+  一位工程師在 `RAID 01` 與 `RAID 10` 兩種架構的抉擇中，最後選擇使用了 `RAID 10` 。在不考量硬體控制器的特定優化下，下列何者最可能是他選擇 `RAID 10` 的最關鍵原因？
+options:
+  - text: |
+      RAID-10 單一硬碟失效只讓一個 mirror pair 降級；RAID-01 失效一顆會讓整個 RAID 0 array 離線，第二顆失效時的資料遺失風險高於 RAID-10。
+    correct: true
+    explanation: |
+      `RAID 10` 的底層是多個 `RAID 1` 陣列，上層再用 `RAID 0` 組合；而 `RAID 01` 底層是兩個 `RAID 0` 陣列，上層再用 `RAID 1` 鏡像。當 `RAID 01` 中一顆硬碟失效時，其所屬的整個 `RAID 0` 陣列都會直接離線，系統只能完全依賴另一個完整的 `RAID 0` 陣列。此時只要剩下的硬碟中有任何一顆發生故障，資料就會遺失，因此 fault tolerance 低於 `RAID 10` 。
+  - text: |
+      RAID-10 可平行寫所有 disk，RAID-01 必須等整個 stripe 寫完才能 mirror，因此 sequential write 較快。
+    explanation: |
+      在理論架構下， `RAID 10` 與 `RAID 01` 的 I/O 效能是幾乎相同的，兩者都需要把相同的資料寫入兩次來維持 mirror ，並且都能透過 striping 平行處理讀寫請求。
+  - text: |
+      8 顆硬碟組成的 RAID-10 可用容量為 6 顆，RAID-01 僅為 4 顆，空間利用率較差。
+    explanation: |
+      無論是 `RAID 10` 還是 `RAID 01` ，只要是採用 1:1 的鏡像機制，其空間利用率永遠都是總容量的 50% 。在 8 顆硬碟的情境下，兩者的可用容量皆為 4 顆硬碟的總和，並沒有容量上的優劣之分。
+  - text: |
+      `RAID 10` 的架構允許使用 parity 來修復靜態資料損壞，而 `RAID 01` 僅依賴單純的區塊複製，無法提供這層額外的資料完整性檢驗。
+    explanation: |
+      `RAID 10` 與 `RAID 01` 的核心技術都是 `stripe` （ RAID 0 ）與 `mirror` （ RAID 1 ）的組合，這兩者本身**都不包含** parity 機制。依賴 parity 進行容錯的是 `RAID 5` 或是 `RAID 6` 等架構。

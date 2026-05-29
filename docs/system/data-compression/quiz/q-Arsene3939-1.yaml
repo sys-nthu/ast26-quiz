@@ -1,0 +1,22 @@
+author: Arsene3939
+date: 2026-05-27
+question: |
+  某資料庫的存取模式以 4KB 隨機讀為主，工程師將 block compression 的 block size 設為 16MB。下列何者最可能成為效能瓶頸？
+options:
+  - text: |
+      read amplification 嚴重：每次 4KB request 必須讀入並解壓整個 16MB block。
+    correct: true
+    explanation: |
+      正確。較大的 block size 確實能提供更好的 compression ratio ，但在 random access 的情境下，為了取得極小片段的資料，解壓縮演算法仍需要重建整個 block 的上下文。導致嚴重的 read amplification。
+  - text: |
+      壓縮演算法的 metadata （例如 Huffman tree 或字典檔）將會隨之增長，最終導致 metadata 的大小超過實際資料，產生負的壓縮效益。
+    explanation: |
+      增加 block size 通常會**降低** metadata 的相對比例，因為更多的實體資料可以共用同一份 metadata 或字典檔。因此，擴大 block 並不會導致 metadata 增加到超過資料本身。
+  - text: |
+      16MB 超過 L1/L2 cache，cache miss 會觸發硬體中斷導致查詢終止。
+    explanation: |
+      雖然 16MB 的資料確實大於多數 CPU 的 L1 或 L2 快取，這會造成 cache miss 增加並稍微拖慢解壓縮速度，但現代作業系統與處理器能夠透過主記憶體正常處理這些資料，不會因此觸發「硬體中斷」或「強制終止」這類可能導致系統崩潰的錯誤。
+  - text: |
+      磁碟的循序寫入吞吐量會大幅度下降，因為硬碟控制器無法一次處理高達 16MB 的連續 I/O 請求。
+    explanation: |
+      NVMe SSD 善於處理大型連續寫入，且 compression ratio 提升後實際寫入量反而減少；本題瓶頸在 random read，不在 sequential write。

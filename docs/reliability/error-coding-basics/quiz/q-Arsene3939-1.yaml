@@ -1,0 +1,22 @@
+author: Arsene3939
+date: 2026-05-27
+question: |
+  NAND Flash 與分散式檔案系統面臨的錯誤類型不同，分別適合哪種錯誤修正技術？
+options:
+  - text: |
+      NAND Flash 用 LDPC 或 BCH 修正 bit flip；分散式檔案系統用 Reed-Solomon erasure coding 應對 node 或 disk failure。
+    correct: true
+    explanation: |
+      正確。這反映了儲存層級中不同的 granularity 。底層硬體（如 NAND flash ）主要面臨因物理特性導致的 bit flip ，需要極低延遲且能被硬體邏輯電路加速的 `ECC` （如 `LDPC` ）。相對地，上層軟體面臨的是整台伺服器或整顆磁碟的離線，需要利用大區塊級別的 `Erasure Coding` 跨網路節點重建遺失的資料。
+  - text: |
+      NAND Flash 用 erasure coding 跨晶片重建資料；分散式檔案系統用 BCH 確保網路封包的位元正確性。
+    explanation: |
+      雖然現代 SSD 內部可能含有類似 RAID 的機制防範整顆晶片失效，但處理日常基礎讀寫錯誤的主力仍是 `ECC` （ `BCH` 或 `LDPC` ）。這類 ECC 具備的是位元修正能力，而上層系統需要的是跨區塊的資料重建能力。
+  - text: |
+      上下層統一採用 Reed-Solomon，降低 CPU 在不同編解碼器之間切換的 overhead。
+    explanation: |
+       `Reed-Solomon` 在處理極小單位（如數十個 bytes ）的隨機位元錯誤時，計算成本過高且空間利用率極差（ overhead 過大），無法達成 SSD 微秒級別的延遲要求。統一上下層的演算法忽略了軟硬體在效能限制與錯誤模型上的差異。
+  - text: |
+      NAND Flash 只用 CRC 做 detection，修正責任交給 OS；分散式檔案系統用 LDPC 做平行錯誤修正。
+    explanation: |
+       `CRC` 只能偵測錯誤而無法修正錯誤，若底層快閃記憶體發生 bit flip 且無 `ECC` 保護，資料將會損毀，作業系統也無法恢復。

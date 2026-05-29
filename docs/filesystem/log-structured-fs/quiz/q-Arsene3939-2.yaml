@@ -1,0 +1,23 @@
+author: Arsene3939
+date: 2026-05-27
+question: |
+  在 CoW 檔案系統中，只要修改檔案末端的一個 4KB 資料，就會引發 `wandering tree` 問題，導致從該資料區塊、父節點、直到根目錄的 metadata 都必須連鎖產生新的寫入。請問 F2FS 是利用什麼樣的架構設計阻斷了這個連鎖更新效應？
+options:
+  - text: |
+      引入 `NAT` 機制。父節點僅記錄子節點的 `Node ID` ，當底層區塊位置改變時只需更新 `NAT` 表格即可
+    correct: true
+    explanation: |
+      正確。 `NAT` 藉由解除邏輯節點與實體位址的綁定，阻止了 `wandering tree` 向上的連鎖效應。
+  - text: |
+      將所有 metadata （包含 `inode` 與目錄結構）從 Log 寫入流程中獨立出來，並允許它們直接在原實體位址進行 `in-place update`。
+    explanation: |
+      F2FS 仍然維持了針對 node 與 data 區塊的 Log-structured write（即 `out-of-place update` ），藉此將隨機寫入轉換為循序寫入來優化 SSD 效能。它並沒有讓所有的 metadata 都進行 `in-place update` ，整個系統僅有 `Checkpoint Area` 是例外。
+  - text: |
+      透過將子節點與父節點強制對齊，並合併寫入同一個 2MB 的 `Segment` 之中，確保指標更新能在單次 I/O 內完成。
+    explanation: |
+      雖然 F2FS 確實有 `Segment` 的概念，但把節點綁定在同一個 `Segment` 並不能解決 `wandering tree` 的根本問題。只要位址是寫死的，一旦子區塊因為覆寫被移到新的 `Segment` ，父節點依然必須更新實體位址並跟著移動。
+  - text: |
+      利用大型的系統 RAM 作為緩衝區，在記憶體內攔截並完成所有的 `wandering tree` 樹狀更新，再以非同步方式將整棵樹寫回硬碟。
+    explanation: |
+      這描述的是一般的記憶體寫入快取行為，並不是 F2FS 解決 `wandering tree` 的核心架構。
+      

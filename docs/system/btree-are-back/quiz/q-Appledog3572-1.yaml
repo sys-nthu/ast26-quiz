@@ -1,0 +1,31 @@
+author: Appledog3572
+date: 2026-05-29
+question: |
+  BAB 論文指出，heads 優化（將每個 key 的前 4 bytes 複製存入 slot，binary search 時先比 head）對 
+  dense integer key 的 lookup 吞吐量提升幅度（+49%）明顯大於 URL 字串 key（+16%）。
+  下列哪個解釋最能說明整數 key 受益更大的原因？
+options:
+  - text: "整數 key 的長度恰好是 4 bytes，head 就是完整的 key，binary search 可完全在 heads 陣列中完成而不需存取 heap，大幅減少 cache miss"
+    correct: true
+    explanation: |
+      對於 4-byte 整數 key，head 就等於整個 key 本身。一旦 binary search 
+      在 heads 陣列中找到相符的 head，就可以直接確認是否為目標 key，
+      完全不需要再跳到 heap 中讀取完整 key 做最終比對。
+      這讓整數 key 的查詢幾乎不會觸發額外的 cache miss。
+      字串 key 的 head 只是前 4 bytes，當兩個 key 的 head 相同時，
+      系統仍需到 heap 做完整比對，仍可能造成 cache miss，因此效益不如整數 key 顯著。
+  - text: "SIMD 指令對整數型態的平行比較效率遠高於字串，因此 heads 在整數 key 上能充分發揮硬體加速"
+    explanation: |
+      SIMD 加速是 fingerprinting leaf 的特性，不是 heads 的機制。
+      heads 的 binary search 是標準的比較操作，並未依賴 SIMD 指令。
+      heads 對整數的優勢來自「head = 完整 key」的特性，與 SIMD 無關。
+  - text: "整數 key 沒有前綴，不適用 prefix truncation，因此 heads 陣列中保留了完整的 key 資訊，字串 key 則因截斷而使 head 失去意義"
+    explanation: |
+      Prefix truncation 截斷的是 key 在 leaf 內的共同前綴，head 是從截斷後的 key 取前 4 bytes，兩者是獨立的機制。
+      即使字串 key 經過 prefix truncation，其截斷後的後綴仍可形成有效的 head。
+      heads 對整數更有效的根本原因是整數 key 的長度剛好等於 head 的大小。
+  - text: "整數 key 的 B-Tree 平均 leaf node 數量較少，heads 陣列在記憶體中的分布更集中，cache 命中率因此更高"
+    explanation: |
+      Leaf node 的數量多寡並不是 heads 對整數更有效的原因。
+      關鍵在於整數 key 的長度恰好等於 head 的大小（4 bytes），
+      使得 binary search 完全在 heads 陣列中完成。樹的整體結構差異並不能解釋這個效益來源。

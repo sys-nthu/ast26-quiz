@@ -1,0 +1,18 @@
+author: yiyiyu92
+date: 2026-05-27
+question: |
+  Android 系統分割區主要 workload 為 4 KB 的 random page read，硬體瓶頸在 CPU decompression latency 與記憶體佔用。何種 block compression 的設計最符合低延遲、高隨機存取效率的實作方法？
+options:
+  - text: "採用 Fixed-Output 模式並將輸出大小對齊 4 KB page，搭配解壓速度快的演算法，以實現 in-place decompression。"
+    correct: true
+    explanation: |
+      Fixed-Output 4 KB 可以讓壓縮後的物理區塊剛好與作業系統的 page 對齊，除了能以 $O(1)$ 的複雜度快速定位磁碟位置外，還能直接將解壓結果寫入已分配好的 page Cache（In-place），消除隨機讀取時的 read amplification 並省去中間快取複製的開銷。
+  - text: "採用 Fixed-Input 模式切分較大的原始資料區塊（如 128 KB），因為大區塊能讓演算法看到更多重複資料，從而最大化壓縮率。"
+    explanation: |
+      Fixed-Input 搭配大區塊雖然壓縮率好，但在面對隨機讀取 4 KB 的 workload 時，系統會被迫將整個 128 KB 的大區塊全部讀入並解壓，造成 read amplification ，浪費 CPU 運算資源並耗盡記憶體。
+  - text: "無論採取何種區塊模式，都應優先選擇壓縮率最高的演算法， 降低 flash I/O 次數。"
+    explanation: |
+      NVMe SSD 的速度已經極快。如果盲目選用計算複雜度極高的演算法，CPU 解壓縮所花費的時間將超過 I/O 所賺到的時間，反而會使系統的隨機讀取延遲劣化。
+  - text: "為了降低解壓時的 CPU 負載，系統應該對所有儲存檔案（包含系統內已壓縮過的檔案）進行二次 Fixed-Output 強制壓縮。"
+    explanation: |
+      已經壓縮過的檔案，data entropy 高。二次壓縮不僅無法進一步縮減空間，反而會平白無故浪費 CPU 的運算資源進行無效的解壓縮。

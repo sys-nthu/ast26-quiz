@@ -1,0 +1,43 @@
+author: ZMYsamuel
+date: 2026-05-25
+question: |
+  一個 RAG 團隊要為新的文字搜尋系統選擇向量索引架構。系統規格：
+
+  - 6000 萬筆 768 維 float32 文字 chunk embedding（原始 vector 約 180 GB）
+  - 硬體：256 GB RAM
+  - SLA：p99 latency < 30 ms、recall@10 ≥ 90%
+  - 資料以週為單位重建，可視為靜態索引
+
+  在相同硬體上對兩種純索引（不使用 PQ）做基準測試，皆達到 recall@10 ≈ 92%：
+
+  | 方案 | 索引 | p99 latency | 額外記憶體（除原始 vector 外） |
+  |---|---|---|---|
+  | **A** | HNSW（M=32, efSearch=200） | 10 ms | +15 GB（graph edges） |
+  | **B** | IVF（C=7700, nprobe=50） | 65 ms | +0.06 GB（cluster centroid） |
+
+  下列何者是最合理的架構選擇？
+options:
+  - text: "採用方案 A。同時滿足 latency（10 ms < 30 ms）與 recall（92% > 90%）兩項 SLA；額外 15 GB graph 在 256 GB 預算內負擔輕微（總用 195 GB，留 60+ GB 餘裕），是符合所有約束的合理解。"
+    correct: true
+    explanation: |
+      HNSW 在 60M 規模下的搜尋成本來自兩部分：upper layers 約 $\log_2 N \approx 26$ 個 hop
+      （每個 hop 檢查 M=32 個鄰居），加上 layer 0 efSearch=200 的 beam search，總距離計算約數千次。
+      IVF 則為 $C + \text{nprobe} \times (N/C) \approx 7700 + 50 \times 7792 \approx 39$ 萬次。
+      HNSW 的距離計算次數顯著少於 IVF，這是 10 ms vs 65 ms latency 差距的主要來源。
+      Benchmark 的 10 ms p99 留有 20 ms latency 餘裕，總記憶體 195 GB 在 256 GB 預算內也有 60+ GB 餘裕，
+      是工程上同時滿足 latency、recall、memory 的最自然選擇。
+  - text: "採用方案 B。額外記憶體只有 0.06 GB，是方案 A 的 1/250；雖然 latency 偏高，但「以記憶體效率為優先」是更穩健的工程選擇。"
+    explanation: |
+      記憶體效率不能凌駕於 SLA：題目明定 p99 < 30 ms 是硬性要求，IVF 的 65 ms 超過 2 倍以上，
+      無論記憶體多省都無法部署。且記憶體本身就有充裕餘裕（256 - 195 = 61 GB），
+      在此情境下再強調「省記憶體」並無實質意義。
+  - text: "採用方案 B 的變體：把 `nprobe` 從 50 降到 10，能將 IVF latency 拉進 30 ms 目標，且記憶體仍比方案 A 省，兼顧 latency 與記憶體效率。"
+    explanation: |
+      IVF 的 latency 與 recall 都與 nprobe 高度相關，加速與精度無法兼得。
+      benchmark 只測過 nprobe=50 時 recall 為 92%（距 90% 門檻只有 2% 餘裕），
+      把 nprobe 降至 10 會讓搜尋覆蓋率縮小 5 倍（$50/7700 \\approx 0.65\\%$ 降至 $10/7700 \\approx 0.13\\%$），
+      recall 有極高機率跌破門檻；將 SLA 押在這種未經驗證、餘裕極小的調整上不是合理的工程決策。
+  - text: "拒絕方案 A。60M 規模下 HNSW 的 O(log N) 優勢有限，且 graph 的隨機存取會引發嚴重 cache miss，實測 latency 通常遠高於 benchmark 結果，10 ms 的數字並不可信。"
+    explanation: |
+      cache 不友善是 HNSW 真實存在的議題，但已經反映在 benchmark 結果中；10 ms 是「實測」p99，
+      不是理論估計。任意把已測值乘上倍數來推翻決策，是用假設凌駕證據，不是合理的工程推論方式。

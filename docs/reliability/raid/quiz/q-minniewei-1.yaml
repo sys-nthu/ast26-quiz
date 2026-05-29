@@ -1,0 +1,21 @@
+author: minniewei
+date: 2026-05-19
+question: |
+  某公司正在部署一個資料庫系統，該系統 Random Writes 頻繁。根據 RAID 的特性，下列哪一種設定最不建議使用，原因為何？
+options:
+  - text: "RAID 0"
+    explanation: |
+      它透過 striping 分散到多顆 disk，讀寫效能極佳，但不提供容錯能力。
+
+  - text: "RAID 10 (RAID 1 + RAID 0)"
+    explanation: |
+      RAID 10 結合了 RAID 1 的 mirroring 和 RAID 0 的 striping，提供優異的讀寫效能和容錯能力，非常適合 Random Writes 頻繁的場景。
+
+  - text: "RAID 4"
+    correct: true
+    explanation: |
+      RAID 4 使用 Dedicated Parity Disk，這意味不論資料寫入哪一顆 disk，都必須同時更新 Parity disk。面對 Random Writes 時，Parity disk 會成為整個系統的寫入瓶頸（Hot-spot）。
+
+  - text: "RAID 5"
+    explanation: |
+      RAID 5 正是為了為了解決 RAID 4 的 Hot-spot 問題而設計，它將 parity 分散到多顆 disk 上，減少單一 disk 的寫入瓶頸。

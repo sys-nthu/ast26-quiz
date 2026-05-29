@@ -1,0 +1,40 @@
+author: SL3333PY
+date: 2026-05-21
+question: |
+  RAID 4 中有一個稱為 **small-write problem** 的瓶頸。
+  當使用標準 RAID 4 layout（Disk 0–3 存 data、Disk 4 存 parity）的系統同時收到對 block 4 與 block 13 的隨機小型寫入請求，
+  下列哪個選項正確說明了發生 small-write problem 的原因？
+options:
+  - text: |
+      每次小型寫入需要讀取同一 stripe 中所有其他 data block 來重新計算 parity，
+      導致隨著磁碟數增加，每次寫入的 I/O 數量呈線性增長。
+    explanation: |
+      此選項描述的是 additive parity 的缺點，而非 small-write problem 的根本原因。
+      Small-write problem 的重點是 parity disk 成為所有寫入請求的必經之路，
+      與使用 additive 或 subtractive parity 無關。
+
+  - text: |
+      所有 stripe 的 parity block 都集中在 Disk 4，block 4 與 block 13 雖屬不同 stripe，
+      但兩者的 parity 更新都必須經過 Disk 4，只能依序處理，
+      throughput 因此被限制在 R/2 MB/s（假設單一 disk 的隨機傳輸率為 R MB/s）。
+    correct: true
+    explanation: |
+      RAID 4 使用 dedicated parity disk，所有 stripe 的 parity 都存在這裡。
+      每次寫入需對 Disk 4 執行 1 次 read（讀 old parity）+ 1 次 write（寫 new parity），
+      即使兩筆寫入針對不同 stripe，Disk 4 仍無法同時服務兩者，只能依序處理，
+      導致 throughput 的上限為 R/2 MB/s。
+
+  - text: |
+      每次小型寫入需依序執行 read old data → read old parity → write new data → write new parity，
+      共 4 個步驟，導致單次寫入延遲為普通 disk 的 4 倍。
+    explanation: |
+      Read old data 和 read old parity 可以同時發出，因為它們在不同磁碟上；writes 同理。
+      因此實際延遲是約 2 倍（並行 reads → 並行 writes），而非 4 倍。
+      此選項描述的依序執行是錯誤的，不能並行的部分是兩筆寫入的 parity 更新。
+
+  - text: |
+      小型寫入無法湊成 full-stripe write，沒辦法直接計算整條 stripe 的 parity 並一次並行寫入，
+      導致每次寫入的有效頻寬降低。
+    explanation: |
+      無法做 full-stripe write 的情況是真實存在的，但並非 small-write problem 的根本原因。
+      瓶頸在於所有 parity 更新都必須經過 Disk 4，與是否能做 full-stripe write 無關。

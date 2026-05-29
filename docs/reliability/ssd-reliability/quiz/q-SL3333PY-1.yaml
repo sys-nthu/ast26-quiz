@@ -1,0 +1,40 @@
+author: SL3333PY
+date: 2026-05-27
+question: |
+  BCH 與 LDPC 是兩種常見的 ECC，分別對應不同的設計取捨。
+  下列哪個敘述正確描述了兩者的特性？
+options:
+  - text: |
+      LDPC 的 soft decoding 讓它能容忍的錯誤率較 BCH 高，
+      代價是 LDPC 需要更多的 parity bits，storage overhead 也比較高。
+    explanation: |
+      容錯能力更強不代表 storage overhead 一定更高。
+      在相同的 parity bits 比例下，LDPC 透過 soft decoding 更有效率地利用這些 parity bits，
+      因此可以在不增加 overhead 的情況下容忍更高的錯誤率。
+
+  - text: |
+      LDPC 的 fail-slow 行為比 BCH 的 fail-stop 更安全，
+      因為 fail-slow 的 SSD 不會突然失效，讓 controller 有更多時間準備重建。
+    explanation: |
+      雖然 fail-slow 的 SSD 不會突然失效，
+      但它沒有明確的失敗訊號的特性，讓 controller 不知道該何時將它移出陣列，
+      可能在判斷期間另一顆 SSD 也相繼故障，導致整個陣列失效。
+      fail-stop 雖然會突然失敗，但 controller 可以立刻啟動重建，反應時間反而更快。
+
+  - text: |
+      QLC 每個 cell 有更多 voltage levels，狀態之間的距離更近，raw bit-error rate 因此較高。
+      BCH 的容錯能力在此錯誤率下難以滿足可靠性需求，更適合使用 LDPC。
+    correct: true
+    explanation: |
+      QLC 的電壓分佈密集，任何 retention drift 都容易讓相鄰層級的電壓發生混淆，
+      導致 raw bit-error rate 遠高於 SLC 或 MLC。
+      BCH 的容錯能力有硬性上限，超過門檻就直接失敗；
+      LDPC 透過 soft decoding 可以容忍更高的錯誤率，因此實務上常被用於 QLC SSD。
+
+  - text: |
+      LDPC 在 SSD 還新的時候運算成本比 BCH 高，因為每次讀取都需要執行 soft decoding。
+      因此較合理的設計是新 SSD 使用 BCH，等老化後錯誤率上升再切換到 LDPC。
+    explanation: |
+      LDPC 只有在 hard decoding 失敗時才觸發 soft decoding，
+      SSD 還新的時候幾乎所有讀取都只用 hard decoding，運算成本與 BCH 相近。
+      LDPC 的設計優點之一正是只用同一套 code 就能適應 SSD 從新到舊的各種狀態。

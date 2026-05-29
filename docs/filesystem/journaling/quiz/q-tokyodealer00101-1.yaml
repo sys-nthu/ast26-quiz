@@ -1,0 +1,18 @@
+author: tokyodealer00101
+date: 2026-05-27
+question: |
+  FastCommit 用精簡的 `FCLog` 描述常見操作來加速 `fsync()`，但 `FCLog` 只能描述固定幾種操作。當 `fsync()` 遇到 `FCLog` 無法描述的 metadata 更新時，FastCommit 該怎麼保證 `fsync()` 回傳時資料已持久化？
+options:
+  - text: "這次 `fsync()` 應退回 `JBD2` physical commit，讓完整 metadata block image 進 journal；之後可描述的常見操作再繼續寫 `FCLog`。"
+    correct: true
+    explanation: |
+      FastCommit 只替可描述的操作留下 logical `FCLog`，而系統仍保留 `JBD2` physical commit 機制。遇到沒有對應 tag 的 metadata 更新時，就應回到 `JBD2` 路徑，保住 `fsync()` 回傳後的持久化保證；這次請求會失去快速路徑的低寫入量優勢，但 recovery 仍有正確的 journal 內容可用。
+  - text: "它仍把這次變更寫成 `FCLog` 中稍後處理 inode 的提示，讓 `fsync()` 先回傳；下一次 `JBD2` slow commit 會再把完整 block image 補進 journal。"
+    explanation: |
+      這誤解了 `fsync()` 與 `FCLog`。`fsync()` 回傳成功時，相關修改必須已經有可供 recovery 使用、且已持久化的紀錄；如果 `FCLog` 只是一個稍後處理的提示，就不能取代這次必須已寫進 journal、可供 recovery 使用的內容。不能把持久化延到下一次 slow commit。
+  - text: "它改成類似 `data=journal` 的模式，把 data 與 metadata 都寫進 journal；這樣任何 metadata 變更都能用同一套 FastCommit recovery。"
+    explanation: |
+      這混淆了 FastCommit 與 `data=journal`。把 data 也寫進 journal 通常會增加寫入量，而且不能讓 FastCommit 突然支援所有 metadata 操作。FastCommit 的適用範圍是 `FCLog` 能描述的常見操作；超出這個範圍時應回到 `JBD2` physical commit，而不是改變 journaling mode。
+  - text: "它保持 ordered mode，但先留下一份 recovery 可以重演的 metadata 紀錄；data block 與無法描述的 metadata block 等下一次 `JBD2` slow commit 後再寫回正式位置。"
+    explanation: |
+      這混淆了 FastCommit 與 ordered/writeback mode。FastCommit 不取消 ordered mode 中「data 先於 metadata」的寫入順序，也不能讓 `fsync()` 回傳時只留下未來才會補齊的 metadata 狀態。若這次操作無法由 `FCLog` 正確描述，就應使用 `JBD2` physical commit 取得可供 recovery 使用的 journal 紀錄。

@@ -1,0 +1,23 @@
+author: lin131chen
+date: 2026-05-18
+question: |
+  某 filesystem 採用 delayed allocation。
+  某應用程式在寫入一個 10MB 檔案後，立即呼叫 fsync()。之後系統發生非預期 crash。假設 filesystem 採用標準 writeback 與 metadata 更新機制，下列何者最可能發生？
+
+options:
+  - text: "由於 delayed allocation 會延後 block allocation，因此新資料仍可能只存在 page cache 中，10MB 檔案可能完全遺失。"
+    explanation: |
+      delayed allocation 確實會延後 block allocation 與實際寫入。然而，題目中已呼叫 fsync()，其作用是強制將 dirty data 與必要 metadata 寫回磁碟。因此 crash 後，資料不應仍只存在 page cache 中。
+
+  - text: "filesystem 會等到 background flush thread 執行後才真正完成 allocation，因此 crash 後檔案完整性無法保證。"
+    explanation: |
+      background flush 是一般 writeback 機制的一部分，但 fsync() 會同步強制完成寫回。因此 filesystem 不會等待 background flush 才進行 allocation 與 persistence。
+
+  - text: "即使 fsync() 已完成，inode size 仍可能維持舊值，因為 delayed allocation 只保證 data block 被寫回。"
+    explanation: |
+      fsync() 不只會寫回 data block，也會同步必要 metadata。若 inode size 未更新，filesystem 將無法維持一致狀態，因此此敘述不合理。
+
+  - text: "系統應已完成 block allocation，並將 data 與必要 metadata（例如 inode size 與 extent mapping）寫回磁碟，因此 crash 後仍能看到完整檔案。"
+    correct: true
+    explanation: |
+      fsync() 的作用是強制將檔案相關的 dirty data 與必要 metadata persistent 到磁碟。即使 filesystem 採用 delayed allocation，當 fsync() 完成後，allocation 與寫回應已完成，因此 crash 後仍應能看到完整檔案。

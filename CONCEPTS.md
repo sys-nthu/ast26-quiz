@@ -27,15 +27,11 @@
 - `filesystem/log-structured-fs` — Log-Structured File System
 ## Reliability & Coding
 - `reliability/error-coding-basics` — Error Coding Basics
-- `reliability/galois-field-arithmetic` — Galois Field Arithmetic
 - `reliability/raid` — RAID
-- `reliability/erasure-coding` — Erasure Coding
-- `reliability/ldpc` — LDPC Codes
+- `reliability/ssd-reliability` — SSD Reliability and Protection
 ## Data Systems
-- `system/kv-store-api` — Key-Value Store API
-- `system/buffer-pool` — Buffer Pool
+- `system/btree-are-back` — B-Trees Are Back
 - `system/data-compression` — Data Compression
-- `system/inverted-index` — Inverted Index
 - `system/deduplication` — Deduplication
 - `system/columnar-storage` — Columnar Storage
 - `system/model-quantization` — Model Quantization

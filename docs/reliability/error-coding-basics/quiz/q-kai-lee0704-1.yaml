@@ -1,0 +1,18 @@
+author: kai-lee0704
+date: 2026-05-28
+question: |
+  某 ECC memory 使用 SEC-DED Hamming code，某次讀取時，實際發生了 3 個 bit flip，請問下列敘述何者正確？
+options:
+  - text: "SEC-DED 可以正確修復 3-bit error，只是需要較高的 Latency"
+    explanation: |
+      SEC-DEC 無法保證正確修復 3-bit error
+  - text: "SEC-DED 可能誤判成 single-bit error，導致 miscorrection"
+    correct: true
+    explanation: |
+      SEC-DEC 可以 correct 1-bit error 並且 detect 2-bit error 但無法保證處理 3-bit error 當發生 3-bit error，decoder 可能誤認為某個 single-bit error 做出錯誤的 correction。
+  - text: "因為 triple-bit error 的 bit 數是奇數，所以 SEC-DED 的 parity 一定能直接定位所有錯誤位置並完成修復"
+    explanation: |
+      奇數個錯誤只代表 parity 可能會發現異常，不代表可以知道是哪三個 bit 錯
+  - text: "只要 parity bit 數量夠多，任何 bit error 都一定能 correction"
+    explanation: |
+      Redundancy 增加不代表無限的 correction capability

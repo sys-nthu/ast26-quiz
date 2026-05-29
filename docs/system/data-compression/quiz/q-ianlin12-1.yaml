@@ -1,0 +1,18 @@
+author: ianlin12
+date: 2026-05-28
+question: |
+  關於 fixed-input 和 fixed-output 的敘述，以下選項何者正確?
+options:
+  - text: "EROFS 使用的是 fixed-input"
+    explanation: |
+      EROFS 使用的是 fixed-output，它們才能使每個 compressed block 對齊 OS page size
+  - text: "因為 fixed-output 壓縮後的資料為固定大小，所以可以用乘法做到 O(1) 的搜尋"
+    correct: true
+    explanation: |
+      因為 fixed-output 壓縮後的資料為固定大小，可以直接用 block 編號 × N 算出 disk 位置
+  - text: "fixed-input 的壓縮率通常比 fixed-output 差，因為它常常壓到一半就被迫停止"
+    explanation: |
+      反過來了，fixed-output 的壓縮率通常比 fixed-input 差
+  - text: "fixed-output 需要額外的儲存空間成本才能 access 到指定資料"
+    explanation: |
+      是 fixed-input 才有這樣的需求

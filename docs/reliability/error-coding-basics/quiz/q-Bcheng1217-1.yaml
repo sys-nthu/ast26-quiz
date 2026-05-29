@@ -1,0 +1,18 @@
+author: bcheng1217
+date: 2026-05-28
+question: |
+  關於 minimum distance、code rate 與幾種經典 code 的特性，下列敘述何者正確？
+options:
+  - text: "若某個 ECC 的 minimum distance $d=2$ ，則能更正 1 個 error。"
+    explanation: |
+      這個敘述是錯誤的。根據 minimum distance 的理論，當 $d=2$ 時，該 code 只能抓到 1 個 error 或修復 1 個 erasure，但不具備更正的能力。
+  - text: "在設計 $(n, k)$ code 時，為了將系統的 space efficiency 極大化，工程師應盡量讓 code rate $R$ 接近 0，這樣能同時保有最強的更正能力。"
+    explanation: |
+      這個觀念完全相反。Code rate 的定義為 $R = k/n$，當 $R$ 越接近 1 時，代表 redundancy 越少、儲存效率越高，但代價是更正能力會變得越弱，這是一個必然的 trade-off。
+  - text: "CRC 是一種專門處理 burst error 且具備自動更正能力的技術，因此廣泛應用於硬碟 sector 與網路 TCP 封包中。"
+    explanation: |
+      這個敘述錯在將 CRC 當作可以「更正」的技術。CRC 的特性的確對連續的 burst error 很友善、且計算成本極低，但它屬於 detection-only 的工具，並不具備自動把錯誤修回正確資料的更正能力，修復工作必須交給上層系統處理。
+  - text: "Hamming(7,4) 的 code rate $R \\approx 0.57$，其 minimum distance $d=3$，這意味著它在收到 7 個 bit 的資料後，能夠準確抓到 2 個 error，或者找出並更正 1 個 error。"
+    correct: true
+    explanation: |
+      這個敘述是正確的。Hamming(7,4) 屬於 $(7, 4)$ code，將 4 個 data bit 加上 3 個 parity bit，因此 $R = 4/7 \\approx 0.57$ 。其 $d=3$ 的特性賦予了它抓到 2 個 error 或 更正 1 個 error 的能力。

@@ -1,0 +1,21 @@
+author: VenceChing
+date: 2026-05-19
+question: |
+  考慮由 4 顆磁碟組成的 RAID 1+0 (stripe of mirrors) 架構與 RAID 0 架構。關於這兩者的分析何者正確？
+options:
+  - text: "RAID 1+0 必須為每一筆資料建立多個備份，因此其可用容量僅為 RAID 0 的四分之一。"
+    correct: false
+    explanation: |
+      RAID 1+0 含有 mirror pair。其可用容量為總容量的一半，而非四分之一。
+  - text: "執行單次寫入時，RAID 1+0 的平均延遲會略高於單顆磁碟。"
+    correct: true
+    explanation: |
+      RAID 1+0 寫入時會平行發送請求給兩顆 mirror pair 磁碟，但必須等待較慢完成的那顆磁碟結束才算成功，平均下來會略高於單寫一棵磁碟的時間。
+  - text: "RAID 0 將檔案區塊分散至 4 顆磁碟，若其中 1 顆故障，系統只會損失 25% 的資料，其餘檔案可正常讀取。"
+    correct: false
+    explanation: |
+      由於檔案區塊被輪替寫入所有磁碟，只要 1 顆磁碟故障，跨磁碟的檔案就會因缺失部分區塊而損毀。
+  - text: "因為每一筆資料都有備份，4 顆磁碟的 RAID 1+0 架構保證能容忍任意 2 顆磁碟同時故障。"
+    correct: false
+    explanation: |
+      RAID 1+0 若損毀的 2 顆磁碟恰好屬於同一個 mirror pair，資料即永久遺失。因此它只能保證容忍 1 顆磁碟故障。

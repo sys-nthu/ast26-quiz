@@ -1,0 +1,19 @@
+author: tmousecello
+date: 2026-05-28
+question: |
+  為了解決同批 SSD RAID 同時故障問題，Diff-RAID 透過刻意製造 SSD 之間的磨損差異來錯開故障時間。
+  下列哪一種手段 **無法** 有效製造這種磨損差異？。
+options:
+  - text: "刻意混合採用不同廠牌或不同型號的 SSD 來組建 RAID 5 陣列。"
+    explanation: |
+      不同廠牌或型號的 SSD，其採用的 NAND flash 顆粒（如 TLC 與 QLC）、製程以及 FTL 的 GC 演算法皆不相同。這會導致它們具有不同的總寫入量耐受度與 WAF，能有效錯開硬碟損壞的時間點。
+  - text: "在同批次同型號 SSD 上，建立不同大小的 partition ，利用這些大小不一的 partition 來組建 RAID 5。"
+    correct: true
+    explanation: |
+      使用者在邏輯層留一塊空 partition，FTL 不會把它當成 OP。 FTL 會將寫入操作平均分散到所有的實體 NAND 區塊上。因此，這幾顆 SSD 最終消耗的 PE Cycle 完全一樣，依然會同時損壞。
+  - text: "修改陣列控制器的軟體演算法，在 parity 更新時刻意採用非對稱分佈，讓特定一顆 SSD 短期內承受絕大多數的 parity 寫入負載。"
+    explanation: |
+      因為 parity 更新伴隨較高的寫入放大，透過將 parity 更新集中於特定硬碟，能人為加速該硬碟的老化，確保它提早陣亡，讓系統有時間進行單碟替換與 rebuild，避免同時損毀。
+  - text: "混用已在其他伺服器上使用過且剩餘壽命不等的舊 SSD，與全新拆封的 SSD 一起組建陣列。"
+    explanation: |
+      由於各硬碟初始的磨損程度不同，即便後續在 RAID 5 中承受完全相等的寫入負載，它們達到壽命極限的時間點也絕對不同，從而達成 Diff-RAID 的目的。

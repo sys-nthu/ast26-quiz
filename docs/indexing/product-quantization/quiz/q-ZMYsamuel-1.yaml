@@ -1,0 +1,34 @@
+author: ZMYsamuel
+date: 2026-05-25
+question: |
+  一個工程師在比較兩種 ADC 配置，兩者都對 128 維 vector 使用 $M=8$ 個 sub-vector：
+
+  - **配置 A**：$k^*=256$，lookup table 大小 = $8 \times 256 \times 4 = 8$ KB
+  - **配置 B**：$k^*=4096$，lookup table 大小 = $8 \times 4096 \times 4 = 128$ KB
+
+  配置 B 的 codebook 更細緻，量化誤差理應更低。但在對十億筆 vector 做距離計算的 benchmark 中，配置 B 的 throughput 卻遠低於配置 A。
+  下列何者最可能是配置 B throughput 低落的核心原因？
+options:
+  - text: "配置 B 每次查詢需建立更大的 lookup table（32768 次距離計算 vs 配置 A 的 2048 次），建表成本高出 16 倍，造成整體延遲大幅上升。"
+    explanation: |
+      建表是每次 query 的一次性固定成本，建好後對所有 database vector 共用同一張 table。
+      對十億筆 vector 的 benchmark 而言，database 端的距離計算次數遠超建表次數，
+      16 倍的建表成本差距均攤下來可以忽略，不是 throughput 差距的主因。
+  - text: "配置 B 的 $k^*=4096$ 代表每個 sub-vector 有更多 centroid 可以對應，每個 database vector 需要的 lookup 次數因此增加，導致計算量上升。"
+    explanation: |
+      ADC 對每個 database vector 的查表次數固定為 $M$ 次，與 $k^*$ 的大小無關。
+      無論 $k^*=256$ 或 $k^*=4096$，每筆 database vector 都只需做 8 次 table lookup 再加總。
+  - text: "配置 A 的 8 KB lookup table 完全落在 L1 cache 中，每次 lookup 幾乎沒有等待；配置 B 的 128 KB table 超出 L1，lookup 需從 L2 讀取，存取延遲上升數倍。"
+    correct: true
+    explanation: |
+      這正是 $k^*=256$（8 KB table）成為標準配置的關鍵理由之一。
+      L1 cache 通常為 32–64 KB，8 KB 的 table 可長期常駐其中，對十億筆 vector 的所有 lookup
+      幾乎都是 L1 hit（延遲 ~1–4 ns）。
+      128 KB 的 table 超出 L1 但仍可放入 L2（典型 256 KB – 1 MB），
+      lookup 延遲從 L1 的 ~1–4 ns 上升至 L2 的 ~5–15 ns。
+      每個 database vector 需做 $M=8$ 次 lookup，十億筆累積下來，這個 L1 vs L2 的延遲差距直接決定 throughput。
+  - text: "配置 B 的 index 需要 12 bits（$\\log_2 4096 = 12$），無法對齊到 1 byte，硬體 SIMD 向量化失效，throughput 因此下降。"
+    explanation: |
+      12-bit 對齊確實帶來實作上的不便，但現代 CPU 的 bit manipulation 指令可相對低成本地處理。
+      在十億筆 vector 的 benchmark 中，cache miss 的累積影響遠大於 bit alignment 的開銷，
+      不是 throughput 低落最主要的原因。

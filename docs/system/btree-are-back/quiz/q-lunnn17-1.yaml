@@ -1,0 +1,28 @@
+author: lunnn17
+date: 2026-05-28
+question: |
+  假設你正在開發一個電子商務系統，並使用支援 BAB 優化的資料庫。系統中有以下三個資料表與對應的工作負載：
+  1. Users：key 為連續整數 user ID，高頻 point lookup。
+  2. WebLogs：key 為網址字串（幾乎都以 https://www.nthu.com/ 開頭），大量 insert + point lookup。
+  3. Orders：key 為訂單時間，每天半夜大量 range scan 產報表。
+
+  請問系統在長期運行後，最有可能會將這三個表的 leaf node 分別變形成哪一種佈局？
+options:
+  - text: "`Users`：dense leaves；`WebLogs`：fingerprinting；`Orders`：comparison-based"
+    correct: true
+    explanation: |
+      `Users`：存的是連續整數，符合「足夠密集的整數」，系統會依據 key-adaption 轉換為 dense leaf。
+      `WebLogs`：主要操作是 insert/point lookup，系統會依據 operation-adaption 轉為 fingerprinting。
+      `Orders`：因為需要頻繁執行 range scan，系統會依據 operation-adaption 維持在 comparison-based，保持資料排序。
+  - text: "`Users`：fingerprinting；`WebLogs`：comparison-based；`Orders`：dense leaves"
+    explanation: |
+      `Users` 雖然操作為高頻 point lookup 但是在儲存密集的連續整數使用 dense leaf 會比 fingerprinting 更有效率。
+      `WebLogs` 儲存大量相同開頭的 URL 會導致 head 的優化失效。
+      `Orders` 有大量的 range scan 操作，但不一定具有儲存密集的連續整數的特性，不適合用 dense leaf。
+  - text: "`Users`：dense leaves；`WebLogs`：comparison-based；`Orders`：fingerprinting"
+    explanation: |
+      `WebLogs` 儲存大量相同開頭的 URL 會導致 head 的優化失效。
+      `Orders` 有大量的 range scan 操作，使用 fingerprinting 會導致在 runtime 時需要常做 lazy sort 讓效能變差。
+  - text: "因為它們都是同一棵 B+ tree 的變體，為了確保底層 indexing 的一致性與正確性，這三個表最終都會統一收斂成 comparison-based layout。"
+    explanation: |
+      這違反了 BAB 論文 adaptive 的精神。傳統 B+ tree 確實要求所有的 leaf 都要長得一模一樣且保持排序，但這篇論文提出：同一棵樹裡的不同 leaf 應該根據自身的資料分佈與操作頻率，各自決定動態切換成最適合自己的佈局。

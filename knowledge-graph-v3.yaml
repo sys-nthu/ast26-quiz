@@ -259,7 +259,7 @@ concepts:
     tier: advanced
     open: false
     pillar: indexing
-    depends_on: [kv-store-api, bloom-filter]
+    depends_on: [bloom-filter]
     papers: [zns, co-design-btree-zns, wisckey]
 
   - slug: hnsw
@@ -346,16 +346,6 @@ concepts:
     depends_on: []
     papers: [flash-coded-storage]
 
-  - slug: galois-field-arithmetic
-    title: "Galois Field Arithmetic"
-    description: >
-      在 error-coding-basics 中我們學到了 XOR 和 Hamming distance 等基礎概念，但要建構更強大的編碼技術（如 Reed-Solomon），我們需要一套能在有限元素上做四則運算的數學工具，這就是 Galois field。我們會聚焦在 GF(2^w) 這類 finite field：它的加法就是 XOR，而乘法則透過 primitive polynomial 定義，實務上可以用 log/antilog table 來加速計算。理解 GF(2^w) 的運算規則後，我們就能在這個 field 上建構矩陣運算，這是 Reed-Solomon 編碼與解碼的核心。同時 LDPC code 中的 sparse parity-check matrix 也建立在 finite field 的代數結構之上。掌握 Galois field arithmetic 讓我們能把 error coding 從簡單的 bit-level XOR 推展到 symbol-level 的強大糾錯能力，是連結基礎理論與實際儲存系統編碼方案的關鍵橋梁。
-    tier: basic
-    open: false
-    pillar: reliability
-    depends_on: [error-coding-basics]
-    papers: [flash-coded-storage]
-
   - slug: raid
     title: "RAID"
     description: >
@@ -366,52 +356,27 @@ concepts:
     depends_on: [error-coding-basics]
     papers: [flash-coded-storage]
 
-  - slug: erasure-coding
-    title: "Erasure Coding"
+  - slug: ssd-reliability
+    title: "SSD Reliability and Protection"
     description: >
-      在學過 Galois field arithmetic 提供的代數工具以及 RAID 的磁碟冗餘策略之後，我們可以進入更通用的 erasure coding 框架。Erasure coding 與 error correction 的關鍵差異在於：erasure 情境下我們已經知道哪些資料區塊遺失了（例如某顆磁碟故障），只需要從剩餘的區塊中重建資料，而不需要像 error correction 那樣先定位錯誤。我們會介紹 Reed-Solomon code 如何在 GF(2^w) 上建構編碼矩陣，以及 MDS（Maximum Distance Separable）property 與 Singleton bound 的意義：MDS code 能以理論上最少的冗餘達到最大的容錯能力，可以視為 RAID 5/6 的數學推廣。實務上，我們會討論如何使用 Cauchy matrix 來建構高效的編碼矩陣，使得 encoding 和 decoding 只需要 XOR 運算即可完成。此外，我們也會介紹 Local Reconstruction Codes（LRC）的設計動機：在大規模分散式儲存系統中，修復單一區塊故障時若需要讀取所有存活區塊，網路開銷會過於龐大，LRC 透過增加 local parity 來大幅降低單一區塊修復所需的 I/O 量。
-    tier: advanced
-    open: false
+      NAND flash 本質上是不可靠的儲存媒介：cell 會磨損、會漏電、會被鄰居干擾。要把這樣的元件包裝成今天我們敢拿來存重要資料的 SSD，靠的是一層又一層的編碼保護。這堂課從一顆 SSD 內部的 ECC（BCH、LDPC）、跨 SSD 的 RAID 與 Diff-RAID，一路走到跨節點的 Reed-Solomon 與 LRC erasure coding，看工程師怎麼用三層防禦對抗不同尺度的故障，並理解 fail-slow、lockstep failure 等違反直覺的可靠性問題。
+    tier: basic
+    open: true
     pillar: reliability
-    depends_on: [galois-field-arithmetic, raid]
-    papers: [flash-coded-storage]
-
-  - slug: ldpc
-    title: "LDPC Codes"
-    description: >
-      在 error-coding-basics 中我們學到了 error correction 的基本原理，而在 SSD pillar 的 nand-flash 單元中我們了解到 NAND flash cell 隨著 P/E cycle 增加會逐漸劣化、bit error rate 會持續上升，因此現代 SSD 需要非常強大的 error correction code，這就是 LDPC（Low-Density Parity-Check）code 被廣泛採用的原因。我們會介紹 LDPC code 的核心結構：一個 sparse parity-check matrix H，其中大部分元素為零，這個稀疏特性使得解碼演算法能夠高效運作。透過 Tanner graph 的圖形化表示，我們可以直觀理解 variable node 與 check node 之間的關係，並在此基礎上介紹 belief-propagation decoding 演算法如何透過在圖上反覆傳遞機率訊息來逐步收斂到正確的 codeword。最後我們會討論 hard-decision 與 soft-decision decoding 的差異：hard-decision 只使用每個 cell 讀出的 0 或 1，而 soft-decision 則利用 NAND flash 的 multi-level voltage sensing 來取得每個 bit 的信賴度資訊，大幅提升糾錯能力，但也需要更多次的 flash read 操作與更高的解碼運算量。
-    tier: advanced
-    open: false
-    pillar: reliability
-    depends_on: [error-coding-basics, nand-flash]
+    depends_on: [error-coding-basics, nand-flash, raid]
     papers: [flash-coded-storage]
 
   # ==== System pillar =======================================================
 
-  - slug: kv-store-api
-    title: "Key-Value Store API"
+  - slug: btree-are-back
+    title: "B-Trees Are Back"
     description: >
-      幾乎所有的 storage engine 最終都透過 Key-Value Store API 來對外提供服務，包括 Put、Get、Delete、Scan 等基本操作。我們需要理解 memtable 如何作為 in-memory write buffer 暫存寫入資料，以及 write-ahead log (WAL) 如何在系統崩潰時保障資料的 durability。此外，我們也會學到 snapshot 和 iterator 的概念，它們讓使用者可以在一致的資料視圖上進行讀取與遍歷。掌握這組 API 是後續理解 LSM-Tree、B+Tree 等進階索引結構的必要基礎，因為這些結構本質上都是在實作這套介面。
-    tier: basic
+      經過多年 LSM-Tree 在 write-heavy workload 的主導，近年的研究重新檢視了 B+Tree 在現代硬體上的潛力。在 NVMe SSD、大容量 DRAM、與多核 CPU 的環境下，B+Tree 的隨機存取代價變得可以接受，而它在 read amplification、range query 與 space amplification 上的優勢愈發明顯。本單元會從 in-memory ordered index（如 Wormhole）的設計談起，看看現代 B+Tree 變體如何結合 hash trie、SIMD、cache-line aware layout 等技術逼近 hash table 的查詢速度，同時保留 range scan 的能力；並透過 2025 年 "B-Trees Are Back" 的綜述，理解為什麼許多 storage engine 又重新把 B+Tree 拉回設計選擇的中心。
+    tier: advanced
     open: false
     pillar: system
     depends_on: []
-    papers: [zns, co-design-btree-zns, wisckey]
-
-  - slug: buffer-pool
-    title: "Buffer Pool"
-    description: >
-      磁碟的存取速度遠低於記憶體，因此資料庫系統需要一個 buffer pool 來將常用的 disk page 快取在記憶體中。我們需要學習各種 eviction policy（如 LRU、LRU-K、Clock、ARC）來決定記憶體不足時該優先淘汰哪些 page，並理解 dirty-page tracking 與 writeback 機制如何確保修改過的資料最終被寫回磁碟。pin/unpin protocol 則確保正在被存取的 page 不會被意外淘汰。Buffer pool 的設計直接影響資料庫的 I/O 效率，也是理解 B+Tree on disk 與 storage engine 效能調校的核心知識。
-    tier: basic
-    open: false
-    pillar: system
-    depends_on: []
-    papers:
-      - b-trees-are-back
-      - co-design-btree-zns
-      - modern-nvme
-      - duckdb-xnvme
-      - watt
+    papers: [b-trees-are-back]
 
   - slug: data-compression
     title: "Data Compression"
@@ -422,16 +387,6 @@ concepts:
     pillar: system
     depends_on: []
     papers: [erofs]
-
-  - slug: inverted-index
-    title: "Inverted Index"
-    description: >
-      當我們需要從大量文件中快速找到包含特定關鍵字的文件時，逐一掃描顯然不可行。Inverted index 透過建立從 term 到 document ID 的 posting list，讓全文檢索可以在接近常數時間內完成。我們會學習 TF-IDF scoring 如何衡量一個 term 對特定文件的重要程度，以及 index construction 與 merging 的流程如何處理大量資料的索引建立。Query processing 中的 AND/OR 操作則決定了多關鍵字查詢的語意。Inverted index 是搜尋引擎與 log analysis 系統的基礎元件，也是理解現代資訊檢索架構的起點。
-    tier: basic
-    open: false
-    pillar: system
-    depends_on: []
-    papers: []
 
   - slug: deduplication
     title: "Deduplication"
@@ -478,11 +433,7 @@ projects:
 
   - slug: lsm-kv-store
     title: "Mini LSM-Tree Key-Value Store"
-    depends_on: [lsm-tree, bloom-filter, kv-store-api]
-
-  - slug: erasure-coding-lab
-    title: "Erasure Coding Implementation & Benchmark"
-    depends_on: [erasure-coding, raid]
+    depends_on: [lsm-tree, bloom-filter]
 
   - slug: vector-search-engine
     title: "Vector Search Engine on SSD"

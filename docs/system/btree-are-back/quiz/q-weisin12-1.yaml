@@ -1,0 +1,18 @@
+author: weisin12
+date: 2026-05-29
+question: |
+  BAB 論文的 Adaptive B-Tree 會根據 workload 與資料特徵，切換 leaf 的佈局。下列敘述何者**錯誤**？
+options:
+  - text: "系統利用每個 leaf 的 1-byte 計數器來偵測 scan 與 point 的頻率。計數器採機率性更新，而非每次存取皆更新。"
+    explanation: |
+      機率性更新能有效減少寫入競爭。
+  - text: "當 fingerprinting 節點遭遇大量 scan 時，計數器達標後會動態切換為 comparison-based 。"
+    explanation: |
+      Fingerprinting 內部的資料未排序，處理 scan 的成本高，因此切換成 comparison-based 佈局。
+  - text: "系統是基於全域的工作負載來決定佈局。當偵測到整體的 scan 頻率過高時，會一次性將所有 leaf 統一轉換為 comparison-based 。"
+    correct: true
+    explanation: |
+      BAB 的適應機制是每個 leaf 會根據自身的存取負載獨立切換佈局，而非統一轉換。
+  - text: "Key-adaption 在節點 split 或 merge 時順便判斷。"
+    explanation: |
+      為了節省運算成本，資料特徵的檢查通常會利用節點本來就需要重構的時機 split 或 merge 時進行。

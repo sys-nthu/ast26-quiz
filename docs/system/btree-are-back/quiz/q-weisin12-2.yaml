@@ -1,7 +1,7 @@
 author: weisin12
 date: 2026-05-29
 question: |
-  BAB 論文提出在 B-Tree 節點 header 加入 16 個均勻取樣的 hints 陣列，搜尋時會先對此陣列進行線性搜尋。關於 hints 的機制與影響，下列敘述何者**錯誤**？
+  BAB 論文提出在 B-Tree 節點 header 加入 16 個均勻取樣的 hints 陣列，搜尋時會先對此陣列進行線性搜尋。關於 hints 的機制與影響，下列敘述何者「錯誤」？
 options:
   - text: "16 個 hints 剛好佔用 64 bytes (一個 cache line )，只需一次 cache miss 即可載入，因此線性搜尋幾乎沒有額外讀取成本。"
     explanation: |

@@ -30,7 +30,7 @@ options:
       FastCommit 也沒有取消 ext4/JBD2，而是在保留 JBD2 slow commit 的前提下，
       加上一條比較便宜的 fast path。
 
-  - text: "把每次 fsync() 造成的多個 metadata block 合併成較大的 sequential write，主要靠順序寫入來降低成本。"
+  - text: "把每次 'fsync()' 造成的多個 metadata block 合併成較大的 sequential write，主要靠順序寫入來降低成本。"
     explanation: |
       錯。順序寫入確實是 journal 的一個優點，但這不是 FastCommit 和 database WAL 最核心的相似處。
       關鍵不是單純把很多 block 排成 sequential write，而是用更小、語意更高層的 log，

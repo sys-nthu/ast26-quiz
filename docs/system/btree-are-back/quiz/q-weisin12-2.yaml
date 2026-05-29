@@ -1,0 +1,18 @@
+author: weisin12
+date: 2026-05-29
+question: |
+  BAB 論文提出在 B-Tree 節點 header 加入 16 個均勻取樣的 hints 陣列，搜尋時會先對此陣列進行線性搜尋。關於 hints 的機制與影響，下列敘述何者**錯誤**？
+options:
+  - text: "16 個 hints 剛好佔用 64 bytes (一個 cache line )，只需一次 cache miss 即可載入，因此線性搜尋幾乎沒有額外讀取成本。"
+    explanation: |
+      這是 Hints 能幾乎免費縮小搜尋範圍的物理基礎。
+  - text: "先行掃描 hints 陣列可大幅縮小後續二分搜尋的範圍，進而減少 cache miss 次數。"
+    explanation: |
+      Hints 透過極低成本的線性搜尋縮小區間，大幅減少後續的記憶體存取。
+  - text: "當字串(如 URL )前綴重複率過高，導致 4-byte 的 heads 失去區分能力時， hints 會動態儲存更長的字串特徵以輔助過濾。"
+    correct: true
+    explanation: |
+      Hints 陣列僅是提取原有的 heads 作為副本，其長度是固定的。因此，若原先的 heads 失去區分能力， hints 也會跟著失效。
+  - text: "Hints 陣列的大小是固定且極小的，對節點的空間開銷影響極低。"
+    explanation: |
+      論文指出其空間開銷僅約 1.5% — 2% ，對整體空間利用率影響極低。

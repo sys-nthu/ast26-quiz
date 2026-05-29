@@ -1,0 +1,18 @@
+author: weisin12
+date: 2026-05-29
+question: |
+  某團隊建構 HNSW 索引進行商品推薦，預計每次查詢回傳最相似的 50 件商品 (k=50) 。參數設定為： M=32 ， efConstruction=200 ， efSearch=40 。這個配置最主要的問題是什麼？
+options:
+  - text: "efSearch 設定小於要求回傳的數量 k ，將無法回傳要求的 50 個候選結果。"
+    correct: true
+    explanation: |
+      efSearch 決定了 Beam Search 最終保留的候選節點最大數量。
+  - text: "efConstruction 的值大於 efSearch，導致建構的圖結構過於複雜，線上查詢時無法順利遍歷。"
+    explanation: |
+      efConstruction 與 efSearch 獨立運作。
+  - text: "參數 M 必須大於查詢數量 k，否則節點的連線數不足以提供 50 個候選結果。"
+    explanation: |
+      系統找 Top-50 是透過圖結構不斷跨節點搜尋，而非只從單一節點的鄰居中挑選，因此 M 不需要大於 k 。
+  - text: "efConstruction 設定為 200 太大，會讓每個節點被迫儲存更多條邊，導致記憶體開銷過大。"
+    explanation: |
+      控制每個節點最大連線數，進而影響記憶體用量的參數是 M 。

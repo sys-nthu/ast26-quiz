@@ -15,4 +15,4 @@ options:
       BAB 的適應機制是每個 leaf 會根據自身的存取負載獨立切換佈局，而非統一轉換。
   - text: "Key-adaption 在節點 split 或 merge 時順便判斷。"
     explanation: |
-      為了省下額外的運算成本，資料特徵檢查會利用節點 split 或 merge的時機進行。
+      為了省下額外的運算成本，資料特徵檢查會利用節點 split 或 merge 的時機進行。

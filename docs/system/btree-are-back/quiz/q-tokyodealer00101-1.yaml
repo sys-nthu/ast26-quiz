@@ -1,0 +1,21 @@
+author: tokyodealer00101
+date: 2026-05-28
+question: |
+  當索引大小超過 buffer pool 時，BAB 主張 Adaptive B-Tree 比 Wormhole、ART 更適合由 buffer manager 換出到 SSD。下列何者最能解釋這個優勢？
+options:
+  - text: "它保留固定大小 page，record 也放在 page 內；buffer manager 可以用 page 為單位換出冷資料，需要時再從 SSD 讀回。"
+    correct: true
+    explanation: |
+      這正是 BAB 在 out-of-memory 場景強調的優勢。Adaptive B-Tree 仍是 page-oriented 結構，cold page 可以交給 buffer manager 換出到 SSD；再加上較好的空間效率，buffer pool 能容納更多有效資料，減少需要從 SSD 讀回的 page。
+
+  - text: "Fingerprinting leaf 加速了 point lookup，減少 page 讀回後的查找時間。"
+    explanation: |
+      Fingerprinting leaf 解決的是 leaf 內 point lookup 的比較與 cache miss 成本，不是 buffer manager 能不能管理資料的核心原因。當需要的 page 不在 buffer pool 裡時，系統仍然要從 SSD 讀回 page；能否用固定大小 page 管理才是關鍵。
+
+  - text: "Prefix truncation 與 dense leaves 提高空間效率，buffer pool 能裝下更多資料。"
+    explanation: |
+      空間效率提升確實能減少 page miss 和 SSD 讀回次數，但它不是「能被 buffer manager 管理」的根本條件。buffer manager 需要的是穩定的 page 單位；空間效率是在 page-oriented 設計上進一步降低 out-of-memory 成本。
+
+  - text: "B-Tree 的 fan-out 高、樹很矮，internal node 幾乎一直留在 buffer pool 裡。"
+    explanation: |
+      B-Tree 樹高低有助於減少 traversal 成本，但 out-of-memory 的關鍵不只是 internal nodes。真正要讀寫的 leaf page 仍可能不在 buffer pool 裡，因此重點仍是整個結構能不能以固定大小 page 換出與讀回。

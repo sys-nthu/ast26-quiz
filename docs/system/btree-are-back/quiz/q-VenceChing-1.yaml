@@ -1,0 +1,19 @@
+author: VenceChing
+date: 2026-05-28
+question: |
+  一個 fingerprinting leaf 內有 128 個 key，每個 key 都存一個 1-byte fingerprint，且沒有維持 key order。現在系統要查詢一個不存在的 key，且它的 fingerprint 可能與 leaf 中某個既有 key 相同。
+  在上述情況下，下列何者最能解釋 fingerprinting leaf 為什麼仍可能比傳統 sorted slotted page 更適合 point lookup？
+options:
+  - text: "可先利用 SIMD 掃描 fingerprint，過濾後只需對候選 key 進行完整比對。"
+    correct: true
+    explanation: |
+      Fingerprinting leaf 把 point lookup 的主要工作變成掃描連續的 fingerprint 陣列，對 cache 較友善。雖然 1-byte fingerprint 可能產生 false positive，相符時仍要讀完整 key 驗證，但只有候選 key 需要驗證，不會在多個 binary search 步驟中反覆讀取 heap 中的完整 key。
+  - text: "1-byte fingerprint 足以識別 leaf 內的所有 key。"
+    explanation: |
+      1-byte fingerprint 只有 256 種值，碰撞是必須處理的情況。Fingerprint 不相符可以排除該位置，但相符只表示可能命中，仍要比對完整 key。
+  - text: "可以減少 leaf split 次數。"
+    explanation: |
+      Fingerprinting leaf 讓 insert 可以 append，確實降低維護排序的成本，但它不會改變 leaf 容量或 B+ Tree split 的基本條件。這題的 point lookup 效益主要來自連續 scan fingerprint 陣列，減少讀取 heap 中完整 key 的次數。
+  - text: "執行 range scan 時，能省去維護資料排序的成本。"
+    explanation: |
+      Fingerprinting leaf 的 key 沒有維持排序，range scan 需要 sequential 輸出時會引入 lazy sort 成本。它主要適合 point lookup 和 insert，scan-heavy 時會傾向轉回 comparison-based layout。

@@ -1,0 +1,28 @@
+author: Huaaa817
+date: 2026-05-28
+question: |
+  某檔案系統採用 delayed allocation。使用者連續對同一個檔案寫入 50 MB，但 kernel 不馬上分配 disk block，而是先把資料留在 page cache。
+  等到 writeback 或 `fsync()` 發生時，allocator 才一次看到這 50 MB 的寫入需求，並嘗試找一段大的連續空間。
+  這個設計的主要好處與代價分別是什麼？
+  
+options:
+  - text: "好處是減少 fragmentation；代價是 crash 前未 writeback 的資料可能消失"
+    correct: true
+    explanation: |
+      Delayed allocation 讓 allocator 不必每次 `write()` 都立刻分配 block，而是等到真正要 writeback 時，才一次看到較大的寫入範圍。因此它比較容易分配連續的 disk blocks，形成較大的 extent，減少 fragmentation。
+      代價是資料在 writeback 前仍可能只存在 page cache 裡。如果系統在資料落盤前 crash，這些 dirty pages 可能直接消失。
+      
+  - text: "好處是不用 inode；代價是 directory entry 會變大"
+    explanation: |
+      這是錯的。Delayed allocation 並不會取消 inode。inode 仍然需要記錄檔案大小、metadata，以及 extent list 等資訊。
+      Directory entry 也不會因為 delayed allocation 而變大。Directory entry 主要負責把檔名對應到 inode number。
+      
+  - text: "好處是不用 block bitmap；代價是無法 append"
+    explanation: |
+      這是錯的。Delayed allocation 只是延後決定實體 block 的分配時機，不代表不需要 block bitmap。
+      當 writeback 或 `fsync()` 發生、allocator 真正分配 block 時，仍然需要更新 bitmap，把被分配的 blocks 標成 used。Append 操作也仍然可以正常進行。
+      
+  - text: "好處是資料一定不會遺失；代價是寫入速度一定變慢"
+    explanation: |
+      這是錯的。Delayed allocation 反而會增加 crash 前資料尚未落盤的風險，因此不能保證資料一定不會遺失。
+      它也不代表寫入速度一定變慢。因為延後分配有機會減少 fragmentation、形成較大的 extent，長期來看可能改善寫入與讀取效率。

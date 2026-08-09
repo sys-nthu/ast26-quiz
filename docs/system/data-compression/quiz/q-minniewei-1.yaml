@@ -1,0 +1,21 @@
+author: minniewei
+date: 2026-05-27
+question: |
+  關於 Data Compression 當中的「Fixed-input」與「Fixed-output」兩種策略，下列敘述何者正確？
+options:
+  - text: "Fixed-input 由於每個 output block 大小相同，因此可以直接透過公式計算出 disk 位置，達到 O(1) 定位。"
+    explanation: |
+      Fixed-input 的 output block 大小不固定，因此無法直接透過公式計算出 disk 位置。
+
+  - text: "Fixed-input 每次將固定 N bytes 的原始資料丟給壓縮器，因此其壓縮後的輸出大小也是固定的。"
+    explanation: |
+      Fixed-input 的 output block 大小不固定，取決於原始資料的內容。
+
+  - text: "Fixed-input 雖然在隨機存取時需要額外維護 offset index，但其壓縮率表現通常優於 Fixed-output。"
+    correct: true
+    explanation: |
+      Fixed-input 的壓縮率通常優於 Fixed-output，因為它不受 output block 大小的限制，可以更有效地壓縮資料。
+
+  - text: "Fixed-output 在進行隨機存取讀取 1 byte 時，必須將整個壓縮過的 chunk 完全解壓縮，無法限制每次解壓量的上限。"
+    explanation: |
+      Fixed-output 的特性是每個 output block 大小固定，因此在隨機存取時，必須解壓整個 block 才能取得所需的資料。

@@ -1,0 +1,43 @@
+author: SL3333PY
+date: 2026-05-28
+question: |
+  BAB 論文比較了 optimized B-Tree 與 Wormhole 在不同 workload 下的效能表現。
+  根據兩者的特性，下列哪一個情境與資料結構選擇的配對最合理？
+options:
+  - text: |
+      電商平台以連續且遞增的商品 ID 查詢單筆商品資料：使用 Wormhole。
+      因為 Wormhole 的 asymptotic complexity 為 O(log L)，比 B-Tree 的 O(log N) 更低，所以效能更好。
+    explanation: |
+      Asymptotic complexity 低不代表實際效能比較好，cache miss 的次數才是更重要的因素。
+      Optimized B-Tree 對 dense integer key 採用 fully dense leaf，
+      因為 lookup 直接用位置推導，不需要做 key 的比較，導致 cache miss 極少，
+      因此在此 workload 下反而比 Wormhole 更快。
+
+  - text: |
+      圖書館系統依照英文書名的字母順序列出某個範圍內的所有書目：使用 Wormhole。
+      Wormhole 因為保留了有序的 leaf linked list，scan 時只需要依序走訪，效能優於 B-Tree。
+    explanation: |
+      Wormhole 雖然保留了有序的 leaf linked list，但每個 record 是分散 malloc 出來的，
+      scan 時每筆 record 都是一次 random memory access，cache locality 很差。
+      B-Tree 把 record inline 在 page 裡，scan 時資料連續，效能反而優於 Wormhole。
+
+  - text: |
+      社群平台以隨機分配的 64-bit user_id 查詢單一用戶資料：使用 B-Tree。
+      Optimized B-Tree 因為 hints 讓 binary search 的範圍縮小到 1/16，
+      大幅減少 cache miss，所以效能優於 Wormhole。
+    explanation: |
+      Hints 確實能縮小 binary search 範圍並減少 cache miss，
+      但 sparse integer key 仍需沿樹走訪，且 lookup complexity 還是高於 Wormhole 的 O(log L)。
+
+  - text: |
+      物聯網平台以連續遞增的 timestamp 查詢某段時間區間內的所有感測器讀數：使用 B-Tree。
+      Optimized B-Tree 因為 record inline 在 page 裡使 scan 時資料連續，
+      且 fully dense leaf 讓每個 page 能裝更多 record，進一步減少需要走訪的 page 數量，因此效能較好。
+    correct: true
+    explanation: |
+      Range scan 的效能主要取決於 record 的 cache locality。
+      B-Tree 把 record inline 在 fixed-size page 裡，scan 時資料連續，cache miss 少；
+      Wormhole 的 record 分散 malloc，scan 時每筆都是 random memory access。
+      對 dense integer key，fully dense leaf 額外提升了每個 page 能裝的 record 數，
+      減少需要走訪的 page 數量，使優勢更加明顯。
+
